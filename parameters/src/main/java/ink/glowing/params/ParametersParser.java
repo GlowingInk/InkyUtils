@@ -1,5 +1,9 @@
 package ink.glowing.params;
 
+import ink.glowing.params.ParameterImpl.ListedImpl;
+import ink.glowing.params.ParameterImpl.MappedImpl;
+import ink.glowing.params.ParameterImpl.PlainImpl;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -7,29 +11,31 @@ import java.util.Map;
 
 import static java.lang.Character.isWhitespace;
 
-public class ParameterParser {
-    final String inputStr;
-    final char[] input;
-    final int length;
-    int pos;
+public final class ParametersParser {
+    private final char[] input;
+    private final int length;
+    private int pos;
 
-    private ParameterParser(String inputStr) {
-        this.inputStr = inputStr;
+    private ParametersParser(String inputStr) {
         this.input = inputStr.toCharArray();
         this.length = this.input.length;
     }
 
-    public static Parameter<?> parse(String raw) {
-        return new Parameter.OfMap(new ParameterParser(raw).parseMap(true), true);
+    public static Parameter.Mapped parse(String inputStr) {
+        return new MappedImpl(inputStr, new ParametersParser(inputStr).parseMap(true));
     }
 
     private void advance() {
         ++pos;
     }
 
+    private void back() {
+        --pos;
+    }
+
     private boolean advanceOn(char ch) {
         if (currentSafe() == ch) {
-            this.pos++;
+            pos++;
             return true;
         }
         return false;
@@ -46,19 +52,15 @@ public class ParameterParser {
     }
 
     private char currentSafe() {
-        return eof() ? '\0' : input[pos];
+        return hasMore() ? input[pos] : '\0';
     }
 
-    private boolean eof() {
-        return pos >= length;
-    }
-
-    private void back() {
-        --pos;
+    private boolean hasMore() {
+        return pos < length;
     }
 
     private boolean skipWhitespaces() {
-        while (!eof()) {
+        while (hasMore()) {
             if (isWhitespace(current())) {
                 advance();
             } else {
@@ -68,18 +70,29 @@ public class ParameterParser {
         return false;
     }
 
-    private Map<String, Parameter<?>> parseMap(boolean global) {
-        Map<String, Parameter<?>> map = new LinkedHashMap<>();
-        while (!eof()) {
+    private boolean handleEscaping(char ch, StringBuilder stringBuilder) {
+        if (ch == '\\') {
+            if (!hasMore()) {
+                throw new IllegalArgumentException("Found escaping '\\' at the end of a string");
+            }
+            stringBuilder.append(pop());
+            return true;
+        }
+        return false;
+    }
+
+    private Map<String, Parameter> parseMap(boolean global) {
+        Map<String, Parameter> map = new LinkedHashMap<>();
+        int start = pos;
+        while (hasMore()) {
             char ch = pop();
             if (ch == '\'') {
                 String key = parseQuotedString();
                 if (advanceOn(':')) {
                     map.put(key, parseSingleValue(global ? '\0' : '}'));
-                } else {
-                    throw new IllegalArgumentException("Couldn't find semicolon for the map value at pos " + pos);
+                    continue;
                 }
-                continue;
+                throw new IllegalArgumentException("Couldn't find semicolon for the map value at pos " + pos);
             } else if (ch == '}') {
                 if (global) {
                     throw new IllegalArgumentException("Found trailing '}' while parsing global map at pos " + (pos - 1));
@@ -90,25 +103,16 @@ public class ParameterParser {
             }
 
             StringBuilder keyBuilder = new StringBuilder();
-            if (ch == '\\') {
-                if (eof()) {
-                    throw new IllegalArgumentException("Found escaping '\\' at the end of a string");
-                }
-                keyBuilder.append(pop());
-            } else {
+            if (!handleEscaping(ch, keyBuilder)) {
                 keyBuilder.append(ch);
             }
-            while (!eof()) {
+            while (hasMore()) {
                 char chKey = pop();
                 if (chKey == ':' || isWhitespace(chKey)) {
                     back();
                     break;
                 }
-                if (chKey == '\\') {
-                    if (eof()) {
-                        throw new IllegalArgumentException("Found escaping '\\' at the end of a string");
-                    }
-                    keyBuilder.append(pop());
+                if (handleEscaping(chKey, keyBuilder)) {
                     continue;
                 }
                 keyBuilder.append(chKey);
@@ -121,54 +125,60 @@ public class ParameterParser {
             }
             throw new IllegalArgumentException("Couldn't find semicolon for the map value at pos " + pos);
         }
+        if (!global) {
+            throw new IllegalArgumentException("Couldn't find the end of a map started at " + start);
+        }
         return map;
     }
 
-    private Parameter<?> parseList() {
-        List<Parameter<?>> list = new ArrayList<>();
-        while (!eof()) {
-            if (advanceOn(']')) break;
+    private Parameter parseList() {
+        List<Parameter> list = new ArrayList<>();
+        int start = pos;
+        while (hasMore()) {
+            if (!skipWhitespaces()) {
+                throw new IllegalArgumentException("Couldn't find the end of a list started at " + start);
+            }
+            if (advanceOn(']')) {
+                return new ListedImpl(new String(input, start, pos - start - 1), list);
+            }
             list.add(parseSingleValue(']'));
         }
-        return new Parameter.OfList(list);
+        throw new IllegalArgumentException("Couldn't find the end of a list started at " + start);
     }
 
-    private Parameter<?> parseSingleValue(char parentEnd) {
+    private Parameter parseSingleValue(char parentEnd) {
         if (!skipWhitespaces() || current() == parentEnd) {
-            return Parameter.Empty.INSTANCE;
+            return PlainImpl.EMPTY;
         }
-        char startCh = current();
         if (advanceOn('[')) {
             return parseList();
         } else if (advanceOn('{')) {
-            return new Parameter.OfMap(parseMap(false));
+            int start = pos;
+            var value = parseMap(false);
+            return new MappedImpl(new String(input, start, pos - start - 1), value);
         } else if (advanceOn('\'')) {
             String string = parseQuotedString();
             if (skipWhitespaces() && advanceOn(':')) { // Singleton map
-                return new Parameter.OfMap(Map.of(string, parseSingleValue(parentEnd)));
+                int start = pos;
+                var value = Map.of(string, parseSingleValue(parentEnd));
+                return new MappedImpl(new String(input, start, pos - start - 1), value);
             }
-            return new Parameter.OfString(string);
+            return new PlainImpl(string);
         }
 
         StringBuilder stringBuilder = new StringBuilder();
-        if (advanceOn('\\')) {
-            stringBuilder.append(current());
-        } else {
-            stringBuilder.append(startCh);
-        }
-        advance();
-        
-        while (!eof()) {
+        advanceOn('\\');
+        stringBuilder.append(pop());
+
+        while (hasMore()) {
             char ch = pop();
             if (ch == ':') { // Singleton map
-                return new Parameter.OfMap(Map.of(stringBuilder.toString(), parseSingleValue('\0')));
+                int start = pos;
+                var value = Map.of(stringBuilder.toString(), parseSingleValue('\0'));
+                return new MappedImpl(new String(input, start, pos - start - 1), value);
             } else if (isWhitespace(ch)) {
                 break;
-            } else if (ch == '\\') {
-                if (eof()) {
-                    throw new IllegalArgumentException("Found escaping '\\' at the end of a string");
-                }
-                stringBuilder.append(pop());
+            } else if (handleEscaping(ch, stringBuilder)) {
                 continue;
             } else if (ch == parentEnd) {
                 back(); // Allow parent to handle the closing
@@ -176,21 +186,21 @@ public class ParameterParser {
             }
             stringBuilder.append(ch);
         }
-        return new Parameter.OfString(stringBuilder.toString());
+        return new PlainImpl(stringBuilder.toString());
     }
     
     private String parseQuotedString() {
         StringBuilder stringBuilder = new StringBuilder();
-        while (!eof()) {
+        int start = pos;
+        while (hasMore()) {
             char ch = pop();
             if (ch == '\'') {
                 return stringBuilder.toString();
-            } if (ch == '\\') {
-                stringBuilder.append(pop());
+            } if (handleEscaping(ch, stringBuilder)) {
                 continue;
             }
             stringBuilder.append(ch);
         }
-        throw new IllegalArgumentException("Couldn't find the end of a quoted string");
+        throw new IllegalArgumentException("Couldn't find the end of a quoted string started at " + start);
     }
 }

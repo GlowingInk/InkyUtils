@@ -1,10 +1,41 @@
 package ink.glowing.params;
 
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.List;
+import static org.testng.Assert.assertEquals;
 
 public class ParameterParserTest {
+    @DataProvider
+    public Object[][] parseData() {
+        return new Object[][]{
+                {
+                        "simple:value",
+                        "simple:value"
+                }, {
+                        "first:value second:value",
+                        "first:value second:value"
+                }, {
+                        "escaping:\\'\\ space!",
+                        "escaping:'\\' space!'"
+                }
+        };
+    }
+
+    @Test(dataProvider = "parseData")
+    public void parseTest(String input, String expected) {
+        String result = Parameter.asParameterValue(ParametersParser.parse(input), true);
+        assertEquals(
+                result,
+                expected
+        );
+        assertEquals(
+                Parameter.asParameterValue(ParametersParser.parse(result), true),
+                expected,
+                "Double-parsing input lead to another result"
+        );
+    }
+
     @Test
     public void test() {
         String[] examples = {
@@ -26,9 +57,9 @@ public class ParameterParserTest {
         for (String ex : examples) {
             IO.println(ex);
             IO.println("========================================");
-            String result = ParameterParser.parse(ex).toString();
+            String result = Parameter.asParameterValue(ParametersParser.parse(ex), true);
             IO.println(result);
-            IO.println(ParameterParser.parse(result));
+            IO.println(Parameter.asParameterValue(ParametersParser.parse(result), true));
             IO.println();
         }
     }

@@ -1,65 +1,70 @@
 package ink.glowing.params;
 
+import ink.glowing.params.ParameterImpl.ListedImpl;
+import ink.glowing.params.ParameterImpl.MappedImpl;
+import ink.glowing.params.ParameterImpl.PlainImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Map;
+public sealed interface Parameter {
+    @Nullable String rawValue();
 
-public interface Parameter<$Value> {
-    @Nullable
-    $Value value();
+    int count();
 
-    enum Empty implements Parameter<Void> {
-        INSTANCE;
+    boolean isEmpty();
 
-        @Override
-        public @Nullable Void value() {
-            return null;
-        }
+    sealed interface Plain extends Parameter permits PlainImpl { }
 
-        @Override
-        public String toString() {
-            return "";
-        }
+    sealed interface Mapped extends Parameter permits MappedImpl { }
+
+    sealed interface Listed extends Parameter permits ListedImpl { }
+
+    static @NotNull String asParameterValue(Parameter parameter, boolean global) {
+        return switch (parameter) {
+            case PlainImpl(String value) -> escapePlainValue(value);
+            case MappedImpl mapped -> {
+                if (mapped.isEmpty()) {
+                    yield global ? "" : "{}";
+                }
+                StringBuilder sb = new StringBuilder();
+                if (!global) sb.append('{');
+                for (var entry : mapped.internalValue().entrySet()) {
+                    sb.append(escapePlainValue(entry.getKey()))
+                            .append(':')
+                            .append(asParameterValue(entry.getValue(), false));
+                    sb.append(' ');
+                }
+                if (global) {
+                    sb.setLength(sb.length() - 1);
+                } else {
+                    sb.setCharAt(sb.length() - 1, '}');
+                }
+                yield sb.toString();
+            }
+            case ListedImpl listed -> {
+                if (listed.isEmpty()) {
+                    yield global ? "" : "[]";
+                }
+                StringBuilder sb = new StringBuilder();
+                if (!global) sb.append('[');
+                for (var entry : listed.internalValue()) {
+                    sb.append(asParameterValue(entry, false));
+                    sb.append(' ');
+                }
+                if (global) {
+                    sb.setLength(sb.length() - 1);
+                } else {
+                    sb.setCharAt(sb.length() - 1, ']');
+                }
+                yield sb.toString();
+            }
+        };
     }
 
-    record OfList(List<Parameter<?>> value) implements Parameter<List<Parameter<?>>> {
-        @Override
-        public @NotNull String toString() {
-            StringBuilder builder = new StringBuilder().append('[').append(' ');
-            for (var param : value) {
-                builder.append(param).append(' ');
-            }
-            return builder.append(']').toString();
-        }
-    }
-
-    record OfMap(Map<String, Parameter<?>> value, boolean global) implements Parameter<Map<String, Parameter<?>>> {
-        public OfMap(Map<String, Parameter<?>> value) {
-            this(value, false);
-        }
-
-        @Override
-        public @NotNull String toString() {
-            StringBuilder builder = new StringBuilder();
-            if (!global) {
-                builder.append('{').append(' ');
-            }
-            for (var entry : value.entrySet()) {
-                builder.append(entry.getKey()).append(':').append(entry.getValue()).append(' ');
-            }
-            if (!global) {
-                builder.append('}');
-            }
-            return builder.toString();
-        }
-    }
-
-    record OfString(String value) implements Parameter<String> {
-        @Override
-        public @NotNull String toString() {
-            return "'" + value.replace("'", "\\'") + "'";
-        }
+    static @NotNull String escapePlainValue(@NotNull String value) {
+        String escaped = value.replace("\\", "\\\\").replace("'", "\\'");
+        return value.indexOf(' ') != -1
+                ? '\'' + escaped + '\''
+                : escaped;
     }
 }
