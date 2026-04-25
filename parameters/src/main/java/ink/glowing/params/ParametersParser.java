@@ -3,6 +3,7 @@ package ink.glowing.params;
 import ink.glowing.params.ParameterImpl.ListedImpl;
 import ink.glowing.params.ParameterImpl.MappedImpl;
 import ink.glowing.params.ParameterImpl.PlainImpl;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -12,6 +13,8 @@ import java.util.Map;
 import static java.lang.Character.isWhitespace;
 
 public final class ParametersParser {
+    private static final char NIL = '\0';
+
     private final char[] input;
     private final int length;
     private int pos;
@@ -21,8 +24,8 @@ public final class ParametersParser {
         this.length = this.input.length;
     }
 
-    public static Parameter.Mapped parse(String inputStr) {
-        return new MappedImpl(inputStr, new ParametersParser(inputStr).parseMap(true));
+    public static Parameter.Mapped parseMap(String inputStr) {
+        return new MappedImpl(inputStr, new ParametersParser(inputStr).parseMap(0));
     }
 
     private void advance() {
@@ -35,7 +38,7 @@ public final class ParametersParser {
 
     private boolean advanceOn(char ch) {
         if (currentSafe() == ch) {
-            pos++;
+            ++pos;
             return true;
         }
         return false;
@@ -52,11 +55,15 @@ public final class ParametersParser {
     }
 
     private char currentSafe() {
-        return hasMore() ? input[pos] : '\0';
+        return hasMore() ? input[pos] : NIL;
     }
 
     private boolean hasMore() {
         return pos < length;
+    }
+
+    private @NotNull String slice(int start) {
+        return new String(input, start, pos - start - 1);
     }
 
     private boolean skipWhitespaces() {
@@ -81,20 +88,19 @@ public final class ParametersParser {
         return false;
     }
 
-    private Map<String, Parameter> parseMap(boolean global) {
+    private Map<String, Parameter> parseMap(int start) {
         Map<String, Parameter> map = new LinkedHashMap<>();
-        int start = pos;
         while (hasMore()) {
             char ch = pop();
             if (ch == '\'') {
                 String key = parseQuotedString();
                 if (advanceOn(':')) {
-                    map.put(key, parseSingleValue(global ? '\0' : '}'));
+                    map.put(key, parseSingleValue(start == 0 ? NIL : '}'));
                     continue;
                 }
                 throw new IllegalArgumentException("Couldn't find semicolon for the map value at pos " + pos);
             } else if (ch == '}') {
-                if (global) {
+                if (start == 0) {
                     throw new IllegalArgumentException("Found trailing '}' while parsing global map at pos " + (pos - 1));
                 }
                 return map;
@@ -119,13 +125,13 @@ public final class ParametersParser {
             }
             if (skipWhitespaces()) {
                 if (advanceOn(':')) {
-                    map.put(keyBuilder.toString(), parseSingleValue(global ? '\0' : '}'));
+                    map.put(keyBuilder.toString(), parseSingleValue(start == 0 ? NIL : '}'));
                     continue;
                 }
             }
             throw new IllegalArgumentException("Couldn't find semicolon for the map value at pos " + pos);
         }
-        if (!global) {
+        if (start != 0) {
             throw new IllegalArgumentException("Couldn't find the end of a map started at " + start);
         }
         return map;
@@ -139,7 +145,7 @@ public final class ParametersParser {
                 throw new IllegalArgumentException("Couldn't find the end of a list started at " + start);
             }
             if (advanceOn(']')) {
-                return new ListedImpl(new String(input, start, pos - start - 1), list);
+                return new ListedImpl(slice(start), list);
             }
             list.add(parseSingleValue(']'));
         }
@@ -154,14 +160,14 @@ public final class ParametersParser {
             return parseList();
         } else if (advanceOn('{')) {
             int start = pos;
-            var value = parseMap(false);
-            return new MappedImpl(new String(input, start, pos - start - 1), value);
+            var value = parseMap(start);
+            return new MappedImpl(slice(start), value);
         } else if (advanceOn('\'')) {
             String string = parseQuotedString();
             if (skipWhitespaces() && advanceOn(':')) { // Singleton map
                 int start = pos;
                 var value = Map.of(string, parseSingleValue(parentEnd));
-                return new MappedImpl(new String(input, start, pos - start - 1), value);
+                return new MappedImpl(slice(start), value);
             }
             return new PlainImpl(string);
         }
@@ -174,8 +180,8 @@ public final class ParametersParser {
             char ch = pop();
             if (ch == ':') { // Singleton map
                 int start = pos;
-                var value = Map.of(stringBuilder.toString(), parseSingleValue('\0'));
-                return new MappedImpl(new String(input, start, pos - start - 1), value);
+                var value = Map.of(stringBuilder.toString(), parseSingleValue(NIL));
+                return new MappedImpl(slice(start), value);
             } else if (isWhitespace(ch)) {
                 break;
             } else if (handleEscaping(ch, stringBuilder)) {

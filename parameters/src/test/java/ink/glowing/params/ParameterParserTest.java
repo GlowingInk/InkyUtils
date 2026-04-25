@@ -24,13 +24,13 @@ public class ParameterParserTest {
 
     @Test(dataProvider = "parseData")
     public void parseTest(String input, String expected) {
-        String result = Parameter.asParameterValue(ParametersParser.parse(input), true);
+        String result = Parameter.asParameterValue(ParametersParser.parseMap(input), true);
         assertEquals(
                 result,
                 expected
         );
         assertEquals(
-                Parameter.asParameterValue(ParametersParser.parse(result), true),
+                Parameter.asParameterValue(ParametersParser.parseMap(result), true),
                 expected,
                 "Double-parsing input lead to another result"
         );
@@ -57,9 +57,9 @@ public class ParameterParserTest {
         for (String ex : examples) {
             IO.println(ex);
             IO.println("========================================");
-            String result = Parameter.asParameterValue(ParametersParser.parse(ex), true);
+            String result = Parameter.asParameterValue(ParametersParser.parseMap(ex), true);
             IO.println(result);
-            IO.println(Parameter.asParameterValue(ParametersParser.parse(result), true));
+            IO.println(Parameter.asParameterValue(ParametersParser.parseMap(result), true));
             IO.println();
         }
     }
