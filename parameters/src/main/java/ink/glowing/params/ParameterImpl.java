@@ -1,15 +1,17 @@
 package ink.glowing.params;
 
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 class ParameterImpl {
     private ParameterImpl() { }
 
-    record PlainImpl(@NotNull String rawValue) implements Parameter.Plain {
+    record PlainImpl(@NotNull String value) implements Parameter.Plain {
         static final Parameter.Plain EMPTY = new PlainImpl("");
 
         @Override
@@ -18,32 +20,112 @@ class ParameterImpl {
         }
 
         @Override
-        public boolean isEmpty() {
-            return rawValue.isEmpty();
+        public @Nullable Parameter get(@Nullable String key) {
+            return key == null ? this : null;
+        }
+
+        @Override
+        public @Nullable Parameter get(int index) {
+            return index == 0 ? this : null;
         }
     }
 
-    record ListedImpl(@NotNull String rawValue, @NotNull List<Parameter> internalValue) implements Parameter.Listed {
+    record ListedImpl(@NotNull Supplier<String> lazyValue, @NotNull List<Parameter> internalValue) implements Parameter.Listed {
+        @Override
+        public @NotNull String value() {
+            return lazyValue.get();
+        }
+
         @Override
         public int count() {
             return internalValue.size();
         }
 
         @Override
-        public boolean isEmpty() {
-            return internalValue.isEmpty();
+        public @Nullable Parameter get(@Nullable String key) {
+            if (key == null) {
+                return this;
+            }
+            try {
+                return get(Integer.parseInt(key));
+            } catch (NumberFormatException _) {
+                return null;
+            }
+        }
+
+        @Override
+        public @Nullable Parameter get(int index) {
+            if (index > 0) {
+                if (index < count()) {
+                    return internalValue.get(index);
+                }
+            } else if (index == -1) {
+                return this;
+            }
+            return null;
         }
     }
 
-    record MappedImpl(@NotNull String rawValue, @ApiStatus.Internal @NotNull Map<String, Parameter> internalValue) implements Parameter.Mapped {
+    record MappedImpl(@NotNull Supplier<String> lazyValue, @NotNull Map<String, Parameter> internalValue) implements Parameter.Mapped {
+        @Override
+        public @NotNull String value() {
+            return lazyValue.get();
+        }
+
         @Override
         public int count() {
             return internalValue.size();
         }
 
         @Override
-        public boolean isEmpty() {
-            return internalValue.isEmpty();
+        public @Nullable Parameter get(@Nullable String key) {
+            return key == null
+                    ? this
+                    : internalValue.get(key);
+        }
+
+        @Override
+        public @Nullable Parameter get(int index) {
+            return get(Integer.toString(index));
+        }
+    }
+
+    static class LazyValue implements Supplier<String> {
+        private String value;
+        private char[] input;
+        private final int start;
+        private final int end;
+
+        private final ReentrantLock lock = new ReentrantLock();
+
+        LazyValue(char[] input, int start, int end) {
+            this.input = input;
+            this.start = start;
+            this.end = end - 1;
+        }
+
+        @Override
+        public @NotNull String get() {
+            String v = value;
+            if (v != null) return v;
+            lock.lock();
+            try {
+                if (value != null) return value;
+                StringBuilder builder = new StringBuilder(end - start);
+                for (int index = start; index <= end; index++) {
+                    char ch = input[index];
+                    if (ch == '\\') {
+                        builder.append(input[++index]); // guaranteed safe by the params parser
+                        continue;
+                    }
+                    builder.append(ch);
+                }
+                value = builder.toString();
+                input = null; // so it'll get GC'ed eventually... hopefully
+                return value;
+            } finally {
+                lock.unlock();
+            }
         }
     }
 }

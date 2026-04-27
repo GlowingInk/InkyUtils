@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static java.lang.Character.isWhitespace;
 
@@ -19,13 +20,17 @@ public final class ParametersParser {
     private final int length;
     private int pos;
 
-    private ParametersParser(String inputStr) {
-        this.input = inputStr.toCharArray();
-        this.length = this.input.length;
+    private ParametersParser(char[] input) {
+        this.input = input;
+        this.length = input.length;
     }
 
     public static Parameter.Mapped parseMap(String inputStr) {
-        return new MappedImpl(inputStr, new ParametersParser(inputStr).parseMap(0));
+        char[] input = inputStr.toCharArray();
+        return new MappedImpl(
+                new ParameterImpl.LazyValue(input, 0, input.length),
+                new ParametersParser(input).parseMap(0)
+        );
     }
 
     private void advance() {
@@ -62,8 +67,8 @@ public final class ParametersParser {
         return pos < length;
     }
 
-    private @NotNull String slice(int start) {
-        return new String(input, start, pos - start - 1);
+    private @NotNull Supplier<String> slice(int start) {
+        return new ParameterImpl.LazyValue(input, start, pos);
     }
 
     private boolean skipWhitespaces() {

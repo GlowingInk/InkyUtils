@@ -6,12 +6,24 @@ import ink.glowing.params.ParameterImpl.PlainImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public sealed interface Parameter {
-    @Nullable String rawValue();
+import java.util.Optional;
 
+public sealed interface Parameter permits Parameter.Listed, Parameter.Mapped, Parameter.Plain {
     int count();
 
-    boolean isEmpty();
+    @NotNull String value();
+
+    default @NotNull Optional<Parameter> find(@Nullable String key) {
+        return Optional.ofNullable(get(key));
+    }
+
+    default @NotNull Optional<Parameter> find(int index) {
+        return Optional.ofNullable(get(index));
+    }
+
+    @Nullable Parameter get(@Nullable String key);
+
+    @Nullable Parameter get(int index);
 
     sealed interface Plain extends Parameter permits PlainImpl { }
 
@@ -23,7 +35,7 @@ public sealed interface Parameter {
         return switch (parameter) {
             case PlainImpl(String value) -> escapePlainValue(value);
             case MappedImpl mapped -> {
-                if (mapped.isEmpty()) {
+                if (mapped.count() == 0) {
                     yield global ? "" : "{}";
                 }
                 StringBuilder sb = new StringBuilder();
@@ -42,7 +54,7 @@ public sealed interface Parameter {
                 yield sb.toString();
             }
             case ListedImpl listed -> {
-                if (listed.isEmpty()) {
+                if (listed.count() == 0) {
                     yield global ? "" : "[]";
                 }
                 StringBuilder sb = new StringBuilder();
