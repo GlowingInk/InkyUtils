@@ -1,4 +1,4 @@
-package ink.glowing.util.collections;
+package ink.glowing.collections;
 
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;

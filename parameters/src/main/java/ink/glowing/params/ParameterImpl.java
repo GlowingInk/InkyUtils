@@ -31,7 +31,7 @@ class ParameterImpl {
         }
     }
 
-    record ListedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull List<Parameter> internalValue) implements Parameter.Listed { // TODO HashList
+    record ListedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull List<Parameter> internalValue) implements Parameter.Listed {
         static Listed EMPTY = new ListedImpl(EMPTY_VALUE, List.of());
 
         @Override
