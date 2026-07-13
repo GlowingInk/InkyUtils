@@ -9,7 +9,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
-class ParameterImpl {
+final class ParameterImpl {
     private ParameterImpl() { }
 
     record PlainImpl(@NotNull String value) implements Parameter.Plain {
@@ -93,7 +93,7 @@ class ParameterImpl {
         }
     }
 
-    record MappedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull Map<String, Parameter> internalValue) implements Parameter.Mapped { // TODO CaseInsensitive map
+    record MappedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull Map<String, Parameter> internalValue) implements Parameter.Mapped {
         static Mapped EMPTY = new MappedImpl(EMPTY_VALUE, Map.of());
 
         @Override
@@ -140,7 +140,9 @@ class ParameterImpl {
         }
     }
 
-    private static final Function<Parameter, String> EMPTY_VALUE = _ -> "";
+    static final Function<Parameter, String> EMPTY_VALUE = _ -> "";
+
+    static final Function<Parameter, String> GLOBAL_VALUE = param -> param.asParameterValue(true);
 
     static class LazyValue implements Function<Parameter, String> {
         private String value;

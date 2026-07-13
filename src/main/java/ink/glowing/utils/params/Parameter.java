@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static ink.glowing.utils.params.ParameterImpl.GLOBAL_VALUE;
+
 public sealed interface Parameter extends Parameterizable permits Parameter.Listed, Parameter.Mapped, Parameter.Plain {
     int count();
 
@@ -22,11 +24,11 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
 
     @Nullable Parameter get(int index);
 
-    default <R> @Nullable R map(@Nullable String key, @NotNull Function<@Nullable Parameter, ? extends R> mapper) {
+    default <$Result> @Nullable $Result map(@Nullable String key, @NotNull Function<@Nullable Parameter, ? extends $Result> mapper) {
         return mapper.apply(get(key));
     }
 
-    default <R> @Nullable R map(int index, @NotNull Function<@Nullable Parameter, ? extends R> mapper) {
+    default <$Result> @Nullable $Result map(int index, @NotNull Function<@Nullable Parameter, ? extends $Result> mapper) {
         return mapper.apply(get(index));
     }
 
@@ -43,36 +45,36 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         }
     }
 
-    sealed interface Mapped extends Parameter permits MappedImpl {
-        static @NotNull Mapped of(@Nullable Map<String, Parameter> value) {
-            return value == null || value.isEmpty()
-                    ? MappedImpl.EMPTY
-                    : new MappedImpl(parameter -> parameter.asParameterValue(true), Map.copyOf(value));
-        }
-
-        static @NotNull Parameter.Mapped parse(@NotNull String inputStr) {
-            char[] input = inputStr.toCharArray();
-            if (input.length == 0) return MappedImpl.EMPTY;
-            return new MappedImpl(
-                    new LazyValue(input, 0, input.length),
-                    new ParserImpl(input).parseMap(0)
-            );
-        }
-    }
-
     sealed interface Listed extends Parameter permits ListedImpl {
         static @NotNull Listed of(@Nullable List<Parameter> value) {
             return value == null || value.isEmpty()
                     ? ListedImpl.EMPTY
-                    : new ListedImpl(parameter -> parameter.asParameterValue(true), List.copyOf(value));
+                    : new ListedImpl(GLOBAL_VALUE, List.copyOf(value));
         }
 
         static @NotNull Parameter.Listed parse(@NotNull String inputStr) {
+            if (inputStr.isEmpty()) return ListedImpl.EMPTY;
             char[] input = inputStr.toCharArray();
-            if (input.length == 0) return ListedImpl.EMPTY;
             return new ListedImpl(
                     new LazyValue(input, 0, input.length),
                     new ParserImpl(input).parseList(0)
+            );
+        }
+    }
+
+    sealed interface Mapped extends Parameter permits MappedImpl {
+        static @NotNull Mapped of(@Nullable Map<String, Parameter> value) {
+            return value == null || value.isEmpty()
+                    ? MappedImpl.EMPTY
+                    : new MappedImpl(GLOBAL_VALUE, Map.copyOf(value));
+        }
+
+        static @NotNull Parameter.Mapped parse(@NotNull String inputStr) {
+            if (inputStr.isEmpty()) return MappedImpl.EMPTY;
+            char[] input = inputStr.toCharArray();
+            return new MappedImpl(
+                    new LazyValue(input, 0, input.length),
+                    new ParserImpl(input).parseMap(0)
             );
         }
     }

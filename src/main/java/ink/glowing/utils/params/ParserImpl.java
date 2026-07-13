@@ -1,12 +1,12 @@
 package ink.glowing.utils.params;
 
+import ink.glowing.utils.CaseInsensitive;
 import ink.glowing.utils.params.ParameterImpl.ListedImpl;
 import ink.glowing.utils.params.ParameterImpl.MappedImpl;
 import ink.glowing.utils.params.ParameterImpl.PlainImpl;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -86,7 +86,7 @@ final class ParserImpl {
     }
 
     @NotNull Map<String, Parameter> parseMap(final int start) {
-        Map<String, Parameter> map = new LinkedHashMap<>();
+        Map<String, Parameter> map = CaseInsensitive.newLinkedMap();
         char endCh = start == 0 ? NIL : '}';
         while (hasMore()) {
             char ch = pop();
