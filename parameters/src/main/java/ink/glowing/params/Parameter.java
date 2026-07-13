@@ -6,9 +6,11 @@ import ink.glowing.params.ParameterImpl.PlainImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-public sealed interface Parameter permits Parameter.Listed, Parameter.Mapped, Parameter.Plain {
+public sealed interface Parameter extends Parameterizable permits Parameter.Listed, Parameter.Mapped, Parameter.Plain {
     int count();
 
     @NotNull String value();
@@ -25,13 +27,36 @@ public sealed interface Parameter permits Parameter.Listed, Parameter.Mapped, Pa
 
     @Nullable Parameter get(int index);
 
-    sealed interface Plain extends Parameter permits PlainImpl { }
+    @Override
+    default @NotNull Parameter asParameter() {
+        return this;
+    }
 
-    sealed interface Mapped extends Parameter permits MappedImpl { }
+    sealed interface Plain extends Parameter permits PlainImpl {
+        static @NotNull Plain of(@Nullable String value) {
+            return value == null || value.isEmpty()
+                    ? PlainImpl.EMPTY
+                    : new PlainImpl(value);
+        }
+    }
 
-    sealed interface Listed extends Parameter permits ListedImpl { }
+    sealed interface Mapped extends Parameter permits MappedImpl {
+        static @NotNull Mapped of(@Nullable Map<String, Parameter> value) {
+            return value == null || value.isEmpty()
+                    ? MappedImpl.EMPTY
+                    : new MappedImpl(parameter -> asParameterValue(parameter, true), Map.copyOf(value));
+        }
+    }
 
-    static @NotNull String asParameterValue(Parameter parameter, boolean global) {
+    sealed interface Listed extends Parameter permits ListedImpl {
+        static @NotNull Listed of(@Nullable List<Parameter> value) {
+            return value == null || value.isEmpty()
+                    ? ListedImpl.EMPTY
+                    : new ListedImpl(parameter -> asParameterValue(parameter, true), List.copyOf(value));
+        }
+    }
+
+    static @NotNull String asParameterValue(@NotNull Parameter parameter, boolean global) {
         return switch (parameter) {
             case PlainImpl(String value) -> escapePlainValue(value);
             case MappedImpl mapped -> {

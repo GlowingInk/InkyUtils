@@ -5,8 +5,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 class ParameterImpl {
     private ParameterImpl() { }
@@ -30,10 +31,12 @@ class ParameterImpl {
         }
     }
 
-    record ListedImpl(@NotNull Supplier<String> lazyValue, @NotNull List<Parameter> internalValue) implements Parameter.Listed {
+    record ListedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull List<Parameter> internalValue) implements Parameter.Listed { // TODO HashList
+        static Listed EMPTY = new ListedImpl(EMPTY_VALUE, List.of());
+
         @Override
         public @NotNull String value() {
-            return lazyValue.get();
+            return valueCompute.apply(this);
         }
 
         @Override
@@ -66,10 +69,12 @@ class ParameterImpl {
         }
     }
 
-    record MappedImpl(@NotNull Supplier<String> lazyValue, @NotNull Map<String, Parameter> internalValue) implements Parameter.Mapped {
+    record MappedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull Map<String, Parameter> internalValue) implements Parameter.Mapped { // TODO CaseInsensitive map
+        static Mapped EMPTY = new MappedImpl(EMPTY_VALUE, Map.of());
+
         @Override
         public @NotNull String value() {
-            return lazyValue.get();
+            return valueCompute.apply(this);
         }
 
         @Override
@@ -90,29 +95,29 @@ class ParameterImpl {
         }
     }
 
-    static class LazyValue implements Supplier<String> {
+    private static final Function<Parameter, String> EMPTY_VALUE = _ -> "";
+
+    static class LazyValue implements Function<Parameter, String> {
         private String value;
         private char[] input;
         private final int start;
-        private final int end;
+        private final int inclusiveEnd;
 
-        private final ReentrantLock lock = new ReentrantLock();
+        private final Lock lock = new ReentrantLock();
 
         LazyValue(char[] input, int start, int end) {
             this.input = input;
             this.start = start;
-            this.end = end - 1;
+            this.inclusiveEnd = end - 1;
         }
 
         @Override
-        public @NotNull String get() {
-            String v = value;
-            if (v != null) return v;
+        public @NotNull String apply(Parameter parameter) {
+            if (value != null) return value;
             lock.lock();
             try {
-                if (value != null) return value;
-                StringBuilder builder = new StringBuilder(end - start);
-                for (int index = start; index <= end; index++) {
+                StringBuilder builder = new StringBuilder(inclusiveEnd - start);
+                for (int index = start; index <= inclusiveEnd; index++) {
                     char ch = input[index];
                     if (ch == '\\') {
                         builder.append(input[++index]); // guaranteed safe by the params parser

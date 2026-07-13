@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import static java.lang.Character.isWhitespace;
 
@@ -67,7 +67,7 @@ public final class ParametersParser {
         return pos < length;
     }
 
-    private @NotNull Supplier<String> slice(int start) {
+    private @NotNull Function<Parameter, String> slice(int start) {
         return new ParameterImpl.LazyValue(input, start, pos);
     }
 
