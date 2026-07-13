@@ -1,5 +1,6 @@
 package ink.glowing.params;
 
+import ink.glowing.params.ParameterImpl.LazyValue;
 import ink.glowing.params.ParameterImpl.ListedImpl;
 import ink.glowing.params.ParameterImpl.MappedImpl;
 import ink.glowing.params.ParameterImpl.PlainImpl;
@@ -45,6 +46,15 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
             return value == null || value.isEmpty()
                     ? MappedImpl.EMPTY
                     : new MappedImpl(parameter -> asParameterValue(parameter, true), Map.copyOf(value));
+        }
+
+        static @NotNull Parameter.Mapped parse(@NotNull String inputStr) {
+            char[] input = inputStr.toCharArray();
+            if (input.length == 0) return MappedImpl.EMPTY;
+            return new MappedImpl(
+                    new LazyValue(input, 0, input.length),
+                    new ParserImpl(input).parseMap(0)
+            );
         }
     }
 

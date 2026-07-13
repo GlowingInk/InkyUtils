@@ -3,10 +3,10 @@ package ink.glowing.params;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import static ink.glowing.params.ParametersParser.parseMap;
+import static ink.glowing.params.Parameter.Mapped.parse;
 import static org.testng.Assert.assertEquals;
 
-public class ParameterParserTest {
+public class ParameterTest {
     @DataProvider
     public Object[][] parseData() {
         return new Object[][]{
@@ -25,13 +25,13 @@ public class ParameterParserTest {
 
     @Test(dataProvider = "parseData")
     public void parseTest(String input, String expected) {
-        String result = Parameter.asParameterValue(parseMap(input), true);
+        String result = Parameter.asParameterValue(parse(input), true);
         assertEquals(
                 result,
                 expected
         );
         assertEquals(
-                Parameter.asParameterValue(parseMap(result), true),
+                Parameter.asParameterValue(parse(result), true),
                 expected,
                 "Double-parsing input lead to another result"
         );
@@ -58,11 +58,11 @@ public class ParameterParserTest {
         for (String ex : examples) {
             IO.println(ex);
             IO.println("========================================");
-            var params = parseMap(ex);
+            var params = parse(ex);
             String result = Parameter.asParameterValue(params, true);
             IO.println(params.value());
             IO.println(result);
-            IO.println(Parameter.asParameterValue(parseMap(result), true));
+            IO.println(Parameter.asParameterValue(parse(result), true));
             IO.println();
         }
     }

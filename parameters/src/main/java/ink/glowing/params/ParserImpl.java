@@ -13,24 +13,16 @@ import java.util.function.Function;
 
 import static java.lang.Character.isWhitespace;
 
-public final class ParametersParser {
+final class ParserImpl {
     private static final char NIL = '\0';
 
     private final char[] input;
     private final int length;
     private int pos;
 
-    private ParametersParser(char[] input) {
+    ParserImpl(char[] input) {
         this.input = input;
         this.length = input.length;
-    }
-
-    public static Parameter.Mapped parseMap(String inputStr) {
-        char[] input = inputStr.toCharArray();
-        return new MappedImpl(
-                new ParameterImpl.LazyValue(input, 0, input.length),
-                new ParametersParser(input).parseMap(0)
-        );
     }
 
     private void advance() {
@@ -93,7 +85,7 @@ public final class ParametersParser {
         return false;
     }
 
-    private Map<String, Parameter> parseMap(int start) {
+    Map<String, Parameter> parseMap(int start) {
         Map<String, Parameter> map = new LinkedHashMap<>();
         while (hasMore()) {
             char ch = pop();
