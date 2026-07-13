@@ -85,14 +85,15 @@ final class ParserImpl {
         return false;
     }
 
-    Map<String, Parameter> parseMap(int start) {
+    @NotNull Map<String, Parameter> parseMap(final int start) {
         Map<String, Parameter> map = new LinkedHashMap<>();
+        char endCh = start == 0 ? NIL : '}';
         while (hasMore()) {
             char ch = pop();
             if (ch == '\'') {
                 String key = parseQuotedString();
                 if (advanceOn(':')) {
-                    map.put(key, parseSingleValue(start == 0 ? NIL : '}'));
+                    map.put(key, parseSingleValue(endCh));
                     continue;
                 }
                 throw new IllegalArgumentException("Couldn't find semicolon for the map value at pos " + pos);
@@ -122,7 +123,7 @@ final class ParserImpl {
             }
             if (skipWhitespaces()) {
                 if (advanceOn(':')) {
-                    map.put(keyBuilder.toString(), parseSingleValue(start == 0 ? NIL : '}'));
+                    map.put(keyBuilder.toString(), parseSingleValue(endCh));
                     continue;
                 }
             }
@@ -134,19 +135,25 @@ final class ParserImpl {
         return map;
     }
 
-    private Parameter parseList() {
+    @NotNull List<Parameter> parseList(final int start) {
         List<Parameter> list = new ArrayList<>();
-        int start = pos;
+        char endCh = start == 0 ? NIL : ']';
         while (hasMore()) {
             if (!skipWhitespaces()) {
-                throw new IllegalArgumentException("Couldn't find the end of a list started at " + start);
+                break;
             }
             if (advanceOn(']')) {
-                return new ListedImpl(slice(start), list);
+                if (start == 0) {
+                    throw new IllegalArgumentException("Found trailing ']' while parsing global list at pos " + (pos - 1));
+                }
+                return list;
             }
-            list.add(parseSingleValue(']'));
+            list.add(parseSingleValue(endCh));
         }
-        throw new IllegalArgumentException("Couldn't find the end of a list started at " + start);
+        if (start != 0) {
+            throw new IllegalArgumentException("Couldn't find the end of a list started at " + start);
+        }
+        return list;
     }
 
     private Parameter parseSingleValue(char parentEnd) {
@@ -154,7 +161,9 @@ final class ParserImpl {
             return PlainImpl.EMPTY;
         }
         if (advanceOn('[')) {
-            return parseList();
+            int start = pos;
+            var value = parseList(start);
+            return new ListedImpl(slice(start), value);
         } else if (advanceOn('{')) {
             int start = pos;
             var value = parseMap(start);
@@ -191,7 +200,7 @@ final class ParserImpl {
         }
         return new PlainImpl(stringBuilder.toString());
     }
-    
+
     private String parseQuotedString() {
         StringBuilder stringBuilder = new StringBuilder();
         int start = pos;

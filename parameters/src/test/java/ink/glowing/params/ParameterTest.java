@@ -19,6 +19,9 @@ public class ParameterTest {
                 }, {
                         "escaping:\\'\\ space!",
                         "escaping:'\\' space!'"
+                }, {
+                        "list:['of' 'values']",
+                        "list:[of values]"
                 }
         };
     }

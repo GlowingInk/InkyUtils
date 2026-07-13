@@ -64,6 +64,15 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
                     ? ListedImpl.EMPTY
                     : new ListedImpl(parameter -> asParameterValue(parameter, true), List.copyOf(value));
         }
+
+        static @NotNull Parameter.Listed parse(@NotNull String inputStr) {
+            char[] input = inputStr.toCharArray();
+            if (input.length == 0) return ListedImpl.EMPTY;
+            return new ListedImpl(
+                    new LazyValue(input, 0, input.length),
+                    new ParserImpl(input).parseList(0)
+            );
+        }
     }
 
     static @NotNull String asParameterValue(@NotNull Parameter parameter, boolean global) {
