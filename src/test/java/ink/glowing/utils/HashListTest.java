@@ -1,4 +1,4 @@
-package ink.glowing.collections;
+package ink.glowing.utils;
 
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

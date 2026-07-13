@@ -1,8 +1,8 @@
-package ink.glowing.params;
+package ink.glowing.utils.params;
 
-import ink.glowing.params.ParameterImpl.ListedImpl;
-import ink.glowing.params.ParameterImpl.MappedImpl;
-import ink.glowing.params.ParameterImpl.PlainImpl;
+import ink.glowing.utils.params.ParameterImpl.ListedImpl;
+import ink.glowing.utils.params.ParameterImpl.MappedImpl;
+import ink.glowing.utils.params.ParameterImpl.PlainImpl;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;

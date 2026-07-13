@@ -1,4 +1,4 @@
-package ink.glowing.params;
+package ink.glowing.utils.params;
 
 import org.testng.annotations.Test;
 

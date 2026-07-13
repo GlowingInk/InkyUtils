@@ -1,9 +1,9 @@
-package ink.glowing.params;
+package ink.glowing.utils.params;
 
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import static ink.glowing.params.Parameter.Mapped.parse;
+import static ink.glowing.utils.params.Parameter.Mapped.parse;
 import static org.testng.Assert.assertEquals;
 
 public class ParameterTest {

@@ -1,4 +1,4 @@
-package ink.glowing.params;
+package ink.glowing.utils.params;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,6 +14,11 @@ class ParameterImpl {
 
     record PlainImpl(@NotNull String value) implements Parameter.Plain {
         static final Parameter.Plain EMPTY = new PlainImpl("");
+
+        @Override
+        public @NotNull String asParameterValue(boolean global) {
+            return Parameter.escapePlainValue(value);
+        }
 
         @Override
         public int count() {
@@ -33,6 +38,25 @@ class ParameterImpl {
 
     record ListedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull List<Parameter> internalValue) implements Parameter.Listed {
         static Listed EMPTY = new ListedImpl(EMPTY_VALUE, List.of());
+
+        @Override
+        public @NotNull String asParameterValue(boolean global) {
+            if (count() == 0) {
+                return global ? "" : "[]";
+            }
+            StringBuilder sb = new StringBuilder();
+            if (!global) sb.append('[');
+            for (var entry : internalValue) {
+                sb.append(entry.asParameterValue(false));
+                sb.append(' ');
+            }
+            if (global) {
+                sb.setLength(sb.length() - 1);
+            } else {
+                sb.setCharAt(sb.length() - 1, ']');
+            }
+            return sb.toString();
+        }
 
         @Override
         public @NotNull String value() {
@@ -71,6 +95,27 @@ class ParameterImpl {
 
     record MappedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull Map<String, Parameter> internalValue) implements Parameter.Mapped { // TODO CaseInsensitive map
         static Mapped EMPTY = new MappedImpl(EMPTY_VALUE, Map.of());
+
+        @Override
+        public @NotNull String asParameterValue(boolean global) {
+            if (count() == 0) {
+                return global ? "" : "{}";
+            }
+            StringBuilder sb = new StringBuilder();
+            if (!global) sb.append('{');
+            for (var entry : internalValue.entrySet()) {
+                sb.append(Parameter.escapePlainValue(entry.getKey()))
+                        .append(':')
+                        .append(entry.getValue().asParameterValue(false));
+                sb.append(' ');
+            }
+            if (global) {
+                sb.setLength(sb.length() - 1);
+            } else {
+                sb.setCharAt(sb.length() - 1, '}');
+            }
+            return sb.toString();
+        }
 
         @Override
         public @NotNull String value() {
