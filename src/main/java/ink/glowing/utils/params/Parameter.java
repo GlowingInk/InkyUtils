@@ -18,7 +18,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
 
     @NotNull String value();
 
-    @NotNull String asParameterValue(boolean global);
+    @NotNull String asParameterValue(boolean main);
 
     @Nullable Parameter get(@Nullable String key);
 

@@ -16,7 +16,7 @@ final class ParameterImpl {
         static final Parameter.Plain EMPTY = new PlainImpl("");
 
         @Override
-        public @NotNull String asParameterValue(boolean global) {
+        public @NotNull String asParameterValue(boolean main) {
             return Parameter.escapePlainValue(value);
         }
 
@@ -40,17 +40,17 @@ final class ParameterImpl {
         static Listed EMPTY = new ListedImpl(EMPTY_VALUE, List.of());
 
         @Override
-        public @NotNull String asParameterValue(boolean global) {
+        public @NotNull String asParameterValue(boolean main) {
             if (count() == 0) {
-                return global ? "" : "[]";
+                return main ? "" : "[]";
             }
             StringBuilder sb = new StringBuilder();
-            if (!global) sb.append('[');
+            if (!main) sb.append('[');
             for (var entry : internalValue) {
                 sb.append(entry.asParameterValue(false));
                 sb.append(' ');
             }
-            if (global) {
+            if (main) {
                 sb.setLength(sb.length() - 1);
             } else {
                 sb.setCharAt(sb.length() - 1, ']');
@@ -97,19 +97,19 @@ final class ParameterImpl {
         static Mapped EMPTY = new MappedImpl(EMPTY_VALUE, Map.of());
 
         @Override
-        public @NotNull String asParameterValue(boolean global) {
+        public @NotNull String asParameterValue(boolean main) {
             if (count() == 0) {
-                return global ? "" : "{}";
+                return main ? "" : "{}";
             }
             StringBuilder sb = new StringBuilder();
-            if (!global) sb.append('{');
+            if (!main) sb.append('{');
             for (var entry : internalValue.entrySet()) {
                 sb.append(Parameter.escapePlainValue(entry.getKey()))
                         .append(':')
                         .append(entry.getValue().asParameterValue(false));
                 sb.append(' ');
             }
-            if (global) {
+            if (main) {
                 sb.setLength(sb.length() - 1);
             } else {
                 sb.setCharAt(sb.length() - 1, '}');
