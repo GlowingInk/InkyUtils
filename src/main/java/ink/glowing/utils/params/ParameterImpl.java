@@ -27,12 +27,12 @@ final class ParameterImpl {
 
         @Override
         public @Nullable Parameter get(@Nullable String key) {
-            return key == null ? this : null;
+            return key == null || key.equals("-1") ? this : null;
         }
 
         @Override
         public @Nullable Parameter get(int index) {
-            return index == 0 ? this : null;
+            return index == -1 || index == 0 ? this : null;
         }
     }
 
@@ -42,7 +42,7 @@ final class ParameterImpl {
         @Override
         public @NotNull String asParameterValue(boolean main) {
             if (count() == 0) {
-                return main ? "" : "[]";
+                return !main ? "[]" : "";
             }
             StringBuilder sb = new StringBuilder();
             if (!main) sb.append('[');
@@ -50,10 +50,10 @@ final class ParameterImpl {
                 sb.append(entry.asParameterValue(false));
                 sb.append(' ');
             }
-            if (main) {
-                sb.setLength(sb.length() - 1);
-            } else {
+            if (!main) {
                 sb.setCharAt(sb.length() - 1, ']');
+            } else {
+                sb.setLength(sb.length() - 1);
             }
             return sb.toString();
         }
@@ -99,7 +99,7 @@ final class ParameterImpl {
         @Override
         public @NotNull String asParameterValue(boolean main) {
             if (count() == 0) {
-                return main ? "" : "{}";
+                return !main ? "{}" : "";
             }
             StringBuilder sb = new StringBuilder();
             if (!main) sb.append('{');
@@ -109,10 +109,10 @@ final class ParameterImpl {
                         .append(entry.getValue().asParameterValue(false));
                 sb.append(' ');
             }
-            if (main) {
-                sb.setLength(sb.length() - 1);
-            } else {
+            if (!main) {
                 sb.setCharAt(sb.length() - 1, '}');
+            } else {
+                sb.setLength(sb.length() - 1);
             }
             return sb.toString();
         }
