@@ -27,12 +27,17 @@ final class ParameterImpl {
 
         @Override
         public @Nullable Parameter get(@Nullable String key) {
-            return key == null || key.equals("-1") ? this : null;
+            if (key == null) return this;
+            try {
+                return get(Integer.parseInt(key));
+            } catch (NumberFormatException _) {
+                return null;
+            }
         }
 
         @Override
         public @Nullable Parameter get(int index) {
-            return index == -1 || index == 0 ? this : null;
+            return index == SELF_INDEX || index == 0 ? this : null;
         }
     }
 
@@ -82,12 +87,10 @@ final class ParameterImpl {
 
         @Override
         public @Nullable Parameter get(int index) {
-            if (index > 0) {
-                if (index < count()) {
-                    return internalValue.get(index);
-                }
-            } else if (index == -1) {
+            if (index == SELF_INDEX) {
                 return this;
+            } else if (index >= 0 && index < count()) {
+                return internalValue.get(index);
             }
             return null;
         }
@@ -145,7 +148,7 @@ final class ParameterImpl {
     static final Function<Parameter, String> GLOBAL_VALUE = param -> param.asParameterValue(true);
 
     static class LazyValue implements Function<Parameter, String> {
-        private String value;
+        private volatile String value;
         private char[] input;
         private final int start;
         private final int inclusiveEnd;
@@ -160,9 +163,11 @@ final class ParameterImpl {
 
         @Override
         public @NotNull String apply(Parameter parameter) {
-            if (value != null) return value;
+            String result = value;
+            if (result != null) return result;
             lock.lock();
             try {
+                if (value != null) return value;
                 StringBuilder builder = new StringBuilder(inclusiveEnd - start);
                 for (int index = start; index <= inclusiveEnd; index++) {
                     char ch = input[index];
