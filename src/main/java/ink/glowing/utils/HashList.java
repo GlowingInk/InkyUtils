@@ -14,15 +14,50 @@ import java.util.*;
  * An unmodifiable, hash-backed {@link List} implementation that provides O(1) performance
  * for {@link #contains(Object)}, {@link #indexOf(Object)}, and {@link #lastIndexOf(Object)}
  * operations, while maintaining indexed access via {@link RandomAccess}.
+ * <p>
+ * When a list is built with a custom {@link Hash.Strategy} (see {@code ofCustom}), that same
+ * strategy governs {@code contains}/{@code indexOf}/{@code lastIndexOf} <em>and</em>
+ * {@link #equals(Object)}/{@link #hashCode()}, so element comparison is consistent across all
+ * of them. This means {@code equals}/{@code hashCode} can diverge from the standard {@link List}
+ * contract (which mandates element comparison via {@link Object#equals}) when a non-standard
+ * strategy is used.
  * @param <$Element> the type of elements in this list
  */
 @SuppressWarnings("unchecked")
 @Unmodifiable
 public sealed abstract class HashList<$Element> extends AbstractList<$Element> implements RandomAccess {
+    protected final Hash.Strategy<$Element> strategy;
+
+    protected HashList(Hash.Strategy<$Element> strategy) {
+        this.strategy = strategy;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) return true;
+        if (!(o instanceof List<?> other) || other.size() != size()) return false;
+        Iterator<$Element> ours = iterator();
+        Iterator<?> theirs = other.iterator();
+        while (ours.hasNext()) {
+            if (!strategy.equals(ours.next(), ($Element) theirs.next())) return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 1;
+        for ($Element element : this) {
+            hash = 31 * hash + strategy.hashCode(element);
+        }
+        return hash;
+    }
+
     private abstract static sealed class ArrayBacked<$Element> extends HashList<$Element> {
         protected final $Element[] elements;
 
-        protected ArrayBacked($Element[] elements) {
+        protected ArrayBacked($Element[] elements, Hash.Strategy<$Element> strategy) {
+            super(strategy);
             this.elements = elements;
         }
 
@@ -60,8 +95,8 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
 
         private final Map<$Element, int[]> firstLast;
 
-        private Collisions($Element[] elements, Map<$Element, int[]> firstLast) {
-            super(elements);
+        private Collisions($Element[] elements, Map<$Element, int[]> firstLast, Hash.Strategy<$Element> strategy) {
+            super(elements, strategy);
             this.firstLast = firstLast;
         }
 
@@ -84,8 +119,8 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
     private static final class NoCollisions<$Element> extends ArrayBacked<$Element> {
         private final Object2IntMap<$Element> lookup;
 
-        private NoCollisions($Element[] elements, Object2IntMap<$Element> lookup) {
-            super(elements);
+        private NoCollisions($Element[] elements, Object2IntMap<$Element> lookup, Hash.Strategy<$Element> strategy) {
+            super(elements, strategy);
             this.lookup = lookup;
         }
 
@@ -101,16 +136,20 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
 
         @Override
         public int lastIndexOf(@Nullable Object o) {
-            return lookup.getInt(o);
+            return indexOf(o);
         }
     }
 
     private static final class Empty<$Element> extends HashList<$Element> {
         private static final Empty<?> INSTANCE = new Empty<>();
 
+        private Empty() {
+            super((Hash.Strategy<$Element>) Composer.STANDARD);
+        }
+
         @Override
         public $Element get(int i) {
-            throw new ArrayIndexOutOfBoundsException("Tried to grab an item from an empty FCL");
+            throw new IndexOutOfBoundsException("Tried to grab an item from an empty HashList");
         }
 
         @Override
@@ -147,17 +186,16 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
 
     private static final class Singleton<$Element> extends HashList<$Element> {
         private final $Element value;
-        private final Hash.Strategy<$Element> strategy;
 
         Singleton($Element value, Hash.Strategy<$Element> strategy) {
+            super(strategy);
             this.value = value;
-            this.strategy = strategy;
         }
 
         @Override
         public $Element get(int i) {
             if (i == 0) return value;
-            throw new ArrayIndexOutOfBoundsException("Tried to grab an item from a singleton FCL, index = " + i);
+            throw new IndexOutOfBoundsException("Tried to grab an item from a singleton HashList, index = " + i);
         }
 
         @Override
@@ -213,7 +251,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      * Returns a {@code HashList} containing a single specified element.
      *
      * @param <$Element> the type of elements in the list
-     * @param element the single element to be contained in the list, may be {@code null}
+     * @param element the single element to be contained in the list
      * @return a singleton, unmodifiable {@code HashList}
      */
     public static <$Element> @NotNull HashList<$Element> of(@Nullable $Element element) {
@@ -228,7 +266,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      */
     @SafeVarargs
     public static <$Element> @NotNull HashList<$Element> of($Element @NotNull ... elements) {
-        return fromCollection(Arrays.asList(elements), (Hash.Strategy<$Element>) Composer.STANDARD);
+        return fromCollection((Hash.Strategy<$Element>) Composer.STANDARD, Arrays.asList(elements));
     }
 
     /**
@@ -239,7 +277,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      * @return an unmodifiable {@code HashList} containing the collection's elements
      */
     public static <$Element> @NotNull HashList<$Element> of(@NotNull Collection<$Element> elements) {
-        return fromCollection(elements, (Hash.Strategy<$Element>) Composer.STANDARD);
+        return fromCollection((Hash.Strategy<$Element>) Composer.STANDARD, elements);
     }
 
     /**
@@ -257,11 +295,11 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      * Returns a {@code HashList} containing a single specified element, using a custom
      * equality strategy for containment checks.
      * @param <$Element> the type of elements in the list
-     * @param element the single element to be contained in the list, may be {@code null}
      * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
+     * @param element the single element to be contained in the list
      * @return a singleton, unmodifiable {@code HashList} using the specified strategy
      */
-    public static <$Element> @NotNull HashList<$Element> ofCustom(@Nullable $Element element, @NotNull Hash.Strategy<$Element> strategy) {
+    public static <$Element> @NotNull HashList<$Element> ofCustom(@NotNull Hash.Strategy<$Element> strategy, @Nullable $Element element) {
         return new Singleton<>(element, strategy);
     }
 
@@ -275,7 +313,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      */
     @SafeVarargs
     public static <$Element> @NotNull HashList<$Element> ofCustom(@NotNull Hash.Strategy<$Element> strategy, $Element @NotNull ... elements) {
-        return fromCollection(Arrays.asList(elements), strategy);
+        return fromCollection(strategy, Arrays.asList(elements));
     }
 
     /**
@@ -287,7 +325,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      * @return an unmodifiable {@code HashList} using the specified strategy
      */
     public static <$Element> @NotNull HashList<$Element> ofCustom(@NotNull Hash.Strategy<$Element> strategy, @NotNull Collection<$Element> elements) {
-        return fromCollection(elements, strategy);
+        return fromCollection(strategy, elements);
     }
 
     /**
@@ -302,8 +340,8 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         return new Composer<$Element>().containsStrategy(strategy).addAll(elements).finish();
     }
 
-    private static <$Element> @NotNull HashList<$Element> fromCollection(@NotNull Collection<$Element> elements, @NotNull Hash.Strategy<$Element> strategy) {
-        if (elements instanceof HashList<?>) {
+    private static <$Element> @NotNull HashList<$Element> fromCollection(@NotNull Hash.Strategy<$Element> strategy, @NotNull Collection<$Element> elements) {
+        if (elements instanceof HashList<?> && strategy == Composer.STANDARD) {
             return (HashList<$Element>) elements;
         }
         return switch (elements.size()) {
@@ -461,7 +499,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
             }
 
             if (hasCollision) {
-                return new Collisions<>(($Element[]) elements.toArray(), map);
+                return new Collisions<>(($Element[]) elements.toArray(), map, containsStrategy);
             }
 
             return switch (elements.size()) {
@@ -476,7 +514,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
                     for (int i = 0; i < elementsArray.length; i++) {
                         lookup.put(elementsArray[i], i);
                     }
-                    yield new NoCollisions<>(elementsArray, lookup);
+                    yield new NoCollisions<>(elementsArray, lookup, containsStrategy);
                 }
             };
         }
