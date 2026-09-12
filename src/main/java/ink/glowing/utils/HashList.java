@@ -15,21 +15,45 @@ import java.util.*;
  * for {@link #contains(Object)}, {@link #indexOf(Object)}, and {@link #lastIndexOf(Object)}
  * operations, while maintaining indexed access via {@link RandomAccess}.
  * <p>
- * When a list is built with a custom {@link Hash.Strategy} (see {@code ofCustom}), that same
+ * When a list is built with a custom {@link Hash.Strategy}, that same
  * strategy governs {@code contains}/{@code indexOf}/{@code lastIndexOf} <em>and</em>
  * {@link #equals(Object)}/{@link #hashCode()}, so element comparison is consistent across all
- * of them. This means {@code equals}/{@code hashCode} can diverge from the standard {@link List}
- * contract (which mandates element comparison via {@link Object#equals}) when a non-standard
- * strategy is used.
+ * of them.
  * @param <$Element> the type of elements in this list
  */
 @SuppressWarnings("unchecked")
 @Unmodifiable
 public sealed abstract class HashList<$Element> extends AbstractList<$Element> implements RandomAccess {
+    /**
+     * The default {@link Hash.Strategy}, used when no custom strategy is supplied.
+     * Delegates to {@link Objects#hashCode(Object)} and {@link Objects#equals(Object, Object)},
+     * matching standard {@link Object#equals}/{@link Object#hashCode} semantics (including
+     * {@code null} elements).
+     */
+    public static final Hash.Strategy<?> STANDARD_STRATEGY = new Hash.Strategy<>() {
+        @Override
+        public int hashCode(Object o) {
+            return Objects.hashCode(o);
+        }
+
+        @Override
+        public boolean equals(Object a, Object b) {
+            return Objects.equals(a, b);
+        }
+    };
+
     protected final Hash.Strategy<$Element> strategy;
 
     protected HashList(Hash.Strategy<$Element> strategy) {
         this.strategy = strategy;
+    }
+
+    public @NotNull Hash.Strategy<$Element> getStrategy() {
+        return strategy;
+    }
+
+    public boolean isCustomStrategy() {
+        return strategy != STANDARD_STRATEGY;
     }
 
     @Override
@@ -144,7 +168,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         private static final Empty<?> INSTANCE = new Empty<>();
 
         private Empty() {
-            super((Hash.Strategy<$Element>) Composer.STANDARD);
+            super((Hash.Strategy<$Element>) STANDARD_STRATEGY);
         }
 
         @Override
@@ -195,7 +219,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         @Override
         public $Element get(int i) {
             if (i == 0) return value;
-            throw new IndexOutOfBoundsException("Tried to grab an item from a singleton HashList, index = " + i);
+            throw new IndexOutOfBoundsException("Tried to grab a non-first (0) item from a singleton HashList at index = " + i);
         }
 
         @Override
@@ -255,7 +279,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      * @return a singleton, unmodifiable {@code HashList}
      */
     public static <$Element> @NotNull HashList<$Element> of(@Nullable $Element element) {
-        return new Singleton<>(element, (Hash.Strategy<$Element>) Composer.STANDARD);
+        return new Singleton<>(element, (Hash.Strategy<$Element>) STANDARD_STRATEGY);
     }
 
     /**
@@ -266,7 +290,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      */
     @SafeVarargs
     public static <$Element> @NotNull HashList<$Element> of($Element @NotNull ... elements) {
-        return fromCollection((Hash.Strategy<$Element>) Composer.STANDARD, Arrays.asList(elements));
+        return fromCollection((Hash.Strategy<$Element>) STANDARD_STRATEGY, Arrays.asList(elements));
     }
 
     /**
@@ -277,7 +301,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      * @return an unmodifiable {@code HashList} containing the collection's elements
      */
     public static <$Element> @NotNull HashList<$Element> of(@NotNull Collection<$Element> elements) {
-        return fromCollection((Hash.Strategy<$Element>) Composer.STANDARD, elements);
+        return fromCollection((Hash.Strategy<$Element>) STANDARD_STRATEGY, elements);
     }
 
     /**
@@ -341,18 +365,14 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
     }
 
     private static <$Element> @NotNull HashList<$Element> fromCollection(@NotNull Hash.Strategy<$Element> strategy, @NotNull Collection<$Element> elements) {
-        if (elements instanceof HashList<?> && strategy == Composer.STANDARD) {
+        if (elements instanceof HashList<?> hl && hl.strategy == strategy) {
             return (HashList<$Element>) elements;
         }
         return switch (elements.size()) {
             case 0 -> of();
-            case 1 -> new Singleton<>(firstOf(elements), strategy);
+            case 1 -> new Singleton<>(elements instanceof SequencedCollection<$Element> sc ? sc.getFirst() : elements.iterator().next(), strategy);
             default -> new Composer<>(elements).containsStrategy(strategy).finish();
         };
-    }
-
-    private static <$Element> @Nullable $Element firstOf(@NotNull Collection<$Element> elements) {
-        return elements instanceof SequencedCollection<$Element> sc ? sc.getFirst() : elements.iterator().next();
     }
 
     /**
@@ -368,20 +388,8 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      * @param <$Element> the type of elements to be added to the list
      */
     public static final class Composer<$Element> {
-        private static final Hash.Strategy<?> STANDARD = new Hash.Strategy<>() {
-            @Override
-            public int hashCode(Object o) {
-                return Objects.hashCode(o);
-            }
-
-            @Override
-            public boolean equals(Object a, Object b) {
-                return Objects.equals(a, b);
-            }
-        };
-
         private final List<$Element> elements;
-        private Hash.Strategy<$Element> containsStrategy = (Hash.Strategy<$Element>) STANDARD;
+        private Hash.Strategy<$Element> strategy = (Hash.Strategy<$Element>) STANDARD_STRATEGY;
         private boolean built = false;
 
         /**
@@ -414,7 +422,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         @Contract("_ -> this")
         public @NotNull Composer<$Element> containsStrategy(@NotNull Hash.Strategy<$Element> strategy) {
             checkBuilt();
-            this.containsStrategy = strategy;
+            this.strategy = strategy;
             return this;
         }
 
@@ -483,9 +491,9 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
             checkBuilt();
             built = true;
 
-            Map<$Element, int[]> map = containsStrategy == STANDARD
+            Map<$Element, int[]> map = strategy == STANDARD_STRATEGY
                     ? new Object2ObjectOpenHashMap<>()
-                    : new Object2ObjectOpenCustomHashMap<>(containsStrategy);
+                    : new Object2ObjectOpenCustomHashMap<>(strategy);
             boolean hasCollision = false;
             for (int i = 0; i < elements.size(); i++) {
                 $Element e = elements.get(i);
@@ -499,22 +507,22 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
             }
 
             if (hasCollision) {
-                return new Collisions<>(($Element[]) elements.toArray(), map, containsStrategy);
+                return new Collisions<>(($Element[]) elements.toArray(), map, strategy);
             }
 
             return switch (elements.size()) {
                 case 0 -> (HashList<$Element>) Empty.INSTANCE;
-                case 1 -> new Singleton<>(elements.getFirst(), containsStrategy);
+                case 1 -> new Singleton<>(elements.getFirst(), strategy);
                 default -> {
                     $Element[] elementsArray = ($Element[]) elements.toArray();
-                    Object2IntMap<$Element> lookup = containsStrategy == STANDARD
+                    Object2IntMap<$Element> lookup = strategy == STANDARD_STRATEGY
                             ? new Object2IntOpenHashMap<>(elementsArray.length)
-                            : new Object2IntOpenCustomHashMap<>(elementsArray.length, containsStrategy);
+                            : new Object2IntOpenCustomHashMap<>(elementsArray.length, strategy);
                     lookup.defaultReturnValue(-1);
                     for (int i = 0; i < elementsArray.length; i++) {
                         lookup.put(elementsArray[i], i);
                     }
-                    yield new NoCollisions<>(elementsArray, lookup, containsStrategy);
+                    yield new NoCollisions<>(elementsArray, lookup, strategy);
                 }
             };
         }
