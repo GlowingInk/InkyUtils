@@ -19,11 +19,11 @@ import java.util.*;
  * strategy governs {@code contains}/{@code indexOf}/{@code lastIndexOf} <em>and</em>
  * {@link #equals(Object)}/{@link #hashCode()}, so element comparison is consistent across all
  * of them.
- * @param <$Element> the type of elements in this list
+ * @param <$Type> the type of elements in this list
  */
 @SuppressWarnings("unchecked")
 @Unmodifiable
-public sealed abstract class HashList<$Element> extends AbstractList<$Element> implements RandomAccess {
+public sealed abstract class HashList<$Type> extends AbstractList<$Type> implements RandomAccess {
     /**
      * The default {@link Hash.Strategy}, used when no custom strategy is supplied.
      * Delegates to {@link Objects#hashCode(Object)} and {@link Objects#equals(Object, Object)},
@@ -42,13 +42,13 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         }
     };
 
-    protected final Hash.Strategy<$Element> strategy;
+    protected final Hash.Strategy<$Type> strategy;
 
-    protected HashList(Hash.Strategy<$Element> strategy) {
+    protected HashList(Hash.Strategy<$Type> strategy) {
         this.strategy = strategy;
     }
 
-    public @NotNull Hash.Strategy<$Element> getStrategy() {
+    public @NotNull Hash.Strategy<$Type> getStrategy() {
         return strategy;
     }
 
@@ -60,10 +60,10 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
     public boolean equals(Object o) {
         if (o == this) return true;
         if (!(o instanceof List<?> other) || other.size() != size()) return false;
-        Iterator<$Element> ours = iterator();
+        Iterator<$Type> ours = iterator();
         Iterator<?> theirs = other.iterator();
         while (ours.hasNext()) {
-            if (!strategy.equals(ours.next(), ($Element) theirs.next())) return false;
+            if (!strategy.equals(ours.next(), ($Type) theirs.next())) return false;
         }
         return true;
     }
@@ -71,22 +71,22 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
     @Override
     public int hashCode() {
         int hash = 1;
-        for ($Element element : this) {
+        for ($Type element : this) {
             hash = 31 * hash + strategy.hashCode(element);
         }
         return hash;
     }
 
-    private abstract static sealed class ArrayBacked<$Element> extends HashList<$Element> {
-        protected final $Element[] elements;
+    private abstract static sealed class ArrayBacked<$Type> extends HashList<$Type> {
+        protected final $Type[] elements;
 
-        protected ArrayBacked($Element[] elements, Hash.Strategy<$Element> strategy) {
+        protected ArrayBacked($Type[] elements, Hash.Strategy<$Type> strategy) {
             super(strategy);
             this.elements = elements;
         }
 
         @Override
-        public $Element get(int index) {
+        public $Type get(int index) {
             return elements[index];
         }
 
@@ -101,10 +101,10 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         }
 
         @Override
-        public <$ArrayElement> $ArrayElement @NotNull [] toArray($ArrayElement @NotNull [] array) {
+        public <$ElementType> $ElementType @NotNull [] toArray($ElementType @NotNull [] array) {
             int size = size();
             if (array.length < size) {
-                return ($ArrayElement[]) Arrays.copyOf(elements, size, array.getClass());
+                return ($ElementType[]) Arrays.copyOf(elements, size, array.getClass());
             }
             System.arraycopy(elements, 0, array, 0, size);
             if (array.length > size) {
@@ -114,12 +114,12 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         }
     }
 
-    private static final class Collisions<$Element> extends ArrayBacked<$Element> {
+    private static final class Collisions<$Type> extends ArrayBacked<$Type> {
         private static final int[] EMPTY_BOUNDS = new int[]{-1, -1};
 
-        private final Map<$Element, int[]> firstLast;
+        private final Map<$Type, int[]> firstLast;
 
-        private Collisions($Element[] elements, Map<$Element, int[]> firstLast, Hash.Strategy<$Element> strategy) {
+        private Collisions($Type[] elements, Map<$Type, int[]> firstLast, Hash.Strategy<$Type> strategy) {
             super(elements, strategy);
             this.firstLast = firstLast;
         }
@@ -140,10 +140,10 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         }
     }
 
-    private static final class NoCollisions<$Element> extends ArrayBacked<$Element> {
-        private final Object2IntMap<$Element> lookup;
+    private static final class NoCollisions<$Type> extends ArrayBacked<$Type> {
+        private final Object2IntMap<$Type> lookup;
 
-        private NoCollisions($Element[] elements, Object2IntMap<$Element> lookup, Hash.Strategy<$Element> strategy) {
+        private NoCollisions($Type[] elements, Object2IntMap<$Type> lookup, Hash.Strategy<$Type> strategy) {
             super(elements, strategy);
             this.lookup = lookup;
         }
@@ -164,15 +164,15 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         }
     }
 
-    private static final class Empty<$Element> extends HashList<$Element> {
+    private static final class Empty<$Type> extends HashList<$Type> {
         private static final Empty<?> INSTANCE = new Empty<>();
 
         private Empty() {
-            super((Hash.Strategy<$Element>) STANDARD_STRATEGY);
+            super((Hash.Strategy<$Type>) STANDARD_STRATEGY);
         }
 
         @Override
-        public $Element get(int i) {
+        public $Type get(int i) {
             throw new IndexOutOfBoundsException("Tried to grab an item from an empty HashList");
         }
 
@@ -202,22 +202,22 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         }
 
         @Override
-        public <$ArrayElement> $ArrayElement @NotNull [] toArray($ArrayElement @NotNull [] array) {
+        public <$ElementType> $ElementType @NotNull [] toArray($ElementType @NotNull [] array) {
             if (array.length > 0) array[0] = null;
             return array;
         }
     }
 
-    private static final class Singleton<$Element> extends HashList<$Element> {
-        private final $Element value;
+    private static final class Singleton<$Type> extends HashList<$Type> {
+        private final $Type value;
 
-        Singleton($Element value, Hash.Strategy<$Element> strategy) {
+        Singleton($Type value, Hash.Strategy<$Type> strategy) {
             super(strategy);
             this.value = value;
         }
 
         @Override
-        public $Element get(int i) {
+        public $Type get(int i) {
             if (i == 0) return value;
             throw new IndexOutOfBoundsException("Tried to grab a non-first (0) item from a singleton HashList at index = " + i);
         }
@@ -229,12 +229,12 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
 
         @Override
         public boolean contains(@Nullable Object o) {
-            return strategy.equals(($Element) o, value);
+            return strategy.equals(($Type) o, value);
         }
 
         @Override
         public int indexOf(@Nullable Object o) {
-            return strategy.equals(($Element) o, value) ? 0 : -1;
+            return strategy.equals(($Type) o, value) ? 0 : -1;
         }
 
         @Override
@@ -248,13 +248,13 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
         }
 
         @Override
-        public <$ArrayElement> $ArrayElement @NotNull [] toArray($ArrayElement @NotNull [] a) {
+        public <$ElementType> $ElementType @NotNull [] toArray($ElementType @NotNull [] a) {
             if (a.length == 0) {
-                $ArrayElement[] result = ($ArrayElement[]) Array.newInstance(a.getClass().getComponentType(), 1);
-                result[0] = ($ArrayElement) value;
+                $ElementType[] result = ($ElementType[]) Array.newInstance(a.getClass().getComponentType(), 1);
+                result[0] = ($ElementType) value;
                 return result;
             }
-            a[0] = ($ArrayElement) value;
+            a[0] = ($ElementType) value;
             if (a.length > 1) {
                 a[1] = null;
             }
@@ -264,113 +264,113 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
 
     /**
      * Returns an empty {@code HashList}.
-     * @param <$Element> the type of elements in the list
+     * @param <$Type> the type of elements in the list
      * @return an empty, unmodifiable {@code HashList}
      */
-    public static <$Element> @NotNull HashList<$Element> of() {
-        return (HashList<$Element>) Empty.INSTANCE;
+    public static <$Type> @NotNull HashList<$Type> of() {
+        return (HashList<$Type>) Empty.INSTANCE;
     }
 
     /**
      * Returns a {@code HashList} containing a single specified element.
      *
-     * @param <$Element> the type of elements in the list
+     * @param <$Type> the type of elements in the list
      * @param element the single element to be contained in the list
      * @return a singleton, unmodifiable {@code HashList}
      */
-    public static <$Element> @NotNull HashList<$Element> of(@Nullable $Element element) {
-        return new Singleton<>(element, (Hash.Strategy<$Element>) STANDARD_STRATEGY);
+    public static <$Type> @NotNull HashList<$Type> of(@Nullable $Type element) {
+        return new Singleton<>(element, (Hash.Strategy<$Type>) STANDARD_STRATEGY);
     }
 
     /**
      * Returns a {@code HashList} containing the specified elements in the order they are provided.
-     * @param <$Element> the type of elements in the list
+     * @param <$Type> the type of elements in the list
      * @param elements the elements to be contained in the list
      * @return an unmodifiable {@code HashList} containing the specified elements
      */
     @SafeVarargs
-    public static <$Element> @NotNull HashList<$Element> of($Element @NotNull ... elements) {
-        return fromCollection((Hash.Strategy<$Element>) STANDARD_STRATEGY, Arrays.asList(elements));
+    public static <$Type> @NotNull HashList<$Type> of($Type @NotNull ... elements) {
+        return fromCollection((Hash.Strategy<$Type>) STANDARD_STRATEGY, Arrays.asList(elements));
     }
 
     /**
      * Returns a {@code HashList} containing the elements of the specified collection,
      * in the order they are returned by the collection's iterator.
-     * @param <$Element> the type of elements in the list
+     * @param <$Type> the type of elements in the list
      * @param elements the collection whose elements are to be placed into the list
      * @return an unmodifiable {@code HashList} containing the collection's elements
      */
-    public static <$Element> @NotNull HashList<$Element> of(@NotNull Collection<$Element> elements) {
-        return fromCollection((Hash.Strategy<$Element>) STANDARD_STRATEGY, elements);
+    public static <$Type> @NotNull HashList<$Type> of(@NotNull Collection<$Type> elements) {
+        return fromCollection((Hash.Strategy<$Type>) STANDARD_STRATEGY, elements);
     }
 
     /**
      * Returns a {@code HashList} containing the elements of the specified iterable,
      * in the order they are returned by the iterable's iterator.
-     * @param <$Element> the type of elements in the list
+     * @param <$Type> the type of elements in the list
      * @param elements the iterable whose elements are to be placed into the list
      * @return an unmodifiable {@code HashList} containing the iterable's elements
      */
-    public static <$Element> @NotNull HashList<$Element> of(@NotNull Iterable<$Element> elements) {
-        return new Composer<$Element>().addAll(elements).finish();
+    public static <$Type> @NotNull HashList<$Type> of(@NotNull Iterable<$Type> elements) {
+        return new Composer<$Type>().addAll(elements).finish();
     }
 
     /**
      * Returns a {@code HashList} containing a single specified element, using a custom
      * equality strategy for containment checks.
-     * @param <$Element> the type of elements in the list
+     * @param <$Type> the type of elements in the list
      * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
      * @param element the single element to be contained in the list
      * @return a singleton, unmodifiable {@code HashList} using the specified strategy
      */
-    public static <$Element> @NotNull HashList<$Element> ofCustom(@NotNull Hash.Strategy<$Element> strategy, @Nullable $Element element) {
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @Nullable $Type element) {
         return new Singleton<>(element, strategy);
     }
 
     /**
      * Returns a {@code HashList} containing the specified elements, using a custom
      * equality strategy for containment checks.
-     * @param <$Element> the type of elements in the list
+     * @param <$Type> the type of elements in the list
      * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
      * @param elements the elements to be contained in the list
      * @return an unmodifiable {@code HashList} using the specified strategy
      */
     @SafeVarargs
-    public static <$Element> @NotNull HashList<$Element> ofCustom(@NotNull Hash.Strategy<$Element> strategy, $Element @NotNull ... elements) {
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, $Type @NotNull ... elements) {
         return fromCollection(strategy, Arrays.asList(elements));
     }
 
     /**
      * Returns a {@code HashList} containing the elements of the specified collection,
      * using a custom equality strategy for containment checks.
-     * @param <$Element> the type of elements in the list
+     * @param <$Type> the type of elements in the list
      * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
      * @param elements the collection whose elements are to be placed into the list
      * @return an unmodifiable {@code HashList} using the specified strategy
      */
-    public static <$Element> @NotNull HashList<$Element> ofCustom(@NotNull Hash.Strategy<$Element> strategy, @NotNull Collection<$Element> elements) {
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
         return fromCollection(strategy, elements);
     }
 
     /**
      * Returns a {@code HashList} containing the elements of the specified iterable,
      * using a custom equality strategy for containment checks.
-     * @param <$Element> the type of elements in the list
+     * @param <$Type> the type of elements in the list
      * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
      * @param elements the iterable whose elements are to be placed into the list
      * @return an unmodifiable {@code HashList} using the specified strategy
      */
-    public static <$Element> @NotNull HashList<$Element> ofCustom(@NotNull Hash.Strategy<$Element> strategy, @NotNull Iterable<$Element> elements) {
-        return new Composer<$Element>().containsStrategy(strategy).addAll(elements).finish();
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Iterable<$Type> elements) {
+        return new Composer<$Type>().containsStrategy(strategy).addAll(elements).finish();
     }
 
-    private static <$Element> @NotNull HashList<$Element> fromCollection(@NotNull Hash.Strategy<$Element> strategy, @NotNull Collection<$Element> elements) {
+    private static <$Type> @NotNull HashList<$Type> fromCollection(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
         if (elements instanceof HashList<?> hl && hl.strategy == strategy) {
-            return (HashList<$Element>) elements;
+            return (HashList<$Type>) elements;
         }
         return switch (elements.size()) {
             case 0 -> of();
-            case 1 -> new Singleton<>(elements instanceof SequencedCollection<$Element> sc ? sc.getFirst() : elements.iterator().next(), strategy);
+            case 1 -> new Singleton<>(elements instanceof SequencedCollection<$Type> sc ? sc.getFirst() : elements.iterator().next(), strategy);
             default -> new Composer<>(elements).containsStrategy(strategy).finish();
         };
     }
@@ -385,11 +385,11 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
      * should not be shared across threads without external synchronization. Each builder
      * can only be used to produce a single list; calling {@link #finish()} more than once
      * will throw an {@link IllegalStateException}.
-     * @param <$Element> the type of elements to be added to the list
+     * @param <$Type> the type of elements to be added to the list
      */
-    public static final class Composer<$Element> {
-        private final List<$Element> elements;
-        private Hash.Strategy<$Element> strategy = (Hash.Strategy<$Element>) STANDARD_STRATEGY;
+    public static final class Composer<$Type> {
+        private final List<$Type> elements;
+        private Hash.Strategy<$Type> strategy = (Hash.Strategy<$Type>) STANDARD_STRATEGY;
         private boolean built = false;
 
         /**
@@ -397,7 +397,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
          * collection, in iteration order.
          * @param original the collection whose elements to initially populate the builder with
          */
-        public Composer(@NotNull Collection<$Element> original) {
+        public Composer(@NotNull Collection<$Type> original) {
             this.elements = new ArrayList<>(original);
         }
 
@@ -420,7 +420,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
          * @throws IllegalStateException if the composer has already been finalized
          */
         @Contract("_ -> this")
-        public @NotNull Composer<$Element> containsStrategy(@NotNull Hash.Strategy<$Element> strategy) {
+        public @NotNull Composer<$Type> containsStrategy(@NotNull Hash.Strategy<$Type> strategy) {
             checkBuilt();
             this.strategy = strategy;
             return this;
@@ -433,7 +433,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
          * @throws IllegalStateException if the composer has already been finalized
          */
         @Contract("_ -> this")
-        public @NotNull Composer<$Element> add($Element element) {
+        public @NotNull Composer<$Type> add($Type element) {
             checkBuilt();
             this.elements.add(element);
             return this;
@@ -447,7 +447,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
          */
         @SafeVarargs
         @Contract("_ -> this")
-        public final @NotNull Composer<$Element> addAll($Element @NotNull ... elements) {
+        public final @NotNull Composer<$Type> addAll($Type @NotNull ... elements) {
             return addAll(Arrays.asList(elements));
         }
 
@@ -459,7 +459,7 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
          * @throws IllegalStateException if the composer has already been finalized
          */
         @Contract("_ -> this")
-        public @NotNull Composer<$Element> addAll(@NotNull Collection<$Element> elements) {
+        public @NotNull Composer<$Type> addAll(@NotNull Collection<$Type> elements) {
             checkBuilt();
             this.elements.addAll(elements);
             return this;
@@ -473,9 +473,9 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
          * @throws IllegalStateException if the composer has already been finalized
          */
         @Contract("_ -> this")
-        public @NotNull Composer<$Element> addAll(@NotNull Iterable<? extends $Element> iterable) {
+        public @NotNull Composer<$Type> addAll(@NotNull Iterable<? extends $Type> iterable) {
             checkBuilt();
-            for ($Element element : iterable) {
+            for ($Type element : iterable) {
                 this.elements.add(element);
             }
             return this;
@@ -487,16 +487,16 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
          * @return a new, unmodifiable {@code HashList}
          * @throws IllegalStateException if the composer has already been finalized
          */
-        public @NotNull HashList<$Element> finish() {
+        public @NotNull HashList<$Type> finish() {
             checkBuilt();
             built = true;
 
-            Map<$Element, int[]> map = strategy == STANDARD_STRATEGY
+            Map<$Type, int[]> map = strategy == STANDARD_STRATEGY
                     ? new Object2ObjectOpenHashMap<>()
                     : new Object2ObjectOpenCustomHashMap<>(strategy);
             boolean hasCollision = false;
             for (int i = 0; i < elements.size(); i++) {
-                $Element e = elements.get(i);
+                $Type e = elements.get(i);
                 int[] bounds = map.get(e);
                 if (bounds == null) {
                     map.put(e, new int[]{i, i});
@@ -507,15 +507,15 @@ public sealed abstract class HashList<$Element> extends AbstractList<$Element> i
             }
 
             if (hasCollision) {
-                return new Collisions<>(($Element[]) elements.toArray(), map, strategy);
+                return new Collisions<>(($Type[]) elements.toArray(), map, strategy);
             }
 
             return switch (elements.size()) {
-                case 0 -> (HashList<$Element>) Empty.INSTANCE;
+                case 0 -> (HashList<$Type>) Empty.INSTANCE;
                 case 1 -> new Singleton<>(elements.getFirst(), strategy);
                 default -> {
-                    $Element[] elementsArray = ($Element[]) elements.toArray();
-                    Object2IntMap<$Element> lookup = strategy == STANDARD_STRATEGY
+                    $Type[] elementsArray = ($Type[]) elements.toArray();
+                    Object2IntMap<$Type> lookup = strategy == STANDARD_STRATEGY
                             ? new Object2IntOpenHashMap<>(elementsArray.length)
                             : new Object2IntOpenCustomHashMap<>(elementsArray.length, strategy);
                     lookup.defaultReturnValue(-1);
