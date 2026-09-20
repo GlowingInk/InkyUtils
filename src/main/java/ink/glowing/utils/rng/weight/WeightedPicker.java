@@ -1,5 +1,6 @@
 package ink.glowing.utils.rng.weight;
 
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -12,7 +13,7 @@ import java.util.stream.Stream;
  * proportional to its weight. Picking does not remove elements, so the same element can be
  * picked repeatedly.
  * <p>
- * Elements with a weight that is zero, negative or {@code NaN} are never picked. If no element
+ * Elements with non-positives weights are never picked. If no element
  * is left, the picker is empty: {@link #isEmpty()} returns {@code true} and {@link #next} throws.
  * {@code null} is a valid element as long as it has a positive weight.
  * @param <$Type> the type of elements
@@ -45,6 +46,16 @@ public interface WeightedPicker<$Type> {
      * @return a picker of the map's keys
      */
     static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Map<$Type, Double> elements) {
+        return ofCollection(elements.keySet(), (t, _) -> elements.getOrDefault(t, 0d));
+    }
+
+    /**
+     * Returns a {@code WeightedPicker} of the keys of the specified map, weighted by their values.
+     * @param <$Type> the type of elements
+     * @param elements the map of elements to their weights
+     * @return a picker of the map's keys
+     */
+    static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Object2DoubleMap<$Type> elements) {
         return ofCollection(elements.keySet(), (t, _) -> elements.getOrDefault(t, 0d));
     }
 

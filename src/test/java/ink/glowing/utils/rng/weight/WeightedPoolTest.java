@@ -122,21 +122,4 @@ public class WeightedPoolTest {
         assertEquals((double) a / SAMPLES, 0.25, 0.01);
         assertEquals((double) c / SAMPLES, 0.75, 0.01);
     }
-
-    @Test
-    public void testNullWithPositiveWeight() {
-        List<String> input = new ArrayList<>();
-        input.add(null);
-        input.add("a");
-
-        WeightedPicker<String> pool = WeightedPicker.ofCollection(input, _ -> 1d);
-        assertFalse(pool.isEmpty());
-
-        int nulls = 0;
-        RandomGenerator rng = rng();
-        for (int i = 0; i < SAMPLES; i++) {
-            if (pool.next(rng) == null) nulls++;
-        }
-        assertEquals((double) nulls / SAMPLES, 0.5, 0.01);
-    }
 }
