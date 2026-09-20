@@ -97,17 +97,20 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         return mapper.apply(get(index));
     }
 
-    @Override
-    default @NotNull Parameter asParameter() {
-        return this;
-    }
-
     /**
      * A {@link Parameter} holding a single plain string value, e.g. {@code value} or
      * {@code 'quoted value'}. Its {@link #count()} is always {@code 1} and {@link #get}
      * only accepts {@link #SELF_INDEX}/{@code "-1"} or {@code 0}/{@code "0"}, returning itself.
      */
-    sealed interface Plain extends Parameter permits PlainImpl {
+    sealed interface Plain extends Parameterizable.ByPlain, Parameter permits PlainImpl {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        default @NotNull Plain asParameter() {
+            return this;
+        }
+
         /**
          * Returns a {@code Plain} parameter wrapping the given value.
          * @param value the value to wrap, may be {@code null} or empty
@@ -125,7 +128,15 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * {@code [value1 value2 ...]} (brackets omitted at the top level). Entries are looked
      * up by their zero-based position, e.g. {@code get(0)} for {@code value1}.
      */
-    sealed interface Listed extends Parameter permits ListedImpl {
+    sealed interface Listed extends Parameterizable.ByList, Parameter permits ListedImpl {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        default @NotNull Listed asParameter() {
+            return this;
+        }
+
         /**
          * Returns a {@code Listed} parameter wrapping the given values.
          * @param value the values to wrap, may be {@code null} or empty
@@ -158,7 +169,15 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * {@code {key1:value1 key2:value2 ...}} (braces omitted at the top level). Entries
      * are looked up by their key, e.g. {@code get("key1")}.
      */
-    sealed interface Mapped extends Parameter permits MappedImpl {
+    sealed interface Mapped extends Parameterizable.ByMap, Parameter permits MappedImpl {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        default @NotNull Mapped asParameter() {
+            return this;
+        }
+
         /**
          * Returns a {@code Mapped} parameter wrapping the given entries.
          * @param value the entries to wrap, may be {@code null} or empty
