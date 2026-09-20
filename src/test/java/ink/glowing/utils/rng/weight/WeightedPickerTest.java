@@ -113,4 +113,52 @@ public class WeightedPickerTest {
         WeightedPicker<Number> picker = WeightedPicker.ofCollection(integers, Number::doubleValue);
         assertFalse(picker.isEmpty());
     }
+
+    @Test
+    public void testComposer() {
+        WeightedPicker<Integer> picker = new WeightedPicker.Composer<Integer>()
+                .add(0, 1)
+                .add(1, 0)
+                .add(2, Double.NaN)
+                .add(3, 1)
+                .finish();
+        assertFrequencies(picker, 0.5, 0, 0, 0.5);
+    }
+
+    @Test
+    public void testComposerInfiniteWhileAdding() {
+        double inf = Double.POSITIVE_INFINITY;
+        WeightedPicker<Integer> picker = new WeightedPicker.Composer<Integer>()
+                .add(0, 1)
+                .add(1, inf)
+                .add(2, 1)
+                .add(3, inf)
+                .finish();
+        assertFrequencies(picker, 0, 0.5, 0, 0.5);
+    }
+
+    @Test
+    public void testComposerAddAll() {
+        WeightedPicker<Integer> picker = new WeightedPicker.Composer<Integer>(3)
+                .addAll(Map.of(0, 1d))
+                .addAll(List.of(1, 2), i -> i == 1 ? 0 : 3)
+                .finish();
+        assertFrequencies(picker, 0.25, 0, 0.75);
+    }
+
+    @Test
+    public void testComposerSize() {
+        WeightedPicker.Composer<Integer> composer = new WeightedPicker.Composer<>();
+        assertTrue(composer.isEmpty());
+
+        composer.add(0, 0).add(1, Double.NaN);
+        assertTrue(composer.isEmpty());
+
+        composer.addAll(List.of(2, 3), i -> 1);
+        assertFalse(composer.isEmpty());
+        assertEquals(composer.size(), 2);
+
+        composer.add(4, Double.POSITIVE_INFINITY);
+        assertEquals(composer.size(), 1);
+    }
 }

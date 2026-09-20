@@ -77,6 +77,119 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
         return hash;
     }
 
+    /**
+     * Returns an empty {@code HashList}.
+     * @param <$Type> the type of elements in the list
+     * @return an empty, unmodifiable {@code HashList}
+     */
+    public static <$Type> @NotNull HashList<$Type> of() {
+        return (HashList<$Type>) Empty.INSTANCE;
+    }
+
+    /**
+     * Returns a {@code HashList} containing a single specified element.
+     *
+     * @param <$Type> the type of elements in the list
+     * @param element the single element to be contained in the list
+     * @return a singleton, unmodifiable {@code HashList}
+     */
+    public static <$Type> @NotNull HashList<$Type> of(@Nullable $Type element) {
+        return new Singleton<>(element, (Hash.Strategy<$Type>) STANDARD_STRATEGY);
+    }
+
+    /**
+     * Returns a {@code HashList} containing the specified elements in the order they are provided.
+     * @param <$Type> the type of elements in the list
+     * @param elements the elements to be contained in the list
+     * @return an unmodifiable {@code HashList} containing the specified elements
+     */
+    @SafeVarargs
+    public static <$Type> @NotNull HashList<$Type> of($Type @NotNull ... elements) {
+        return fromCollection((Hash.Strategy<$Type>) STANDARD_STRATEGY, Arrays.asList(elements));
+    }
+
+    /**
+     * Returns a {@code HashList} containing the elements of the specified collection,
+     * in the order they are returned by the collection's iterator.
+     * @param <$Type> the type of elements in the list
+     * @param elements the collection whose elements are to be placed into the list
+     * @return an unmodifiable {@code HashList} containing the collection's elements
+     */
+    public static <$Type> @NotNull HashList<$Type> of(@NotNull Collection<$Type> elements) {
+        return fromCollection((Hash.Strategy<$Type>) STANDARD_STRATEGY, elements);
+    }
+
+    /**
+     * Returns a {@code HashList} containing the elements of the specified iterable,
+     * in the order they are returned by the iterable's iterator.
+     * @param <$Type> the type of elements in the list
+     * @param elements the iterable whose elements are to be placed into the list
+     * @return an unmodifiable {@code HashList} containing the iterable's elements
+     */
+    public static <$Type> @NotNull HashList<$Type> of(@NotNull Iterable<$Type> elements) {
+        return new Composer<$Type>().addAll(elements).finish();
+    }
+
+    /**
+     * Returns a {@code HashList} containing a single specified element, using a custom
+     * equality strategy for containment checks.
+     * @param <$Type> the type of elements in the list
+     * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
+     * @param element the single element to be contained in the list
+     * @return a singleton, unmodifiable {@code HashList} using the specified strategy
+     */
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @Nullable $Type element) {
+        return new Singleton<>(element, strategy);
+    }
+
+    /**
+     * Returns a {@code HashList} containing the specified elements, using a custom
+     * equality strategy for containment checks.
+     * @param <$Type> the type of elements in the list
+     * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
+     * @param elements the elements to be contained in the list
+     * @return an unmodifiable {@code HashList} using the specified strategy
+     */
+    @SafeVarargs
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, $Type @NotNull ... elements) {
+        return fromCollection(strategy, Arrays.asList(elements));
+    }
+
+    /**
+     * Returns a {@code HashList} containing the elements of the specified collection,
+     * using a custom equality strategy for containment checks.
+     * @param <$Type> the type of elements in the list
+     * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
+     * @param elements the collection whose elements are to be placed into the list
+     * @return an unmodifiable {@code HashList} using the specified strategy
+     */
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
+        return fromCollection(strategy, elements);
+    }
+
+    /**
+     * Returns a {@code HashList} containing the elements of the specified iterable,
+     * using a custom equality strategy for containment checks.
+     * @param <$Type> the type of elements in the list
+     * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
+     * @param elements the iterable whose elements are to be placed into the list
+     * @return an unmodifiable {@code HashList} using the specified strategy
+     */
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Iterable<$Type> elements) {
+        return new Composer<$Type>().containsStrategy(strategy).addAll(elements).finish();
+    }
+
+    private static <$Type> @NotNull HashList<$Type> fromCollection(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
+        if (elements instanceof HashList<?> hl && hl.strategy == strategy) {
+            return (HashList<$Type>) elements;
+        }
+        return switch (elements.size()) {
+            case 0 -> of();
+            case 1 -> new Singleton<>(elements instanceof SequencedCollection<$Type> sc ? sc.getFirst() : elements.iterator().next(), strategy);
+            default -> new Composer<>(elements).containsStrategy(strategy).finish();
+        };
+    }
+
     private abstract static sealed class ArrayBacked<$Type> extends HashList<$Type> {
         protected final $Type[] elements;
 
@@ -263,134 +376,15 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
     }
 
     /**
-     * Returns an empty {@code HashList}.
-     * @param <$Type> the type of elements in the list
-     * @return an empty, unmodifiable {@code HashList}
-     */
-    public static <$Type> @NotNull HashList<$Type> of() {
-        return (HashList<$Type>) Empty.INSTANCE;
-    }
-
-    /**
-     * Returns a {@code HashList} containing a single specified element.
-     *
-     * @param <$Type> the type of elements in the list
-     * @param element the single element to be contained in the list
-     * @return a singleton, unmodifiable {@code HashList}
-     */
-    public static <$Type> @NotNull HashList<$Type> of(@Nullable $Type element) {
-        return new Singleton<>(element, (Hash.Strategy<$Type>) STANDARD_STRATEGY);
-    }
-
-    /**
-     * Returns a {@code HashList} containing the specified elements in the order they are provided.
-     * @param <$Type> the type of elements in the list
-     * @param elements the elements to be contained in the list
-     * @return an unmodifiable {@code HashList} containing the specified elements
-     */
-    @SafeVarargs
-    public static <$Type> @NotNull HashList<$Type> of($Type @NotNull ... elements) {
-        return fromCollection((Hash.Strategy<$Type>) STANDARD_STRATEGY, Arrays.asList(elements));
-    }
-
-    /**
-     * Returns a {@code HashList} containing the elements of the specified collection,
-     * in the order they are returned by the collection's iterator.
-     * @param <$Type> the type of elements in the list
-     * @param elements the collection whose elements are to be placed into the list
-     * @return an unmodifiable {@code HashList} containing the collection's elements
-     */
-    public static <$Type> @NotNull HashList<$Type> of(@NotNull Collection<$Type> elements) {
-        return fromCollection((Hash.Strategy<$Type>) STANDARD_STRATEGY, elements);
-    }
-
-    /**
-     * Returns a {@code HashList} containing the elements of the specified iterable,
-     * in the order they are returned by the iterable's iterator.
-     * @param <$Type> the type of elements in the list
-     * @param elements the iterable whose elements are to be placed into the list
-     * @return an unmodifiable {@code HashList} containing the iterable's elements
-     */
-    public static <$Type> @NotNull HashList<$Type> of(@NotNull Iterable<$Type> elements) {
-        return new Composer<$Type>().addAll(elements).finish();
-    }
-
-    /**
-     * Returns a {@code HashList} containing a single specified element, using a custom
-     * equality strategy for containment checks.
-     * @param <$Type> the type of elements in the list
-     * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
-     * @param element the single element to be contained in the list
-     * @return a singleton, unmodifiable {@code HashList} using the specified strategy
-     */
-    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @Nullable $Type element) {
-        return new Singleton<>(element, strategy);
-    }
-
-    /**
-     * Returns a {@code HashList} containing the specified elements, using a custom
-     * equality strategy for containment checks.
-     * @param <$Type> the type of elements in the list
-     * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
-     * @param elements the elements to be contained in the list
-     * @return an unmodifiable {@code HashList} using the specified strategy
-     */
-    @SafeVarargs
-    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, $Type @NotNull ... elements) {
-        return fromCollection(strategy, Arrays.asList(elements));
-    }
-
-    /**
-     * Returns a {@code HashList} containing the elements of the specified collection,
-     * using a custom equality strategy for containment checks.
-     * @param <$Type> the type of elements in the list
-     * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
-     * @param elements the collection whose elements are to be placed into the list
-     * @return an unmodifiable {@code HashList} using the specified strategy
-     */
-    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
-        return fromCollection(strategy, elements);
-    }
-
-    /**
-     * Returns a {@code HashList} containing the elements of the specified iterable,
-     * using a custom equality strategy for containment checks.
-     * @param <$Type> the type of elements in the list
-     * @param strategy the custom {@link Hash.Strategy} to use for equality and hashing
-     * @param elements the iterable whose elements are to be placed into the list
-     * @return an unmodifiable {@code HashList} using the specified strategy
-     */
-    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Iterable<$Type> elements) {
-        return new Composer<$Type>().containsStrategy(strategy).addAll(elements).finish();
-    }
-
-    private static <$Type> @NotNull HashList<$Type> fromCollection(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
-        if (elements instanceof HashList<?> hl && hl.strategy == strategy) {
-            return (HashList<$Type>) elements;
-        }
-        return switch (elements.size()) {
-            case 0 -> of();
-            case 1 -> new Singleton<>(elements instanceof SequencedCollection<$Type> sc ? sc.getFirst() : elements.iterator().next(), strategy);
-            default -> new Composer<>(elements).containsStrategy(strategy).finish();
-        };
-    }
-
-    /**
      * A builder for constructing {@link HashList} instances.
      * <p>
      * This composer allows incremental addition of elements and configuration of a custom
      * equality strategy before finalizing into an unmodifiable {@code HashList}.
-     * <p>
-     * <b>Thread-safety note:</b> This class is <em>thread-sensitive</em>, meaning instances
-     * should not be shared across threads without external synchronization. Each builder
-     * can only be used to produce a single list; calling {@link #finish()} more than once
-     * will throw an {@link IllegalStateException}.
      * @param <$Type> the type of elements to be added to the list
      */
-    public static final class Composer<$Type> {
+    public static final class Composer<$Type> extends ComposerBase<HashList<$Type>> {
         private final List<$Type> elements;
         private Hash.Strategy<$Type> strategy = (Hash.Strategy<$Type>) STANDARD_STRATEGY;
-        private boolean built = false;
 
         /**
          * Creates a new {@code Composer} pre-populated with the elements from the specified
@@ -406,10 +400,6 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
          */
         public Composer() {
             this.elements = new ArrayList<>();
-        }
-
-        private void checkBuilt() {
-            if (built) throw new IllegalStateException("This HashList.Composer is already built");
         }
 
         /**
@@ -482,15 +472,11 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
         }
 
         /**
-         * Finalizes the builder and produces an unmodifiable {@code HashList} containing
-         * all added elements in order.
+         * Produces an unmodifiable {@code HashList} containing all added elements in order.
          * @return a new, unmodifiable {@code HashList}
-         * @throws IllegalStateException if the composer has already been finalized
          */
-        public @NotNull HashList<$Type> finish() {
-            checkBuilt();
-            built = true;
-
+        @Override
+        protected @NotNull HashList<$Type> doFinish() {
             Map<$Type, int[]> map = strategy == STANDARD_STRATEGY
                     ? new Object2ObjectOpenHashMap<>()
                     : new Object2ObjectOpenCustomHashMap<>(strategy);

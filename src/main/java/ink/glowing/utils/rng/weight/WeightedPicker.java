@@ -1,7 +1,10 @@
 package ink.glowing.utils.rng.weight;
 
+import ink.glowing.utils.ComposerBase;
 import ink.glowing.utils.rng.RngUtils;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -49,7 +52,7 @@ public interface WeightedPicker<$Type> {
      * @return a picker of the map's keys
      */
     static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Map<? extends $Type, @NotNull Double> elements) {
-        return ofCollection(elements.keySet(), (t, _) -> elements.getOrDefault(t, 0d));
+        return new Composer<$Type>(elements.size()).addAll(elements).finish();
     }
 
     /**
@@ -60,7 +63,7 @@ public interface WeightedPicker<$Type> {
      * @return a picker of the map's keys
      */
     static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Object2DoubleMap<? extends $Type> elements) {
-        return ofCollection(elements.keySet(), (t, _) -> elements.getOrDefault(t, 0d));
+        return new Composer<$Type>(elements.size()).addAll(elements).finish();
     }
 
     /**
@@ -95,16 +98,7 @@ public interface WeightedPicker<$Type> {
      * @return a picker of the collection's elements
      */
     static <$Type> @NotNull WeightedPicker<$Type> ofCollection(@NotNull Collection<? extends $Type> collection, @NotNull WeightFunction<? super $Type> funct) {
-        return switch (collection.size()) {
-            case 0 -> of();
-            case 1 -> {
-                $Type elem = collection.iterator().next();
-                yield funct.apply(elem, 0) > 0
-                        ? of(elem)
-                        : of();
-            }
-            default -> AliasMethod.tryAlias(collection, funct);
-        };
+        return new Composer<$Type>(collection.size()).addAll(collection, funct).finish();
     }
 
     /**
@@ -162,47 +156,6 @@ public interface WeightedPicker<$Type> {
 
         private final int[] alias;
         private final double[] probabilities;
-
-        private static <$Type> @NotNull WeightedPicker<$Type> tryAlias(@NotNull Collection<? extends $Type> collection, @NotNull WeightFunction<? super $Type> funct) {
-            double[] rawProbabilities = new double[collection.size()];
-            ArrayList<$Type> elements = new ArrayList<>(collection.size());
-
-            double weightsSum = 0;
-            int index = 0;
-            var iterator = collection.iterator();
-            while (iterator.hasNext()) {
-                $Type item = iterator.next();
-                double weight = funct.apply(item, index++);
-                if (!(weight > 0)) continue; // also skips NaN
-                if (weight == Double.POSITIVE_INFINITY) {
-                    return Uniform.ofInfinite(item, iterator, funct, index);
-                }
-
-                elements.add(item);
-                rawProbabilities[elements.size() - 1] = weight;
-                weightsSum += weight;
-            }
-
-            return switch (elements.size()) {
-                case 0 -> of();
-                case 1 -> of(elements.getFirst());
-                default -> {
-                    elements.trimToSize();
-
-                    if (Double.isInfinite(weightsSum)) { // finite weights overflowed, try to rescale
-                        double maxWeight = 0;
-                        for (int i = 0; i < elements.size(); i++) {
-                            maxWeight = Math.max(maxWeight, rawProbabilities[i]);
-                        }
-                        weightsSum = 0;
-                        for (int i = 0; i < elements.size(); i++) {
-                            weightsSum += rawProbabilities[i] /= maxWeight;
-                        }
-                    }
-                    yield new AliasMethod<>(elements, rawProbabilities, weightsSum);
-                }
-            };
-        }
 
         private AliasMethod(@NotNull List<$Type> elements, double[] rawProbabilities, double weightsSum) {
             int size = elements.size();
@@ -262,23 +215,174 @@ public interface WeightedPicker<$Type> {
             this.elements = elements;
         }
 
-        private static <$Type> @NotNull WeightedPicker<$Type> ofInfinite($Type first, @NotNull Iterator<? extends $Type> rest, @NotNull WeightFunction<? super $Type> funct, int index) {
-            ArrayList<$Type> elements = new ArrayList<>();
-            elements.add(first);
-
-            while (rest.hasNext()) {
-                $Type item = rest.next();
-                if (funct.apply(item, index++) == Double.POSITIVE_INFINITY) elements.add(item);
-            }
-
-            if (elements.size() == 1) return of(first);
-            elements.trimToSize();
-            return new Uniform<>(elements);
-        }
-
         @Override
         public $Type next(@NotNull RandomGenerator rng) {
             return RngUtils.randomElement(rng, this.elements);
+        }
+    }
+
+    /**
+     * A builder for constructing {@link WeightedPicker} instances.
+     * <p>
+     * Weights are checked while elements are added: an element with a weight that is not positive
+     * (zero, negative or {@code NaN}) is dropped right away. Once an element with an infinite
+     * weight is added, all elements with a finite weight are dropped, and the ones added later are
+     * ignored. See {@link WeightedPicker} for details.
+     * @param <$Type> the type of elements to be added to the picker
+     */
+    final class Composer<$Type> extends ComposerBase<WeightedPicker<$Type>> {
+        private final ArrayList<$Type> elements;
+        private final DoubleArrayList weights;
+        private double weightsSum = 0;
+        private boolean infinite = false;
+
+        /**
+         * Creates a new, empty {@code Composer}.
+         */
+        public Composer() {
+            this.elements = new ArrayList<>();
+            this.weights = new DoubleArrayList();
+        }
+
+        /**
+         * Creates a new, empty {@code Composer}, sized for the expected number of elements.
+         * @param expectedSize the expected number of added elements
+         */
+        public Composer(int expectedSize) {
+            this.elements = new ArrayList<>(expectedSize);
+            this.weights = new DoubleArrayList(expectedSize);
+        }
+
+        /**
+         * Adds a single element with the specified weight to the picker being built.
+         * @param element the element to add
+         * @param weight the weight of the element
+         * @return this composer, for method chaining
+         * @throws IllegalStateException if the composer has already been finalized
+         */
+        @Contract("_, _ -> this")
+        public @NotNull Composer<$Type> add($Type element, double weight) {
+            checkBuilt();
+            _add(element, weight);
+            return this;
+        }
+
+        private void _add($Type element, double weight) {
+            if (weight == Double.POSITIVE_INFINITY) {
+                if (!infinite) {
+                    infinite = true;
+                    elements.clear();
+                    weights.clear();
+                }
+                elements.add(element);
+            } else if (weight > 0 && !infinite) { // also skips NaN
+                elements.add(element);
+                weights.add(weight);
+                weightsSum += weight;
+            }
+        }
+
+        /**
+         * Adds all keys of the specified map to the picker being built, weighted by their values.
+         * @param elements the map of elements to their weights
+         * @return this composer, for method chaining
+         * @throws IllegalStateException if the composer has already been finalized
+         */
+        @Contract("_ -> this")
+        public @NotNull Composer<$Type> addAll(@NotNull Map<? extends $Type, @NotNull Double> elements) {
+            checkBuilt();
+            elements.forEach(this::_add);
+            return this;
+        }
+
+        /**
+         * Adds all keys of the specified fastutil map to the picker being built, weighted by
+         * their primitive values.
+         * @param elements the map of elements to their weights
+         * @return this composer, for method chaining
+         * @throws IllegalStateException if the composer has already been finalized
+         */
+        @Contract("_ -> this")
+        public @NotNull Composer<$Type> addAll(@NotNull Object2DoubleMap<? extends $Type> elements) {
+            checkBuilt();
+            elements.object2DoubleEntrySet().forEach(e -> _add(e.getKey(), e.getDoubleValue()));
+            return this;
+        }
+
+        /**
+         * Adds all elements of the specified iterable to the picker being built, weighted by
+         * the specified function.
+         * @param iterable the elements to add
+         * @param funct the function computing the weight of an element
+         * @return this composer, for method chaining
+         * @throws IllegalStateException if the composer has already been finalized
+         */
+        @Contract("_, _ -> this")
+        public @NotNull Composer<$Type> addAll(@NotNull Iterable<? extends $Type> iterable, @NotNull ToDoubleFunction<? super $Type> funct) {
+            return addAll(iterable, (t, _) -> funct.applyAsDouble(t));
+        }
+
+        /**
+         * Adds all elements of the specified iterable to the picker being built, weighted by
+         * the specified function, which also receives the position of each element in the iterable.
+         * @param iterable the elements to add
+         * @param funct the function computing the weight of an element
+         * @return this composer, for method chaining
+         * @throws IllegalStateException if the composer has already been finalized
+         */
+        @Contract("_, _ -> this")
+        public @NotNull Composer<$Type> addAll(@NotNull Iterable<? extends $Type> iterable, @NotNull WeightFunction<? super $Type> funct) {
+            checkBuilt();
+            int index = 0;
+            for ($Type element : iterable) {
+                _add(element, funct.apply(element, index++));
+            }
+            return this;
+        }
+
+        /**
+         * Returns the number of elements that were added and not dropped so far.
+         * @return the number of retained elements
+         */
+        public int size() {
+            return elements.size();
+        }
+
+        /**
+         * Returns whether no element was retained so far.
+         * @return {@code true} if {@link #size()} is {@code 0}
+         */
+        public boolean isEmpty() {
+            return elements.isEmpty();
+        }
+
+        /**
+         * Produces a {@code WeightedPicker} of all added elements that were not dropped.
+         * @return a new picker, empty if no element was left
+         */
+        @Override
+        protected @NotNull WeightedPicker<$Type> doFinish() {
+            return switch (elements.size()) {
+                case 0 -> of();
+                case 1 -> of(elements.getFirst());
+                default -> {
+                    elements.trimToSize();
+                    if (infinite) yield new Uniform<>(elements);
+
+                    double[] rawProbabilities = weights.elements();
+                    if (Double.isInfinite(weightsSum)) { // finite weights overflowed, rescale
+                        double maxWeight = 0;
+                        for (int i = 0; i < elements.size(); i++) {
+                            maxWeight = Math.max(maxWeight, rawProbabilities[i]);
+                        }
+                        weightsSum = 0;
+                        for (int i = 0; i < elements.size(); i++) {
+                            weightsSum += rawProbabilities[i] /= maxWeight;
+                        }
+                    }
+                    yield new AliasMethod<>(elements, rawProbabilities, weightsSum);
+                }
+            };
         }
     }
 }
