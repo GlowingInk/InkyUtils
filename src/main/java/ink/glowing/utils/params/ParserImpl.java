@@ -14,17 +14,7 @@ import java.util.function.Function;
 import static java.lang.Character.isWhitespace;
 
 final class ParserImpl {
-    /**
-     * The name of the system property overriding {@link #MAX_DEPTH}.
-     */
-    static final String MAX_DEPTH_PROPERTY = "ink.glowing.utils.params.maxDepth";
-
-    /**
-     * The deepest allowed nesting of lists, maps and singleton maps, so that malicious input
-     * gets rejected instead of overflowing the stack. Set by the {@link #MAX_DEPTH_PROPERTY}
-     * system property, {@code 512} by default.
-     */
-    static final int MAX_DEPTH = Math.max(1, Integer.getInteger(MAX_DEPTH_PROPERTY, 512));
+    static final int MAX_DEPTH = Math.max(1, Integer.getInteger("ink.glowing.utils.params.maxDepth", 512));
 
     private static final char NIL = '\0';
 
