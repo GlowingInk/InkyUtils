@@ -1,4 +1,4 @@
-package ink.glowing.utils;
+package ink.glowing.utils.hash;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

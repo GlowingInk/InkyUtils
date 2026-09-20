@@ -1,6 +1,6 @@
 package ink.glowing.utils.params;
 
-import ink.glowing.utils.CaseInsensitive;
+import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.params.ParameterImpl.ListedImpl;
 import ink.glowing.utils.params.ParameterImpl.MappedImpl;
 import ink.glowing.utils.params.ParameterImpl.PlainImpl;

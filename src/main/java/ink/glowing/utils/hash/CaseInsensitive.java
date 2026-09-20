@@ -1,4 +1,4 @@
-package ink.glowing.utils;
+package ink.glowing.utils.hash;
 
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
@@ -22,7 +22,7 @@ public final class CaseInsensitive {
             final int length = str.length();
             int result = 0;
             for (int i = 0; i < length; i++) {
-                result = 31 * result + Character.toLowerCase(str.charAt(i));
+                result = 31 * result + Character.toLowerCase(Character.toUpperCase(str.charAt(i)));
             }
             return result;
         }
