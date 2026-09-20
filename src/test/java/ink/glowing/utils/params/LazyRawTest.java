@@ -9,7 +9,7 @@ public class LazyRawTest {
     public void getTest() {
         ParameterImpl.LazyValue raw = new ParameterImpl.LazyValue("0123\\56789".toCharArray(), 1, 6);
         assertEquals(
-                "1235",
+                "123\\5",
                 raw.apply(null)
         );
     }

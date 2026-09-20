@@ -16,7 +16,7 @@ public sealed interface Parameterizable permits Parameter, Parameterizable.ByPla
     @NotNull Parameter asParameter();
 
     /**
-     * Something that is always represented as a {@link Parameter.Plain}.
+     * Something that can be represented as a {@link Parameter.Plain}.
      */
     non-sealed interface ByPlain extends Parameterizable {
         /**
@@ -28,7 +28,7 @@ public sealed interface Parameterizable permits Parameter, Parameterizable.ByPla
     }
 
     /**
-     * Something that is always represented as a {@link Parameter.Listed}.
+     * Something that can be represented as a {@link Parameter.Listed}.
      */
     non-sealed interface ByList extends Parameterizable {
         /**
@@ -40,7 +40,7 @@ public sealed interface Parameterizable permits Parameter, Parameterizable.ByPla
     }
 
     /**
-     * Something that is always represented as a {@link Parameter.Mapped}.
+     * Something that can be represented as a {@link Parameter.Mapped}.
      */
     non-sealed interface ByMap extends Parameterizable {
         /**

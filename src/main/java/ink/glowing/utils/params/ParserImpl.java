@@ -14,11 +14,26 @@ import java.util.function.Function;
 import static java.lang.Character.isWhitespace;
 
 final class ParserImpl {
+    /**
+     * The name of the system property overriding {@link #MAX_DEPTH}.
+     */
+    static final String MAX_DEPTH_PROPERTY = "ink.glowing.utils.params.maxDepth";
+
+    /**
+     * The deepest allowed nesting of lists, maps and singleton maps, so that malicious input
+     * gets rejected instead of overflowing the stack. Set by the {@link #MAX_DEPTH_PROPERTY}
+     * system property, {@code 512} by default.
+     */
+    static final int MAX_DEPTH = Math.max(1, Integer.getInteger(MAX_DEPTH_PROPERTY, 512));
+
     private static final char NIL = '\0';
 
     private final char[] input;
     private final int length;
     private int pos;
+    private int depth;
+    private int valueEnd; // where the value last parsed by parseSingleValue ended, exclusive
+    private boolean scanEscaped; // whether the range last scanned by scanBare has escapes
 
     ParserImpl(char[] input) {
         this.input = input;
@@ -27,10 +42,6 @@ final class ParserImpl {
 
     private void advance() {
         ++pos;
-    }
-
-    private void back() {
-        --pos;
     }
 
     private boolean advanceOn(char ch) {
@@ -59,8 +70,8 @@ final class ParserImpl {
         return pos < length;
     }
 
-    private @NotNull Function<Parameter, String> slice(int start) {
-        return new ParameterImpl.LazyValue(input, start, pos);
+    private @NotNull Function<Parameter, String> slice(int start, int end) {
+        return new ParameterImpl.LazyValue(input, start, end);
     }
 
     private boolean skipWhitespaces() {
@@ -74,15 +85,54 @@ final class ParserImpl {
         return false;
     }
 
-    private boolean handleEscaping(char ch, StringBuilder stringBuilder) {
-        if (ch == '\\') {
-            if (!hasMore()) {
-                throw new IllegalArgumentException("Found escaping '\\' at the end of a string");
-            }
-            stringBuilder.append(pop());
-            return true;
+    private int skipEscape(int index) {
+        if (index + 1 >= length) {
+            throw new IllegalArgumentException("Found escaping '\\' at the end of a string");
         }
-        return false;
+        return index + 2;
+    }
+
+    private @NotNull String unescape(int start, int end, boolean escaped) {
+        if (!escaped) return new String(input, start, end - start);
+
+        StringBuilder stringBuilder = new StringBuilder(end - start);
+        for (int i = start; i < end; i++) {
+            char ch = input[i];
+            if (ch == '\\') ch = input[++i]; // guaranteed safe by skipEscape
+            stringBuilder.append(ch);
+        }
+        return stringBuilder.toString();
+    }
+
+    private int scanBare(int start, char stopAt) {
+        boolean escaped = false;
+        int i = start;
+        if (input[i] == '\\') {
+            escaped = true;
+            i = skipEscape(i);
+        } else {
+            i++;
+        }
+
+        while (i < length) {
+            char ch = input[i];
+            if (ch == '\\') {
+                escaped = true;
+                i = skipEscape(i);
+            } else if (ch == ':' || ch == stopAt || isWhitespace(ch)) {
+                break;
+            } else {
+                i++;
+            }
+        }
+        scanEscaped = escaped;
+        return i;
+    }
+
+    private static @NotNull Map<String, Parameter> singletonMap(@NotNull String key, @NotNull Parameter value) {
+        Map<String, Parameter> map = CaseInsensitive.newLinkedMap(1);
+        map.put(key, value);
+        return map;
     }
 
     @NotNull Map<String, Parameter> parseMap(final int start) {
@@ -106,26 +156,13 @@ final class ParserImpl {
                 continue;
             }
 
-            StringBuilder keyBuilder = new StringBuilder();
-            if (!handleEscaping(ch, keyBuilder)) {
-                keyBuilder.append(ch);
-            }
-            while (hasMore()) {
-                char chKey = pop();
-                if (chKey == ':' || isWhitespace(chKey)) {
-                    back();
-                    break;
-                }
-                if (handleEscaping(chKey, keyBuilder)) {
-                    continue;
-                }
-                keyBuilder.append(chKey);
-            }
-            if (skipWhitespaces()) {
-                if (advanceOn(':')) {
-                    map.put(keyBuilder.toString(), parseSingleValue(endCh));
-                    continue;
-                }
+            int keyStart = pos - 1;
+            int keyEnd = scanBare(keyStart, ':');
+            String key = unescape(keyStart, keyEnd, scanEscaped);
+            pos = keyEnd;
+            if (advanceOn(':')) {
+                map.put(key, parseSingleValue(endCh));
+                continue;
             }
             throw new IllegalArgumentException("Couldn't find colon for the map value at pos " + pos);
         }
@@ -157,63 +194,73 @@ final class ParserImpl {
     }
 
     private Parameter parseSingleValue(char parentEnd) {
+        if (++depth > MAX_DEPTH) {
+            throw new IllegalArgumentException("Nesting is deeper than " + MAX_DEPTH + " levels at pos " + pos);
+        }
+        try {
+            return parseSingleValueUnchecked(parentEnd);
+        } finally {
+            --depth;
+        }
+    }
+
+    private Parameter parseSingleValueUnchecked(char parentEnd) {
+        int entry = pos;
         if (!skipWhitespaces() || current() == parentEnd) {
+            valueEnd = entry;
             return PlainImpl.EMPTY;
         }
+
+        int tokenStart = pos;
         if (advanceOn('[')) {
-            int start = pos;
-            var value = parseList(start);
-            return new ListedImpl(slice(start), value);
+            var value = parseList(pos);
+            valueEnd = pos;
+            return new ListedImpl(slice(tokenStart, valueEnd), value);
         } else if (advanceOn('{')) {
-            int start = pos;
-            var value = parseMap(start);
-            return new MappedImpl(slice(start), value);
+            var value = parseMap(pos);
+            valueEnd = pos;
+            return new MappedImpl(slice(tokenStart, valueEnd), value);
         } else if (advanceOn('\'')) {
             String string = parseQuotedString();
-            if (skipWhitespaces() && advanceOn(':')) { // Singleton map
-                int start = pos;
-                var value = Map.of(string, parseSingleValue(parentEnd));
-                return new MappedImpl(slice(start), value);
+            int quotedEnd = pos;
+            if (advanceOn(':')) { // Singleton map
+                var value = singletonMap(string, parseSingleValue(parentEnd));
+                return new MappedImpl(slice(tokenStart, valueEnd), value);
             }
-            return new PlainImpl(string);
+            valueEnd = quotedEnd;
+            return new PlainImpl(string, slice(tokenStart, quotedEnd));
         }
 
-        StringBuilder stringBuilder = new StringBuilder();
-        char first = pop();
-        if (!handleEscaping(first, stringBuilder)) {
-            stringBuilder.append(first);
+        int end = scanBare(tokenStart, parentEnd);
+        boolean escaped = scanEscaped;
+        String string = unescape(tokenStart, end, escaped);
+        if (end < length && input[end] == ':') { // Singleton map
+            pos = end + 1;
+            var value = singletonMap(string, parseSingleValue(NIL));
+            return new MappedImpl(slice(tokenStart, valueEnd), value);
         }
 
-        while (hasMore()) {
-            char ch = pop();
-            if (ch == ':') { // Singleton map
-                int start = pos;
-                var value = Map.of(stringBuilder.toString(), parseSingleValue(NIL));
-                return new MappedImpl(slice(start), value);
-            } else if (isWhitespace(ch)) {
-                break;
-            } else if (handleEscaping(ch, stringBuilder)) {
-                continue;
-            } else if (ch == parentEnd) {
-                back(); // Allow parent to handle the closing
-                break;
-            }
-            stringBuilder.append(ch);
-        }
-        return new PlainImpl(stringBuilder.toString());
+        valueEnd = end;
+        pos = end < length && isWhitespace(input[end]) ? end + 1 : end; // the parent handles its closing
+        // Without quotes and escapes, the raw string is the value itself
+        return new PlainImpl(string, escaped ? slice(tokenStart, end) : ParameterImpl.RAW_IS_VALUE);
     }
 
     private String parseQuotedString() {
-        StringBuilder stringBuilder = new StringBuilder();
         int start = pos;
-        while (hasMore()) {
-            char ch = pop();
+        boolean escaped = false;
+        int i = start;
+        while (i < length) {
+            char ch = input[i];
             if (ch == '\'') {
-                return stringBuilder.toString();
-            } if (handleEscaping(ch, stringBuilder)) {
-                continue;
+                pos = i + 1;
+                return unescape(start, i, escaped);
+            } else if (ch == '\\') {
+                escaped = true;
+                i = skipEscape(i);
+            } else {
+                i++;
             }
-            stringBuilder.append(ch);
         }
         throw new IllegalArgumentException("Couldn't find the end of a quoted string started at " + start);
     }

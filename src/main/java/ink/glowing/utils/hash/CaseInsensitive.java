@@ -43,15 +43,31 @@ public final class CaseInsensitive {
         return new Object2ObjectLinkedOpenCustomHashMap<>(CI_STRATEGY);
     }
 
+    public static <$Value> @NotNull SortedMap<String, $Value> newLinkedMap(int expectedSize) {
+        return new Object2ObjectLinkedOpenCustomHashMap<>(expectedSize, CI_STRATEGY);
+    }
+
     public static <$Value> @NotNull Map<String, $Value> newMap() {
         return new Object2ObjectOpenCustomHashMap<>(CI_STRATEGY);
+    }
+
+    public static <$Value> @NotNull Map<String, $Value> newMap(int expectedSize) {
+        return new Object2ObjectOpenCustomHashMap<>(expectedSize, CI_STRATEGY);
     }
 
     public static @NotNull SortedSet<String> newLinkedSet() {
         return new ObjectLinkedOpenCustomHashSet<>(CI_STRATEGY);
     }
 
+    public static @NotNull SortedSet<String> newLinkedSet(int expectedSize) {
+        return new ObjectLinkedOpenCustomHashSet<>(expectedSize, CI_STRATEGY);
+    }
+
     public static @NotNull Set<String> newSet() {
         return new ObjectOpenCustomHashSet<>(CI_STRATEGY);
+    }
+
+    public static @NotNull Set<String> newSet(int expectedSize) {
+        return new ObjectOpenCustomHashSet<>(expectedSize, CI_STRATEGY);
     }
 }

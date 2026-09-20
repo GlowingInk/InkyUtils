@@ -1,5 +1,6 @@
 package ink.glowing.utils.params;
 
+import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.params.ParameterImpl.LazyValue;
 import ink.glowing.utils.params.ParameterImpl.ListedImpl;
 import ink.glowing.utils.params.ParameterImpl.MappedImpl;
@@ -9,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 import static ink.glowing.utils.params.ParameterImpl.GLOBAL_VALUE;
@@ -17,30 +19,24 @@ import static ink.glowing.utils.params.ParameterImpl.GLOBAL_VALUE;
  * A parsed parameter value: either a {@link Plain} string, a {@link Listed} sequence,
  * or a {@link Mapped} set of keyed values.
  * <p>
- * Values are whitespace-separated. A value containing whitespace must be quoted, and a
- * literal {@code \} or {@code '} inside it must be escaped:
+ * Values are whitespace-separated. Whitespace, colons and brackets in a value require quoting
+ * it, and a literal {@code \} or {@code '} must be escaped:
  * <pre>{@code
  * value
  * 'quoted value'
  * escaped\ value
  * }</pre>
- * A nested {@link Listed} is wrapped in {@code [...]}, and a nested {@link Mapped} in
- * {@code {...}}:
+ * A nested {@link Listed} is wrapped in {@code [...]}, and a nested {@link Mapped} in {@code {...}}.
+ * At the top level, the wrapping is omitted:
  * <pre>{@code
- * [value1 value2]
- * {key1:value1 key2:value2}
+ * key1:value1 key2:[value2 value3] key3:{key4:value4}
  * }</pre>
- * At the top level ({@code main == true} in {@link #asValue(boolean)}), the
- * wrapping brackets/braces are omitted, so the same values read as:
- * <pre>{@code
- * value1 value2
- * key1:value1 key2:value2
- * }</pre>
- * Nesting is unrestricted, e.g. {@code key:[value1 {key2:value2}]}.
+ * Nesting is limited to 512 levels, changeable with the {@code ink.glowing.utils.params.maxDepth}
+ * system property.
  */
 public sealed interface Parameter extends Parameterizable permits Parameter.Listed, Parameter.Mapped, Parameter.Plain {
     /**
-     * The index passed to {@link #get(int)}/{@link #get(String)} to get this parameter itself.
+     * The index of the parameter itself, see {@link #get(int)}.
      */
     int SELF_INDEX = -1;
 
@@ -51,36 +47,48 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     int count();
 
     /**
-     * Returns the raw, but unescaped string this parameter was parsed from.
+     * Returns the string this parameter was parsed from, exactly as written: with quotes,
+     * escapes and the wrapping brackets/braces.
+     * For a parameter created with {@code of(...)}, it is {@code serialize(true)}.
      * @return the raw value
      */
-    @NotNull String view();
+    @NotNull String raw();
 
     /**
-     * Serializes this parameter back into its parameter-string form.
-     * @param main whether this is the top-level parameter, omitting the wrapping brackets/braces
+     * Returns {@link #raw()} with the escaping backslashes removed, and for a {@link Plain},
+     * the quotes too. The result can't be reliably parsed back, use {@link #serialize(boolean)}
+     * for that.
+     * @return the unescaped raw value
+     */
+    @NotNull String value();
+
+    /**
+     * Serializes this parameter back into a normalized parameter string, which parses back
+     * into the same parameter.
+     * @param topLevel whether to omit the wrapping brackets/braces
      * @return the serialized form
      */
-    @NotNull String asValue(boolean main);
+    @NotNull String serialize(boolean topLevel);
 
     /**
-     * Looks up a nested parameter by key.
-     * @param key the key to look up, or {@code null} to return this parameter itself
+     * Looks up a nested parameter by key. For {@link Plain} and {@link Listed}, the key is an index.
+     * @param key the key to look up, or {@code null} for this parameter itself
      * @return the nested parameter, or {@code null} if absent
      */
     @Nullable Parameter get(@Nullable String key);
 
     /**
-     * Looks up a nested parameter by index.
-     * @param index the index to look up, or {@link #SELF_INDEX} to return this parameter itself
+     * Looks up a nested parameter by index. For {@link Mapped}, the index is used as a key.
+     * @param index the index to look up, or {@link #SELF_INDEX} for this parameter itself
      * @return the nested parameter, or {@code null} if absent
      */
     @Nullable Parameter get(int index);
 
     /**
-     * Looks up a nested parameter by key and applies a mapper to the result.
+     * Looks up a nested parameter by key and maps it.
+     * @param <$Result> the type of the result
      * @param key the key to look up
-     * @param mapper the mapper applied to the looked-up parameter, which may be {@code null}
+     * @param mapper the mapper, receiving {@code null} if the parameter is absent
      * @return the mapped result
      */
     default <$Result> @Nullable $Result map(@Nullable String key, @NotNull Function<@Nullable Parameter, ? extends $Result> mapper) {
@@ -88,9 +96,10 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     }
 
     /**
-     * Looks up a nested parameter by index and applies a mapper to the result.
+     * Looks up a nested parameter by index and maps it.
+     * @param <$Result> the type of the result
      * @param index the index to look up
-     * @param mapper the mapper applied to the looked-up parameter, which may be {@code null}
+     * @param mapper the mapper, receiving {@code null} if the parameter is absent
      * @return the mapped result
      */
     default <$Result> @Nullable $Result map(int index, @NotNull Function<@Nullable Parameter, ? extends $Result> mapper) {
@@ -98,9 +107,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     }
 
     /**
-     * A {@link Parameter} holding a single plain string value, e.g. {@code value} or
-     * {@code 'quoted value'}. Its {@link #count()} is always {@code 1} and {@link #get}
-     * only accepts {@link #SELF_INDEX}/{@code "-1"} or {@code 0}/{@code "0"}, returning itself.
+     * A {@link Parameter} holding a single string, e.g. {@code value} or {@code 'quoted value'}.
      */
     sealed interface Plain extends Parameterizable.ByPlain, Parameter permits PlainImpl {
         /**
@@ -112,21 +119,20 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         }
 
         /**
-         * Returns a {@code Plain} parameter wrapping the given value.
-         * @param value the value to wrap, may be {@code null} or empty
+         * Returns a {@code Plain} parameter of the given string.
+         * @param value the string, {@code null} counts as empty
          * @return the resulting parameter
          */
         static @NotNull Plain of(@Nullable String value) {
             return value == null || value.isEmpty()
                     ? PlainImpl.EMPTY
-                    : new PlainImpl(value);
+                    : new PlainImpl(value, GLOBAL_VALUE);
         }
     }
 
     /**
-     * A {@link Parameter} holding an ordered sequence of nested parameters, written as
-     * {@code [value1 value2 ...]} (brackets omitted at the top level). Entries are looked
-     * up by their zero-based position, e.g. {@code get(0)} for {@code value1}.
+     * A {@link Parameter} holding an ordered sequence of parameters, written as
+     * {@code [value1 value2]}. They are looked up by their zero-based index.
      */
     sealed interface Listed extends Parameterizable.ByList, Parameter permits ListedImpl {
         /**
@@ -138,8 +144,8 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         }
 
         /**
-         * Returns a {@code Listed} parameter wrapping the given values.
-         * @param value the values to wrap, may be {@code null} or empty
+         * Returns a {@code Listed} parameter of the given values.
+         * @param value the values, {@code null} counts as empty
          * @return the resulting parameter
          */
         static @NotNull Listed of(@Nullable List<Parameter> value) {
@@ -149,10 +155,10 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         }
 
         /**
-         * Parses a {@code Listed} parameter from its string form, e.g. {@code [value1 value2]}
-         * or the bare {@code value1 value2} at the top level.
+         * Parses a {@code Listed} parameter from its top-level form, e.g. {@code value1 value2}.
          * @param inputStr the string to parse
          * @return the parsed parameter
+         * @throws IllegalArgumentException if the string is malformed
          */
         static @NotNull Listed parse(@NotNull String inputStr) {
             if (inputStr.isEmpty()) return ListedImpl.EMPTY;
@@ -165,9 +171,10 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     }
 
     /**
-     * A {@link Parameter} holding a set of keyed nested parameters, written as
-     * {@code {key1:value1 key2:value2 ...}} (braces omitted at the top level). Entries
-     * are looked up by their key, e.g. {@code get("key1")}.
+     * A {@link Parameter} holding keyed parameters, written as {@code {key1:value1 key2:value2}}.
+     * Keys are case-insensitive and keep their written order. A repeated key keeps the first
+     * spelling and the last value: {@code a:1 A:2} is {@code a:2}. A key must be directly
+     * followed by its colon.
      */
     sealed interface Mapped extends Parameterizable.ByMap, Parameter permits MappedImpl {
         /**
@@ -179,21 +186,23 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         }
 
         /**
-         * Returns a {@code Mapped} parameter wrapping the given entries.
-         * @param value the entries to wrap, may be {@code null} or empty
+         * Returns a {@code Mapped} parameter of the given entries, in their iteration order.
+         * @param value the entries, {@code null} counts as empty, but they must not hold {@code null}s
          * @return the resulting parameter
          */
         static @NotNull Mapped of(@Nullable Map<String, Parameter> value) {
-            return value == null || value.isEmpty()
-                    ? MappedImpl.EMPTY
-                    : new MappedImpl(GLOBAL_VALUE, Map.copyOf(value));
+            if (value == null || value.isEmpty()) return MappedImpl.EMPTY;
+
+            Map<String, Parameter> copy = CaseInsensitive.newLinkedMap(value.size());
+            value.forEach((key, parameter) -> copy.put(Objects.requireNonNull(key), Objects.requireNonNull(parameter)));
+            return new MappedImpl(GLOBAL_VALUE, copy);
         }
 
         /**
-         * Parses a {@code Mapped} parameter from its string form, e.g. {@code {key1:value1 key2:value2}}
-         * or the bare {@code key1:value1 key2:value2} at the top level.
+         * Parses a {@code Mapped} parameter from its top-level form, e.g. {@code key1:value1 key2:value2}.
          * @param inputStr the string to parse
          * @return the parsed parameter
+         * @throws IllegalArgumentException if the string is malformed
          */
         static @NotNull Mapped parse(@NotNull String inputStr) {
             if (inputStr.isEmpty()) return MappedImpl.EMPTY;
@@ -206,12 +215,12 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     }
 
     /**
-     * Escapes a plain value for use in a parameter string, quoting it if it contains whitespace or
-     * a colon or any of the map/list bracket symbols {@code {}[]}. An empty value is written as {@code ''}.
-     * @param value the value to escape
-     * @return the escaped value
+     * Escapes a string for use as a plain value or a key. Backslashes and quotes are escaped,
+     * and the string is quoted if it is empty or has whitespace, colons or any of {@code {}[]}.
+     * @param value the string to escape
+     * @return the escaped string, {@code value} itself if nothing had to change
      */
-    static @NotNull String escapePlainValue(@NotNull String value) {
+    static @NotNull String escape(@NotNull String value) {
         int length = value.length();
         if (length == 0) return "''";
 
@@ -235,6 +244,25 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
             sb.append(ch);
         }
         if (quote) sb.append('\'');
+        return sb.toString();
+    }
+
+    /**
+     * Removes the escaping backslashes: each {@code \x} becomes {@code x}. Quotes are kept.
+     * @param raw the string to unescape
+     * @return the unescaped string, {@code raw} itself if nothing had to change
+     */
+    static @NotNull String unescape(@NotNull String raw) {
+        int index = raw.indexOf('\\');
+        if (index == -1) return raw;
+
+        int length = raw.length();
+        StringBuilder sb = new StringBuilder(length - 1).append(raw, 0, index);
+        for (; index < length; index++) {
+            char ch = raw.charAt(index);
+            if (ch == '\\' && index + 1 < length) ch = raw.charAt(++index);
+            sb.append(ch);
+        }
         return sb.toString();
     }
 }
