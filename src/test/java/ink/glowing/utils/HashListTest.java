@@ -1,116 +1,119 @@
 package ink.glowing.utils;
 
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
+import java.util.stream.Stream;
 
-import static org.testng.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class HashListTest {
-    @DataProvider
-    public Object[][] hashListData() {
-        return new Object[][]{
-                {new String[]{}, 0},
-                {new String[]{"a"}, 1},
-                {new String[]{"a", "b", "c"}, 3},
-                {new String[]{"a", "b", "a"}, 3}
-        };
+    public static Stream<Arguments> hashListData() {
+        return Stream.of(
+                Arguments.of(new String[]{}, 0),
+                Arguments.of(new String[]{"a"}, 1),
+                Arguments.of(new String[]{"a", "b", "c"}, 3),
+                Arguments.of(new String[]{"a", "b", "a"}, 3)
+        );
     }
 
-    @Test(dataProvider = "hashListData")
+    @ParameterizedTest
+    @MethodSource("hashListData")
     public void testSize(String[] input, int expectedSize) {
         HashList<String> list = HashList.of(input);
-        assertEquals(list.size(), expectedSize);
+        assertEquals(expectedSize, list.size());
     }
 
-    @DataProvider
-    public Object[][] containsData() {
-        return new Object[][]{
-                {new String[]{}, "x", false},
-                {new String[]{"a"}, "a", true},
-                {new String[]{"a"}, "b", false},
-                {new String[]{"a", "b", "c"}, "b", true},
-                {new String[]{"a", "b", "c"}, "d", false},
-                {new String[]{"a", "b", "a"}, "a", true},
-                {new String[]{"a", "b", "a"}, "c", false}
-        };
+    public static Stream<Arguments> containsData() {
+        return Stream.of(
+                Arguments.of(new String[]{}, "x", false),
+                Arguments.of(new String[]{"a"}, "a", true),
+                Arguments.of(new String[]{"a"}, "b", false),
+                Arguments.of(new String[]{"a", "b", "c"}, "b", true),
+                Arguments.of(new String[]{"a", "b", "c"}, "d", false),
+                Arguments.of(new String[]{"a", "b", "a"}, "a", true),
+                Arguments.of(new String[]{"a", "b", "a"}, "c", false)
+        );
     }
 
-    @Test(dataProvider = "containsData")
+    @ParameterizedTest
+    @MethodSource("containsData")
     public void testContains(String[] input, String query, boolean expected) {
         HashList<String> list = HashList.of(input);
-        assertEquals(list.contains(query), expected,
+        assertEquals(expected, list.contains(query),
                 String.format("contains('%s') should be %b", query, expected));
     }
 
-    @DataProvider
-    public Object[][] indexOfData() {
-        return new Object[][]{
-                {new String[]{}, "x", -1},
-                {new String[]{"a"}, "a", 0},
-                {new String[]{"a"}, "b", -1},
-                {new String[]{"a", "b", "c"}, "c", 2},
-                {new String[]{"a", "b", "a"}, "a", 0},
-                {new String[]{"a", "b", "a"}, "b", 1}
-        };
+    public static Stream<Arguments> indexOfData() {
+        return Stream.of(
+                Arguments.of(new String[]{}, "x", -1),
+                Arguments.of(new String[]{"a"}, "a", 0),
+                Arguments.of(new String[]{"a"}, "b", -1),
+                Arguments.of(new String[]{"a", "b", "c"}, "c", 2),
+                Arguments.of(new String[]{"a", "b", "a"}, "a", 0),
+                Arguments.of(new String[]{"a", "b", "a"}, "b", 1)
+        );
     }
 
-    @Test(dataProvider = "indexOfData")
+    @ParameterizedTest
+    @MethodSource("indexOfData")
     public void testIndexOf(String[] input, String query, int expected) {
         HashList<String> list = HashList.of(input);
-        assertEquals(list.indexOf(query), expected);
+        assertEquals(expected, list.indexOf(query));
     }
 
-    @DataProvider
-    public Object[][] lastIndexOfData() {
-        return new Object[][]{
-                {new String[]{}, "x", -1},
-                {new String[]{"a"}, "a", 0},
-                {new String[]{"a"}, "b", -1},
-                {new String[]{"a", "b", "c"}, "c", 2},
-                {new String[]{"a", "b", "a"}, "a", 2},
-                {new String[]{"a", "b", "a"}, "b", 1}
-        };
+    public static Stream<Arguments> lastIndexOfData() {
+        return Stream.of(
+                Arguments.of(new String[]{}, "x", -1),
+                Arguments.of(new String[]{"a"}, "a", 0),
+                Arguments.of(new String[]{"a"}, "b", -1),
+                Arguments.of(new String[]{"a", "b", "c"}, "c", 2),
+                Arguments.of(new String[]{"a", "b", "a"}, "a", 2),
+                Arguments.of(new String[]{"a", "b", "a"}, "b", 1)
+        );
     }
 
-    @Test(dataProvider = "lastIndexOfData")
+    @ParameterizedTest
+    @MethodSource("lastIndexOfData")
     public void testLastIndexOf(String[] input, String query, int expected) {
         HashList<String> list = HashList.of(input);
-        assertEquals(list.lastIndexOf(query), expected);
+        assertEquals(expected, list.lastIndexOf(query));
     }
 
-    @DataProvider
-    public Object[][] getAndToArrayData() {
-        return new Object[][]{
-                {new String[]{}, new String[]{}},
-                {new String[]{"a"}, new String[]{"a"}},
-                {new String[]{"a", "b"}, new String[]{"a", "b"}},
-                {new String[]{"a", "b", "c"}, new String[]{"a", "b", "c"}},
-                {new String[]{"a", "b", "a"}, new String[]{"a", "b", "a"}},
-        };
+    public static Stream<Arguments> getAndToArrayData() {
+        return Stream.of(
+                Arguments.of(new String[]{}, new String[]{}),
+                Arguments.of(new String[]{"a"}, new String[]{"a"}),
+                Arguments.of(new String[]{"a", "b"}, new String[]{"a", "b"}),
+                Arguments.of(new String[]{"a", "b", "c"}, new String[]{"a", "b", "c"}),
+                Arguments.of(new String[]{"a", "b", "a"}, new String[]{"a", "b", "a"})
+        );
     }
 
-    @Test(dataProvider = "getAndToArrayData")
+    @ParameterizedTest
+    @MethodSource("getAndToArrayData")
     public void testGetAndToArray(String[] input, String[] expectedArray) {
         HashList<String> list = HashList.of(input);
-        assertEqualsNoOrder(list.toArray(), expectedArray);
+        assertArrayEquals(expectedArray, list.toArray());
 
         for (int i = 0; i < expectedArray.length; i++) {
-            assertEquals(list.get(i), expectedArray[i]);
+            assertEquals(expectedArray[i], list.get(i));
         }
     }
 
-    @DataProvider
-    public Object[][] nullBehaviorData() {
-        return new Object[][]{
-                {new String[]{"a", "b"}, -1, -1},
-                {new String[]{}, -1, -1},
-                {new String[]{"a", null, "b"}, 1, 1},
-        };
+    public static Stream<Arguments> nullBehaviorData() {
+        return Stream.of(
+                Arguments.of(new String[]{"a", "b"}, -1, -1),
+                Arguments.of(new String[]{}, -1, -1),
+                Arguments.of(new String[]{"a", null, "b"}, 1, 1)
+        );
     }
 
-    @Test(dataProvider = "nullBehaviorData")
+    @ParameterizedTest
+    @MethodSource("nullBehaviorData")
     public void testNullBehavior(String[] input, int expectedIndexOfNull, int expectedLastIndexOfNull) {
         HashList<String> list = HashList.of(input);
 
@@ -122,9 +125,9 @@ public class HashListTest {
             }
         }
 
-        assertEquals(list.contains(null), inputContainsNull);
-        assertEquals(list.indexOf(null), expectedIndexOfNull);
-        assertEquals(list.lastIndexOf(null), expectedLastIndexOfNull);
+        assertEquals(inputContainsNull, list.contains(null));
+        assertEquals(expectedIndexOfNull, list.indexOf(null));
+        assertEquals(expectedLastIndexOfNull, list.lastIndexOf(null));
     }
 
     @Test
@@ -137,14 +140,14 @@ public class HashListTest {
         assertTrue(list.contains("BETA"), "Should find case-insensitive 'BETA'");
         assertFalse(list.contains("delta"), "Should not find 'delta'");
 
-        assertEquals(list.size(), 3, "Size should be 3");
+        assertEquals(3, list.size(), "Size should be 3");
 
-        assertEquals(list.get(0), "Alpha", "First element should be 'Alpha'");
-        assertEquals(list.get(1), "Beta", "Second element should be 'Beta'");
-        assertEquals(list.get(2), "Gamma", "Third element should be 'Gamma'");
+        assertEquals("Alpha", list.get(0), "First element should be 'Alpha'");
+        assertEquals("Beta", list.get(1), "Second element should be 'Beta'");
+        assertEquals("Gamma", list.get(2), "Third element should be 'Gamma'");
 
-        assertEquals(list.indexOf("alpha"), 0, "indexOf('alpha') should return 0");
-        assertEquals(list.indexOf("BETA"), 1, "indexOf('BETA') should return 1");
-        assertEquals(list.indexOf("gamma"), 2, "indexOf('gamma') should return 2");
+        assertEquals(0, list.indexOf("alpha"), "indexOf('alpha') should return 0");
+        assertEquals(1, list.indexOf("BETA"), "indexOf('BETA') should return 1");
+        assertEquals(2, list.indexOf("gamma"), "indexOf('gamma') should return 2");
     }
 }

@@ -2,13 +2,16 @@ package ink.glowing.utils.rng.weight;
 
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.*;
 import java.util.random.RandomGenerator;
+import java.util.stream.Stream;
 
-import static org.testng.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class WeightedPickerTest {
     private static final int SAMPLES = 100_000;
@@ -30,13 +33,13 @@ public class WeightedPickerTest {
 
         for (int i = 0; i < expected.length; i++) {
             if (expected[i] == 0) {
-                assertEquals(counts[i], 0, "Element " + i + " should never be picked");
+                assertEquals(0, counts[i], "Element " + i + " should never be picked");
             } else {
-                assertEquals((double) counts[i] / SAMPLES, expected[i], 0.01, "Frequency of element " + i);
+                assertEquals(expected[i], (double) counts[i] / SAMPLES, 0.01, "Frequency of element " + i);
             }
         }
     }
-    
+
     private static double[] doubleArr(double... arr) {
         return arr;
     }
@@ -54,45 +57,45 @@ public class WeightedPickerTest {
     public void testSingle() {
         WeightedPicker<String> picker = WeightedPicker.of("a");
         assertFalse(picker.isEmpty());
-        assertEquals(picker.next(rng()), "a");
+        assertEquals("a", picker.next(rng()));
     }
 
-    @DataProvider
-    public Object[][] emptyData() {
-        return new Object[][]{
-                {doubleArr()},
-                {doubleArr(0)},
-                {doubleArr(-1, Double.NaN)},
-                {doubleArr(0, 0, -1)}
-        };
+    public static Stream<Arguments> emptyData() {
+        return Stream.of(
+                Arguments.of(doubleArr()),
+                Arguments.of(doubleArr(0)),
+                Arguments.of(doubleArr(-1, Double.NaN)),
+                Arguments.of(doubleArr(0, 0, -1))
+        );
     }
 
-    @Test(dataProvider = "emptyData")
+    @ParameterizedTest
+    @MethodSource("emptyData")
     public void testNoPositiveWeightsIsEmpty(double[] weights) {
         WeightedPicker<Integer> picker = indexPicker(weights);
         assertTrue(picker.isEmpty());
         assertThrows(NoSuchElementException.class, () -> picker.next(rng()));
     }
 
-    @DataProvider
-    public Object[][] distributionData() {
+    public static Stream<Arguments> distributionData() {
         double inf = Double.POSITIVE_INFINITY;
-        return new Object[][]{
-                {doubleArr(1, 1), doubleArr(0.5, 0.5)},
-                {doubleArr(1, 3), doubleArr(0.25, 0.75)},
-                {doubleArr(1, 2, 3, 4), doubleArr(0.1, 0.2, 0.3, 0.4)},
-                {doubleArr(0.001, 0.002, 0.003), doubleArr(1d / 6, 2d / 6, 3d / 6)},
+        return Stream.of(
+                Arguments.of(doubleArr(1, 1), doubleArr(0.5, 0.5)),
+                Arguments.of(doubleArr(1, 3), doubleArr(0.25, 0.75)),
+                Arguments.of(doubleArr(1, 2, 3, 4), doubleArr(0.1, 0.2, 0.3, 0.4)),
+                Arguments.of(doubleArr(0.001, 0.002, 0.003), doubleArr(1d / 6, 2d / 6, 3d / 6)),
                 // Non-positive weights are never picked
-                {doubleArr(1, 0, Double.NaN, -1, 1), doubleArr(0.5, 0, 0, 0, 0.5)},
+                Arguments.of(doubleArr(1, 0, Double.NaN, -1, 1), doubleArr(0.5, 0, 0, 0, 0.5)),
                 // Infinite weights discard finite ones
-                {doubleArr(inf, 1), doubleArr(1, 0)},
-                {doubleArr(1, inf, 5, inf, 0), doubleArr(0, 0.5, 0, 0.5, 0)},
+                Arguments.of(doubleArr(inf, 1), doubleArr(1, 0)),
+                Arguments.of(doubleArr(1, inf, 5, inf, 0), doubleArr(0, 0.5, 0, 0.5, 0)),
                 // Weights that overflow their sum
-                {doubleArr(Double.MAX_VALUE, Double.MAX_VALUE, 1), doubleArr(0.5, 0.5, 0)}
-        };
+                Arguments.of(doubleArr(Double.MAX_VALUE, Double.MAX_VALUE, 1), doubleArr(0.5, 0.5, 0))
+        );
     }
 
-    @Test(dataProvider = "distributionData")
+    @ParameterizedTest
+    @MethodSource("distributionData")
     public void testDistribution(double[] weights, double[] expected) {
         assertFrequencies(indexPicker(weights), expected);
     }
@@ -156,9 +159,9 @@ public class WeightedPickerTest {
 
         composer.addAll(List.of(2, 3), i -> 1);
         assertFalse(composer.isEmpty());
-        assertEquals(composer.size(), 2);
+        assertEquals(2, composer.size());
 
         composer.add(4, Double.POSITIVE_INFINITY);
-        assertEquals(composer.size(), 1);
+        assertEquals(1, composer.size());
     }
 }

@@ -1,41 +1,48 @@
 package ink.glowing.utils.params;
 
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static ink.glowing.utils.params.Parameter.Mapped.parse;
-import static org.testng.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ParameterTest {
-    @DataProvider
-    public Object[][] parseData() {
-        return new Object[][]{
-                {
+    public static Stream<Arguments> parseData() {
+        return Stream.of(
+                Arguments.of(
                         "simple:value",
                         "simple:value"
-                }, {
+                ),
+                Arguments.of(
                         "first:value second:value",
                         "first:value second:value"
-                }, {
+                ),
+                Arguments.of(
                         "escaping:\\'\\ space!",
                         "escaping:'\\' space!'"
-                }, {
+                ),
+                Arguments.of(
                         "list:['of' 'values']",
                         "list:[of values]"
-                }
-        };
+                )
+        );
     }
 
-    @Test(dataProvider = "parseData")
+    @ParameterizedTest
+    @MethodSource("parseData")
     public void parseTest(String input, String expected) {
         String result = parse(input).asParameterValue(true);
         assertEquals(
-                result,
-                expected
+                expected,
+                result
         );
         assertEquals(
-                parse(result).asParameterValue(true),
                 expected,
+                parse(result).asParameterValue(true),
                 "Double-parsing input lead to another result"
         );
     }

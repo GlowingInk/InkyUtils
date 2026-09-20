@@ -1,9 +1,10 @@
 package ink.glowing.utils.rng;
 
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.testng.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RngUtilsTest {
     private static final int SAMPLES = 1_000;
@@ -12,18 +13,8 @@ public class RngUtilsTest {
         assertTrue(value >= min && value < max, value + " not in [" + min + ", " + max + ")");
     }
 
-    @DataProvider
-    public Object[][] rangeData() {
-        return new Object[][]{
-                {0, 10},
-                {10, 0},
-                {-5, 5},
-                {5, -5},
-                {-10, -1}
-        };
-    }
-
-    @Test(dataProvider = "rangeData")
+    @ParameterizedTest
+    @CsvSource({"0, 10", "10, 0", "-5, 5", "5, -5", "-10, -1"})
     public void testInRange(int a, int b) {
         int min = Math.min(a, b), max = Math.max(a, b);
         for (int i = 0; i < SAMPLES; i++) {
@@ -33,28 +24,16 @@ public class RngUtilsTest {
         }
     }
 
-    @DataProvider
-    public Object[][] equalBoundsData() {
-        return new Object[][]{{3}, {-2}, {0}};
-    }
-
-    @Test(dataProvider = "equalBoundsData")
+    @ParameterizedTest
+    @ValueSource(ints = {3, -2, 0})
     public void testInRangeEqualBounds(int bound) {
-        assertEquals(RngUtils.inRange(bound, bound), bound);
-        assertEquals(RngUtils.inRange((long) bound, bound), bound);
-        assertEquals(RngUtils.inRange((double) bound, bound), bound);
+        assertEquals(bound, RngUtils.inRange(bound, bound));
+        assertEquals(bound, RngUtils.inRange((long) bound, bound));
+        assertEquals(bound, RngUtils.inRange((double) bound, bound));
     }
 
-    @DataProvider
-    public Object[][] nanRangeData() {
-        return new Object[][]{
-                {Double.NaN, 1d},
-                {1d, Double.NaN},
-                {Double.NaN, Double.NaN}
-        };
-    }
-
-    @Test(dataProvider = "nanRangeData")
+    @ParameterizedTest
+    @CsvSource({"NaN, 1", "1, NaN", "NaN, NaN"})
     public void testInRangeNaN(double a, double b) {
         assertThrows(IllegalArgumentException.class, () -> RngUtils.inRange(a, b));
     }
