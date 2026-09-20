@@ -4,7 +4,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Computes the weight of an element, given its position in the source collection.
- * Elements with a weight that is zero, negative or {@code NaN} are never picked.
+ * Elements with a weight that is not positive (zero, negative or {@code NaN}) are never picked.
+ * An element with an infinite weight takes priority over all finite ones, see {@link WeightedPicker}.
  * @param <$Type> the type of elements
  */
 @FunctionalInterface

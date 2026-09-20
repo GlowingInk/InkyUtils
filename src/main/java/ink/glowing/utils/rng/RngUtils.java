@@ -26,9 +26,23 @@ public final class RngUtils {
      * @param array the array to pick from
      * @return a random element of the array
      * @throws IllegalArgumentException if the array is empty
+     * @see #threadRandom()
+     * @see #randomElement(RandomGenerator, Object[])
      */
     public static <$Type> $Type randomElement($Type @NotNull [] array) {
-        return array[threadRandom().nextInt(array.length)];
+        return randomElement(threadRandom(), array);
+    }
+
+    /**
+     * Returns a uniformly random element of the specified array.
+     * @param <$Type> the type of elements in the array
+     * @param rng the source of randomness
+     * @param array the array to pick from
+     * @return a random element of the array
+     * @throws IllegalArgumentException if the array is empty
+     */
+    public static <$Type> $Type randomElement(@NotNull RandomGenerator rng, $Type @NotNull [] array) {
+        return array[rng.nextInt(array.length)];
     }
 
     /**
@@ -37,9 +51,23 @@ public final class RngUtils {
      * @param list the list to pick from
      * @return a random element of the list
      * @throws IllegalArgumentException if the list is empty
+     * @see #threadRandom()
+     * @see #randomElement(RandomGenerator, List)
      */
     public static <$Type> $Type randomElement(@NotNull List<$Type> list) {
-        return list.get(threadRandom().nextInt(list.size()));
+        return randomElement(threadRandom(), list);
+    }
+
+    /**
+     * Returns a uniformly random element of the specified list.
+     * @param <$Type> the type of elements in the list
+     * @param rng the source of randomness
+     * @param list the list to pick from
+     * @return a random element of the list
+     * @throws IllegalArgumentException if the list is empty
+     */
+    public static <$Type> $Type randomElement(@NotNull RandomGenerator rng, @NotNull List<$Type> list) {
+        return list.get(rng.nextInt(list.size()));
     }
 
     /**

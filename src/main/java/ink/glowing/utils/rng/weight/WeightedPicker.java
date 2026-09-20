@@ -1,5 +1,6 @@
 package ink.glowing.utils.rng.weight;
 
+import ink.glowing.utils.rng.RngUtils;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,9 +14,11 @@ import java.util.stream.Stream;
  * proportional to its weight. Picking does not remove elements, so the same element can be
  * picked repeatedly.
  * <p>
- * Elements with non-positives weights are never picked. If no element
- * is left, the picker is empty: {@link #isEmpty()} returns {@code true} and {@link #next} throws.
- * {@code null} is a valid element as long as it has a positive weight.
+ * Elements with non-positive weights are never picked.
+ * If any element has an infinite weight, all elements with a finite weight are discarded and
+ * the infinite ones are picked uniformly.
+ * If no element is left, the picker is empty: {@link #isEmpty()} returns {@code true} and
+ * {@link #next} throws.
  * @param <$Type> the type of elements
  */
 public interface WeightedPicker<$Type> {
@@ -45,17 +48,18 @@ public interface WeightedPicker<$Type> {
      * @param elements the map of elements to their weights
      * @return a picker of the map's keys
      */
-    static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Map<$Type, Double> elements) {
+    static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Map<? extends $Type, @NotNull Double> elements) {
         return ofCollection(elements.keySet(), (t, _) -> elements.getOrDefault(t, 0d));
     }
 
     /**
-     * Returns a {@code WeightedPicker} of the keys of the specified map, weighted by their values.
+     * Returns a {@code WeightedPicker} of the keys of the specified fastutil map, weighted by
+     * their primitive values.
      * @param <$Type> the type of elements
      * @param elements the map of elements to their weights
      * @return a picker of the map's keys
      */
-    static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Object2DoubleMap<$Type> elements) {
+    static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Object2DoubleMap<? extends $Type> elements) {
         return ofCollection(elements.keySet(), (t, _) -> elements.getOrDefault(t, 0d));
     }
 
@@ -66,7 +70,7 @@ public interface WeightedPicker<$Type> {
      * @param collection the elements to pick from
      * @return a picker of the collection's elements
      */
-    static <$WeightableType extends Weightable> @NotNull WeightedPicker<$WeightableType> ofCollection(@NotNull Collection<$WeightableType> collection) {
+    static <$WeightableType extends Weightable> @NotNull WeightedPicker<$WeightableType> ofCollection(@NotNull Collection<? extends $WeightableType> collection) {
         return ofCollection(collection, (t, _) -> t == null ? 0 : t.weight());
     }
 
@@ -78,7 +82,7 @@ public interface WeightedPicker<$Type> {
      * @param funct the function computing the weight of an element
      * @return a picker of the collection's elements
      */
-    static <$Type> @NotNull WeightedPicker<$Type> ofCollection(@NotNull Collection<$Type> collection, @NotNull ToDoubleFunction<$Type> funct) {
+    static <$Type> @NotNull WeightedPicker<$Type> ofCollection(@NotNull Collection<? extends $Type> collection, @NotNull ToDoubleFunction<? super $Type> funct) {
         return ofCollection(collection, (t, _) -> funct.applyAsDouble(t));
     }
 
@@ -90,7 +94,7 @@ public interface WeightedPicker<$Type> {
      * @param funct the function computing the weight of an element
      * @return a picker of the collection's elements
      */
-    static <$Type> @NotNull WeightedPicker<$Type> ofCollection(@NotNull Collection<$Type> collection, @NotNull WeightFunction<$Type> funct) {
+    static <$Type> @NotNull WeightedPicker<$Type> ofCollection(@NotNull Collection<? extends $Type> collection, @NotNull WeightFunction<? super $Type> funct) {
         return switch (collection.size()) {
             case 0 -> of();
             case 1 -> {
@@ -159,15 +163,21 @@ public interface WeightedPicker<$Type> {
         private final int[] alias;
         private final double[] probabilities;
 
-        private static <$Type> @NotNull WeightedPicker<$Type> tryAlias(@NotNull Collection<$Type> collection, @NotNull WeightFunction<$Type> funct) {
+        private static <$Type> @NotNull WeightedPicker<$Type> tryAlias(@NotNull Collection<? extends $Type> collection, @NotNull WeightFunction<? super $Type> funct) {
             double[] rawProbabilities = new double[collection.size()];
             ArrayList<$Type> elements = new ArrayList<>(collection.size());
 
             double weightsSum = 0;
             int index = 0;
-            for ($Type item : collection) {
+            var iterator = collection.iterator();
+            while (iterator.hasNext()) {
+                $Type item = iterator.next();
                 double weight = funct.apply(item, index++);
                 if (!(weight > 0)) continue; // also skips NaN
+                if (weight == Double.POSITIVE_INFINITY) {
+                    return Uniform.ofInfinite(item, iterator, funct, index);
+                }
+
                 elements.add(item);
                 rawProbabilities[elements.size() - 1] = weight;
                 weightsSum += weight;
@@ -178,6 +188,17 @@ public interface WeightedPicker<$Type> {
                 case 1 -> of(elements.getFirst());
                 default -> {
                     elements.trimToSize();
+
+                    if (Double.isInfinite(weightsSum)) { // finite weights overflowed, try to rescale
+                        double maxWeight = 0;
+                        for (int i = 0; i < elements.size(); i++) {
+                            maxWeight = Math.max(maxWeight, rawProbabilities[i]);
+                        }
+                        weightsSum = 0;
+                        for (int i = 0; i < elements.size(); i++) {
+                            weightsSum += rawProbabilities[i] /= maxWeight;
+                        }
+                    }
                     yield new AliasMethod<>(elements, rawProbabilities, weightsSum);
                 }
             };
@@ -229,5 +250,35 @@ public interface WeightedPicker<$Type> {
             return this.elements.get(coinToss ? column : this.alias[column]);
         }
     }
-}
 
+    /**
+     * Picker where every element has the same probability.
+     * @param <$Type> the type of elements
+     */
+    final class Uniform<$Type> implements WeightedPicker<$Type> {
+        private final List<$Type> elements;
+
+        private Uniform(@NotNull List<$Type> elements) {
+            this.elements = elements;
+        }
+
+        private static <$Type> @NotNull WeightedPicker<$Type> ofInfinite($Type first, @NotNull Iterator<? extends $Type> rest, @NotNull WeightFunction<? super $Type> funct, int index) {
+            ArrayList<$Type> elements = new ArrayList<>();
+            elements.add(first);
+
+            while (rest.hasNext()) {
+                $Type item = rest.next();
+                if (funct.apply(item, index++) == Double.POSITIVE_INFINITY) elements.add(item);
+            }
+
+            if (elements.size() == 1) return of(first);
+            elements.trimToSize();
+            return new Uniform<>(elements);
+        }
+
+        @Override
+        public $Type next(@NotNull RandomGenerator rng) {
+            return RngUtils.randomElement(rng, this.elements);
+        }
+    }
+}

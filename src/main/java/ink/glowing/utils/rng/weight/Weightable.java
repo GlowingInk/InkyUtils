@@ -1,13 +1,12 @@
 package ink.glowing.utils.rng.weight;
 
 /**
- * An value that knows its own weight, for use with {@link WeightedPicker#ofCollection(java.util.Collection)}.
+ * A value that knows its own weight, for use with {@link WeightedPicker#ofCollection(java.util.Collection)}.
  * Weights are relative: only their ratio to other weights matters.
  */
 public interface Weightable {
     /**
-     * Returns the weight of this value. Elements with a weight that is zero, negative or
-     * {@code NaN} are never picked.
+     * Returns the weight of this value.
      * @return the weight
      */
     double weight();
