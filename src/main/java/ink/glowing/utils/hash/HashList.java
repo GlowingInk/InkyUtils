@@ -22,7 +22,7 @@ import java.util.*;
  * of them.
  * @param <$Type> the type of elements in this list
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "SuspiciousMethodCalls"})
 @Unmodifiable
 public sealed abstract class HashList<$Type> extends AbstractList<$Type> implements RandomAccess {
     /**
