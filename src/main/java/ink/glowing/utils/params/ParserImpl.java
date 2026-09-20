@@ -96,7 +96,7 @@ final class ParserImpl {
                     map.put(key, parseSingleValue(endCh));
                     continue;
                 }
-                throw new IllegalArgumentException("Couldn't find semicolon for the map value at pos " + pos);
+                throw new IllegalArgumentException("Couldn't find colon for the map value at pos " + pos);
             } else if (ch == '}') {
                 if (start == 0) {
                     throw new IllegalArgumentException("Found trailing '}' while parsing global map at pos " + (pos - 1));
@@ -127,7 +127,7 @@ final class ParserImpl {
                     continue;
                 }
             }
-            throw new IllegalArgumentException("Couldn't find semicolon for the map value at pos " + pos);
+            throw new IllegalArgumentException("Couldn't find colon for the map value at pos " + pos);
         }
         if (start != 0) {
             throw new IllegalArgumentException("Couldn't find the end of a map started at " + start);
@@ -179,8 +179,10 @@ final class ParserImpl {
         }
 
         StringBuilder stringBuilder = new StringBuilder();
-        advanceOn('\\');
-        stringBuilder.append(pop());
+        char first = pop();
+        if (!handleEscaping(first, stringBuilder)) {
+            stringBuilder.append(first);
+        }
 
         while (hasMore()) {
             char ch = pop();

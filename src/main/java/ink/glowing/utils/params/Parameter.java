@@ -30,7 +30,7 @@ import static ink.glowing.utils.params.ParameterImpl.GLOBAL_VALUE;
  * [value1 value2]
  * {key1:value1 key2:value2}
  * }</pre>
- * At the top level ({@code main == true} in {@link #asParameterValue(boolean)}), the
+ * At the top level ({@code main == true} in {@link #asValue(boolean)}), the
  * wrapping brackets/braces are omitted, so the same values read as:
  * <pre>{@code
  * value1 value2
@@ -51,17 +51,17 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     int count();
 
     /**
-     * Returns the raw, unescaped string this parameter was parsed from.
+     * Returns the raw, but unescaped string this parameter was parsed from.
      * @return the raw value
      */
-    @NotNull String value();
+    @NotNull String view();
 
     /**
      * Serializes this parameter back into its parameter-string form.
      * @param main whether this is the top-level parameter, omitting the wrapping brackets/braces
      * @return the serialized form
      */
-    @NotNull String asParameterValue(boolean main);
+    @NotNull String asValue(boolean main);
 
     /**
      * Looks up a nested parameter by key.
@@ -187,14 +187,35 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     }
 
     /**
-     * Escapes a plain value for use in a parameter string, quoting it if it contains a space.
+     * Escapes a plain value for use in a parameter string, quoting it if it contains whitespace or
+     * a colon or any of the map/list bracket symbols {@code {}[]}. An empty value is written as {@code ''}.
      * @param value the value to escape
      * @return the escaped value
      */
     static @NotNull String escapePlainValue(@NotNull String value) {
-        String escaped = value.replace("\\", "\\\\").replace("'", "\\'");
-        return value.indexOf(' ') != -1
-                ? '\'' + escaped + '\''
-                : escaped;
+        int length = value.length();
+        if (length == 0) return "''";
+
+        boolean quote = false;
+        int escapes = 0;
+        for (int i = 0; i < length; i++) {
+            char ch = value.charAt(i);
+            switch (ch) {
+                case '\\', '\'' -> escapes++;
+                case '{', '}', '[', ']', ':' -> quote = true;
+                default -> { if (Character.isWhitespace(ch)) quote = true; }
+            }
+        }
+        if (escapes == 0 && !quote) return value;
+
+        StringBuilder sb = new StringBuilder(length + escapes + (quote ? 2 : 0));
+        if (quote) sb.append('\'');
+        for (int i = 0; i < length; i++) {
+            char ch = value.charAt(i);
+            if (ch == '\\' || ch == '\'') sb.append('\\');
+            sb.append(ch);
+        }
+        if (quote) sb.append('\'');
+        return sb.toString();
     }
 }

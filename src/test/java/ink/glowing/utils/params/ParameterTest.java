@@ -4,11 +4,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
 import static ink.glowing.utils.params.Parameter.Mapped.parse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ParameterTest {
     public static Stream<Arguments> parseData() {
@@ -28,6 +30,30 @@ public class ParameterTest {
                 Arguments.of(
                         "list:['of' 'values']",
                         "list:[of values]"
+                ),
+                Arguments.of(
+                        "brackets:'a{b}[c]'",
+                        "brackets:'a{b}[c]'"
+                ),
+                Arguments.of(
+                        "mixed:'it\\'s [x]'",
+                        "mixed:'it\\'s [x]'"
+                ),
+                Arguments.of(
+                        "tab:'a\tb'",
+                        "tab:'a\tb'"
+                ),
+                Arguments.of(
+                        "empty:''",
+                        "empty:''"
+                ),
+                Arguments.of(
+                        "colon:'a:b'",
+                        "colon:'a:b'"
+                ),
+                Arguments.of(
+                        "'a:b':value",
+                        "'a:b':value"
                 )
         );
     }
@@ -35,16 +61,22 @@ public class ParameterTest {
     @ParameterizedTest
     @MethodSource("parseData")
     public void parseTest(String input, String expected) {
-        String result = parse(input).asParameterValue(true);
+        String result = parse(input).asValue(true);
         assertEquals(
                 expected,
                 result
         );
         assertEquals(
                 expected,
-                parse(result).asParameterValue(true),
+                parse(result).asValue(true),
                 "Double-parsing input lead to another result"
         );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"k:\\", "k:'unterminated", "k:[a", "k:'x'y", "k"})
+    public void malformedTest(String input) {
+        assertThrows(IllegalArgumentException.class, () -> parse(input));
     }
 
     @Test
@@ -52,6 +84,8 @@ public class ParameterTest {
         String[] examples = {
                 "simple:value",
                 "simple:'value'",
+                "not-a:'{list}'",
+                "not-a:\\{list\\}",
                 "first:value second:value",
                 "escaping:\\'value\\'",
                 "spaces:'value with spaces'",
@@ -69,10 +103,10 @@ public class ParameterTest {
             IO.println(ex);
             IO.println("========================================");
             var params = parse(ex);
-            String result = params.asParameterValue(true);
-            IO.println(params.value());
-            IO.println(result);
-            IO.println(parse(result).asParameterValue(true));
+            String result = params.asValue(true);
+            IO.println("views: " + params.view());
+            IO.println("tostr: " + result);
+            IO.println("parse: " + parse(result).asValue(true));
             IO.println();
         }
     }

@@ -12,12 +12,12 @@ import java.util.function.Function;
 final class ParameterImpl {
     private ParameterImpl() { }
 
-    record PlainImpl(@NotNull String value) implements Parameter.Plain {
+    record PlainImpl(@NotNull String view) implements Parameter.Plain {
         static final Parameter.Plain EMPTY = new PlainImpl("");
 
         @Override
-        public @NotNull String asParameterValue(boolean main) {
-            return Parameter.escapePlainValue(value);
+        public @NotNull String asValue(boolean main) {
+            return Parameter.escapePlainValue(view);
         }
 
         @Override
@@ -45,14 +45,14 @@ final class ParameterImpl {
         static Listed EMPTY = new ListedImpl(EMPTY_VALUE, List.of());
 
         @Override
-        public @NotNull String asParameterValue(boolean main) {
+        public @NotNull String asValue(boolean main) {
             if (count() == 0) {
                 return !main ? "[]" : "";
             }
             StringBuilder sb = new StringBuilder();
             if (!main) sb.append('[');
             for (var entry : internalValue) {
-                sb.append(entry.asParameterValue(false));
+                sb.append(entry.asValue(false));
                 sb.append(' ');
             }
             if (!main) {
@@ -64,7 +64,7 @@ final class ParameterImpl {
         }
 
         @Override
-        public @NotNull String value() {
+        public @NotNull String view() {
             return valueCompute.apply(this);
         }
 
@@ -100,7 +100,7 @@ final class ParameterImpl {
         static Mapped EMPTY = new MappedImpl(EMPTY_VALUE, Map.of());
 
         @Override
-        public @NotNull String asParameterValue(boolean main) {
+        public @NotNull String asValue(boolean main) {
             if (count() == 0) {
                 return !main ? "{}" : "";
             }
@@ -109,7 +109,7 @@ final class ParameterImpl {
             for (var entry : internalValue.entrySet()) {
                 sb.append(Parameter.escapePlainValue(entry.getKey()))
                         .append(':')
-                        .append(entry.getValue().asParameterValue(false));
+                        .append(entry.getValue().asValue(false));
                 sb.append(' ');
             }
             if (!main) {
@@ -121,7 +121,7 @@ final class ParameterImpl {
         }
 
         @Override
-        public @NotNull String value() {
+        public @NotNull String view() {
             return valueCompute.apply(this);
         }
 
@@ -145,7 +145,7 @@ final class ParameterImpl {
 
     static final Function<Parameter, String> EMPTY_VALUE = _ -> "";
 
-    static final Function<Parameter, String> GLOBAL_VALUE = param -> param.asParameterValue(true);
+    static final Function<Parameter, String> GLOBAL_VALUE = param -> param.asValue(true);
 
     static class LazyValue implements Function<Parameter, String> {
         private volatile String value;
