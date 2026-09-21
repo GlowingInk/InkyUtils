@@ -7,7 +7,8 @@ import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenCustomHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Map;
 
 public final class CaseInsensitive {
     private CaseInsensitive() { }
@@ -36,51 +37,51 @@ public final class CaseInsensitive {
         return CI_STRATEGY;
     }
 
-    public static <$Value> @NotNull SortedMap<String, $Value> newLinkedMap() {
+    public static <$Value> @NotNull Object2ObjectLinkedOpenCustomHashMap<String, $Value> newLinkedMap() {
         return new Object2ObjectLinkedOpenCustomHashMap<>(CI_STRATEGY);
     }
 
-    public static <$Value> @NotNull SortedMap<String, $Value> newLinkedMap(int expectedSize) {
+    public static <$Value> @NotNull Object2ObjectLinkedOpenCustomHashMap<String, $Value> newLinkedMap(int expectedSize) {
         return new Object2ObjectLinkedOpenCustomHashMap<>(expectedSize, CI_STRATEGY);
     }
 
-    public static <$Value> @NotNull SortedMap<String, $Value> newLinkedMap(@NotNull Map<String, ? extends $Value> map) {
+    public static <$Value> @NotNull Object2ObjectLinkedOpenCustomHashMap<String, $Value> newLinkedMap(@NotNull Map<String, ? extends $Value> map) {
         return new Object2ObjectLinkedOpenCustomHashMap<>(map, CI_STRATEGY);
     }
 
-    public static <$Value> @NotNull Map<String, $Value> newMap() {
+    public static <$Value> @NotNull Object2ObjectOpenCustomHashMap<String, $Value> newMap() {
         return new Object2ObjectOpenCustomHashMap<>(CI_STRATEGY);
     }
 
-    public static <$Value> @NotNull Map<String, $Value> newMap(int expectedSize) {
+    public static <$Value> @NotNull Object2ObjectOpenCustomHashMap<String, $Value> newMap(int expectedSize) {
         return new Object2ObjectOpenCustomHashMap<>(expectedSize, CI_STRATEGY);
     }
 
-    public static <$Value> @NotNull Map<String, $Value> newMap(@NotNull Map<String, ? extends $Value> map) {
+    public static <$Value> @NotNull Object2ObjectOpenCustomHashMap<String, $Value> newMap(@NotNull Map<String, ? extends $Value> map) {
         return new Object2ObjectOpenCustomHashMap<>(map, CI_STRATEGY);
     }
 
-    public static @NotNull SortedSet<String> newLinkedSet() {
+    public static @NotNull ObjectLinkedOpenCustomHashSet<String> newLinkedSet() {
         return new ObjectLinkedOpenCustomHashSet<>(CI_STRATEGY);
     }
 
-    public static @NotNull SortedSet<String> newLinkedSet(int expectedSize) {
+    public static @NotNull ObjectLinkedOpenCustomHashSet<String> newLinkedSet(int expectedSize) {
         return new ObjectLinkedOpenCustomHashSet<>(expectedSize, CI_STRATEGY);
     }
 
-    public static @NotNull SortedSet<String> newLinkedSet(@NotNull Collection<String> collection) {
+    public static @NotNull ObjectLinkedOpenCustomHashSet<String> newLinkedSet(@NotNull Collection<String> collection) {
         return new ObjectLinkedOpenCustomHashSet<>(collection, CI_STRATEGY);
     }
 
-    public static @NotNull Set<String> newSet() {
+    public static @NotNull ObjectOpenCustomHashSet<String> newSet() {
         return new ObjectOpenCustomHashSet<>(CI_STRATEGY);
     }
 
-    public static @NotNull Set<String> newSet(int expectedSize) {
+    public static @NotNull ObjectOpenCustomHashSet<String> newSet(int expectedSize) {
         return new ObjectOpenCustomHashSet<>(expectedSize, CI_STRATEGY);
     }
 
-    public static @NotNull Set<String> newSet(@NotNull Collection<String> collection) {
+    public static @NotNull ObjectOpenCustomHashSet<String> newSet(@NotNull Collection<String> collection) {
         return new ObjectOpenCustomHashSet<>(collection, CI_STRATEGY);
     }
 }
