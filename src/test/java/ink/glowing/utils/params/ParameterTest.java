@@ -102,27 +102,27 @@ public class ParameterTest {
         assertEquals("[]", params.get("z").raw());
 
         Parameter.Plain escaped = (Parameter.Plain) params.get("s");
-        assertEquals("esc'd", escaped.value());
+        assertEquals("esc'd", escaped.textValue());
     }
 
     @Test
-    public void plainValueTest() {
+    public void plainTextValueTest() {
         Parameter.Mapped params = parse("q:'quoted' s:esc\\'d b:bare e:''");
 
-        assertEquals("quoted", ((Parameter.Plain) params.get("q")).value());
-        assertEquals("esc'd", ((Parameter.Plain) params.get("s")).value());
-        assertEquals("bare", ((Parameter.Plain) params.get("b")).value());
-        assertEquals("", ((Parameter.Plain) params.get("e")).value());
+        assertEquals("quoted", params.get("q").textValue());
+        assertEquals("esc'd", params.get("s").textValue());
+        assertEquals("bare", params.get("b").textValue());
+        assertEquals("", params.get("e").textValue());
     }
 
     @Test
-    public void compoundValueTest() {
+    public void compoundTextValueTest() {
         Parameter.Mapped params = parse("k:[a\\ b 'c d'] j:{x:esc\\'d} e:[]");
 
-        assertEquals("k:[a b 'c d'] j:{x:esc'd} e:[]", params.value());
-        assertEquals("[a b 'c d']", params.get("k").value());
-        assertEquals("{x:esc'd}", params.get("j").value());
-        assertEquals("[]", params.get("e").value());
+        assertEquals("k:[a b 'c d'] j:{x:esc'd} e:[]", params.textValue());
+        assertEquals("[a b 'c d']", params.get("k").textValue());
+        assertEquals("{x:esc'd}", params.get("j").textValue());
+        assertEquals("[]", params.get("e").textValue());
 
         // The raw and serialized forms are unaffected
         assertEquals("[a\\ b 'c d']", params.get("k").raw());
@@ -157,8 +157,8 @@ public class ParameterTest {
     public void caseInsensitiveKeysTest() {
         Parameter.Mapped params = parse("Braced:{Key:v} single:Key:v");
 
-        assertEquals("v", ((Parameter.Plain) params.get("BRACED").get("key")).value());
-        assertEquals("v", ((Parameter.Plain) params.get("SINGLE").get("KEY")).value());
+        assertEquals("v", params.get("BRACED").get("key").textValue());
+        assertEquals("v", params.get("SINGLE").get("KEY").textValue());
         assertNull(params.get("other"));
     }
 
@@ -176,7 +176,7 @@ public class ParameterTest {
         Parameter.Mapped params = Parameter.Mapped.of(entries);
 
         assertEquals("one:one two:two three:three four:four five:five six:six", params.serialize(true));
-        assertEquals("three", ((Parameter.Plain) params.get("THREE")).value());
+        assertEquals("three", params.get("THREE").textValue());
     }
 
     @Test
@@ -248,12 +248,12 @@ public class ParameterTest {
             var params = parse(ex);
             String result = params.serialize(true);
             IO.println("raw  : " + params.raw());
-            IO.println("value: " + params.value());
+            IO.println("value: " + params.textValue());
             IO.println("tostr: " + result);
             IO.println("parse: " + parse(result).serialize(true));
             IO.println();
         }
 
-        IO.println(parse("simple:[list of values]").get("simple").value());
+        IO.println(parse("simple:[list of values]").get("simple").textValue());
     }
 }

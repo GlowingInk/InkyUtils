@@ -47,7 +47,7 @@ final class ParameterImpl {
         }
 
         @Override
-        public @NotNull String value() {
+        public @NotNull String textValue() {
             return value;
         }
 
@@ -67,7 +67,7 @@ final class ParameterImpl {
 
         @Override
         public boolean matches(@NotNull Parameter other) {
-            return other instanceof Parameter.Plain plain && value.equals(plain.value());
+            return other instanceof Parameter.Plain plain && value.equals(plain.textValue());
         }
 
         @Override
@@ -135,7 +135,7 @@ final class ParameterImpl {
          */
         abstract void appendEntries(@NotNull StringBuilder sb);
 
-        public final @NotNull String value() {
+        public final @NotNull String textValue() {
             String cached = unescapedRaw;
             if (cached == null) {
                 unescapedRaw = cached = Parameter.unescape(raw());
@@ -311,7 +311,7 @@ final class ParameterImpl {
 
     static final Function<Parameter, String> SERIALIZED_RAW = param -> param.serialize(true);
 
-    static final Function<Parameter, String> VALUE_AS_RAW = Parameter::value;
+    static final Function<Parameter, String> VALUE_AS_RAW = Parameter::textValue;
 
     /**
      * The raw string of a parameter, lazily sliced out of the parsed input.

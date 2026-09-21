@@ -61,7 +61,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * for that.
      * @return the unescaped raw value
      */
-    @NotNull String value();
+    @NotNull String textValue();
 
     /**
      * Checks whether the other parameter holds the same values, regardless of how they were
@@ -126,7 +126,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * @return the plain value
          */
         @Override
-        @NotNull String value();
+        @NotNull String textValue();
 
         /**
          * {@inheritDoc}
