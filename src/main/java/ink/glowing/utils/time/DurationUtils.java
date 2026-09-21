@@ -1,10 +1,13 @@
 package ink.glowing.utils.time;
 
+import ink.glowing.utils.FluentUtils;
+import ink.glowing.utils.hash.CaseInsensitive;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
+import java.util.Collections;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -12,14 +15,14 @@ import java.util.StringTokenizer;
  * Utilities for {@link Duration}.
  */
 public final class DurationUtils {
-    private static final Map<String, TemporalUnit> DEFAULT_UNITS = Map.of(
+    private static final Map<String, TemporalUnit> DEFAULT_UNITS = FluentUtils.map(Map.of(
             "ns", ChronoUnit.NANOS,
             "ms", ChronoUnit.MILLIS,
             "s", ChronoUnit.SECONDS,
             "m", ChronoUnit.MINUTES,
             "h", ChronoUnit.HOURS,
             "d", ChronoUnit.DAYS
-    );
+    ), map -> Collections.unmodifiableMap(CaseInsensitive.newLinkedMap(map)));
 
     /**
      * Returns the units used by {@link #parseDuration(String)}: {@code ns}, {@code ms}, {@code s},

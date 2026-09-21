@@ -7,10 +7,7 @@ import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenCustomHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
+import java.util.*;
 
 public final class CaseInsensitive {
     private CaseInsensitive() { }
@@ -47,12 +44,20 @@ public final class CaseInsensitive {
         return new Object2ObjectLinkedOpenCustomHashMap<>(expectedSize, CI_STRATEGY);
     }
 
+    public static <$Value> @NotNull SortedMap<String, $Value> newLinkedMap(@NotNull Map<String, ? extends $Value> map) {
+        return new Object2ObjectLinkedOpenCustomHashMap<>(map, CI_STRATEGY);
+    }
+
     public static <$Value> @NotNull Map<String, $Value> newMap() {
         return new Object2ObjectOpenCustomHashMap<>(CI_STRATEGY);
     }
 
     public static <$Value> @NotNull Map<String, $Value> newMap(int expectedSize) {
         return new Object2ObjectOpenCustomHashMap<>(expectedSize, CI_STRATEGY);
+    }
+
+    public static <$Value> @NotNull Map<String, $Value> newMap(@NotNull Map<String, ? extends $Value> map) {
+        return new Object2ObjectOpenCustomHashMap<>(map, CI_STRATEGY);
     }
 
     public static @NotNull SortedSet<String> newLinkedSet() {
@@ -63,11 +68,19 @@ public final class CaseInsensitive {
         return new ObjectLinkedOpenCustomHashSet<>(expectedSize, CI_STRATEGY);
     }
 
+    public static @NotNull SortedSet<String> newLinkedSet(@NotNull Collection<String> collection) {
+        return new ObjectLinkedOpenCustomHashSet<>(collection, CI_STRATEGY);
+    }
+
     public static @NotNull Set<String> newSet() {
         return new ObjectOpenCustomHashSet<>(CI_STRATEGY);
     }
 
     public static @NotNull Set<String> newSet(int expectedSize) {
         return new ObjectOpenCustomHashSet<>(expectedSize, CI_STRATEGY);
+    }
+
+    public static @NotNull Set<String> newSet(@NotNull Collection<String> collection) {
+        return new ObjectOpenCustomHashSet<>(collection, CI_STRATEGY);
     }
 }
