@@ -5,7 +5,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -68,18 +67,23 @@ final class ParameterImpl {
         }
 
         @Override
+        public boolean matches(@NotNull Parameter other) {
+            return other instanceof Parameter.Plain plain && value.equals(plain.value());
+        }
+
+        @Override
         public boolean equals(Object obj) {
-            return obj == this || obj instanceof PlainImpl other && value.equals(other.value);
+            return obj == this || obj instanceof PlainImpl other && raw().equals(other.raw());
         }
 
         @Override
         public int hashCode() {
-            return value.hashCode();
+            return raw().hashCode();
         }
 
         @Override
         public String toString() {
-            return "PlainImpl[value=" + value + "]";
+            return "PlainImpl[raw=" + raw() + "]";
         }
 
         @Override
@@ -170,18 +174,17 @@ final class ParameterImpl {
 
         @Override
         public final boolean equals(Object obj) {
-            return obj == this || obj instanceof CompoundImpl<?> other && getClass() == other.getClass()
-                    && valueCompute.equals(other.valueCompute) && internalValue.equals(other.internalValue);
+            return obj == this || obj instanceof CompoundImpl<?> other && getClass() == other.getClass() && raw().equals(other.raw());
         }
 
         @Override
         public final int hashCode() {
-            return Objects.hash(valueCompute, internalValue);
+            return raw().hashCode();
         }
 
         @Override
         public final String toString() {
-            return getClass().getSimpleName() + "[valueCompute=" + valueCompute + ", internalValue=" + internalValue + "]";
+            return getClass().getSimpleName() + "[raw=" + raw() + "]";
         }
     }
 
@@ -212,6 +215,16 @@ final class ParameterImpl {
         @Override
         public @NotNull String raw() {
             return valueCompute.apply(this);
+        }
+
+        @Override
+        public boolean matches(@NotNull Parameter other) {
+            if (!(other instanceof Parameter.Listed) || other.count() != count()) return false;
+            for (int i = 0; i < internalValue.size(); i++) {
+                Parameter otherEntry = other.get(i);
+                if (otherEntry == null || !internalValue.get(i).matches(otherEntry)) return false;
+            }
+            return true;
         }
 
         @Override
@@ -265,6 +278,16 @@ final class ParameterImpl {
         @Override
         public @NotNull String raw() {
             return valueCompute.apply(this);
+        }
+
+        @Override
+        public boolean matches(@NotNull Parameter other) {
+            if (!(other instanceof Parameter.Mapped) || other.count() != count()) return false;
+            for (var entry : internalValue.entrySet()) {
+                Parameter otherEntry = other.get(entry.getKey());
+                if (otherEntry == null || !entry.getValue().matches(otherEntry)) return false;
+            }
+            return true;
         }
 
         @Override

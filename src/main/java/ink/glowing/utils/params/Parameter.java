@@ -63,6 +63,16 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     @NotNull String value();
 
     /**
+     * Checks whether the other parameter holds the same values, regardless of how they were
+     * written: quotes, escapes and spacing are ignored, and so is the order of {@link Mapped} entries.
+     * Keys are compared ignoring case, plain values exactly, and the order of {@link Listed} entries
+     * still matters.
+     * @param other the parameter to compare with
+     * @return {@code true} if both hold the same values
+     */
+    boolean matches(@NotNull Parameter other);
+
+    /**
      * Serializes this parameter back into a normalized parameter string, which parses back
      * into the same parameter.
      * @param topLevel whether to omit the wrapping brackets/braces

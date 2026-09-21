@@ -3,6 +3,7 @@ package ink.glowing.utils.params;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -157,6 +158,49 @@ public class ParameterTest {
 
         assertEquals("one:one two:two three:three four:four five:five six:six", params.serialize(true));
         assertEquals("three", ((Parameter.Plain) params.get("THREE")).value());
+    }
+
+    @Test
+    public void equalsTest() {
+        Parameter first = parse("k:[a 'b c'] j:{x:y}");
+        Parameter same = parse( "k:[a 'b c'] j:{x:y}");
+
+        assertEquals(first, same);
+        assertEquals(first.hashCode(), same.hashCode());
+        assertEquals(first.get("k"), same.get("k"));
+        assertEquals(first.get("k").hashCode(), same.get("k").hashCode());
+
+        // Different raw values are not equal, even if they hold the same values
+        assertNotEquals(first, parse("k:[a  'b c'] j:{x:y}"));
+        assertNotEquals(parse("k:a").get("k"), parse("k:'a'").get("k"));
+
+        // Different kinds are not equal
+        assertNotEquals(parse("k:a").get("k"), Parameter.Listed.parse("a"));
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "k:a                | k:a                   | true",
+            "k:a                | k:'a'                 | true",
+            "k:a\\ b            | k:'a b'               | true",
+            "k:a                | K:a                   | true",
+            "k:a                | k:b                   | false",
+            "k:a                | k:A                   | false",
+            "k:a                | j:a                   | false",
+            "k:a j:b            | j:b k:a               | true",
+            "k:a j:b            | k:a                   | false",
+            "k:{x:1 y:2}        | k:{y:2 x:1}           | true",
+            "k:{x:1 y:2}        | k:{y:2 x:3}           | false",
+            "k:[a b]            | k:[a  b]              | true",
+            "k:[a b]            | k:[b a]               | false",
+            "k:[a b]            | k:[a b c]             | false",
+            "k:[a {x:1 y:2}]    | k:[a {y:2 x:1}]       | true",
+            "k:a                | k:[a]                 | false",
+            "k:[a]              | k:{0:a}               | false"
+    })
+    public void matchesTest(String left, String right, boolean expected) {
+        assertEquals(expected, parse(left).matches(parse(right)));
+        assertEquals(expected, parse(right).matches(parse(left)), "matches must be symmetric");
     }
 
     @Test
