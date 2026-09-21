@@ -14,7 +14,13 @@ public class RngUtilsTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"0, 10", "10, 0", "-5, 5", "5, -5", "-10, -1"})
+    @CsvSource({
+            "0, 10",
+            "10, 0",
+            "-5, 5",
+            "5, -5",
+            "-10, -1"
+    })
     public void testInRange(int a, int b) {
         int min = Math.min(a, b), max = Math.max(a, b);
         for (int i = 0; i < SAMPLES; i++) {
@@ -33,7 +39,11 @@ public class RngUtilsTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"NaN, 1", "1, NaN", "NaN, NaN"})
+    @CsvSource({
+            "NaN, 1",
+            "1, NaN",
+            "NaN, NaN"
+    })
     public void testInRangeNaN(double a, double b) {
         assertThrows(IllegalArgumentException.class, () -> RngUtils.inRange(a, b));
     }
