@@ -5,9 +5,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 final class ParameterImpl {
     private ParameterImpl() { }
@@ -318,32 +317,19 @@ final class ParameterImpl {
      * The raw string of a parameter, lazily sliced out of the parsed input.
      */
     static class LazyValue implements Function<Parameter, String> {
-        private volatile String value;
-        private char[] input;
-        private final int start;
-        private final int end;
-
-        private final Lock lock = new ReentrantLock();
+        private Supplier<String> valueGetter;
 
         LazyValue(char[] input, int start, int end) {
-            this.input = input;
-            this.start = start;
-            this.end = end;
+            this.valueGetter = () -> {
+                String value = new String(input, start, end - start);
+                valueGetter = () -> value;
+                return value;
+            };
         }
 
         @Override
         public @NotNull String apply(Parameter parameter) {
-            String result = value;
-            if (result != null) return result;
-            lock.lock();
-            try {
-                if (value != null) return value;
-                value = new String(input, start, end - start);
-                input = null; // so it'll get GC'ed eventually... hopefully
-                return value;
-            } finally {
-                lock.unlock();
-            }
+            return valueGetter.get();
         }
     }
 }
