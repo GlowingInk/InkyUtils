@@ -22,6 +22,12 @@ public class CaseInsensitiveTest {
             "ı, I, true",
             "ı, i, true",
             "I, i, true",
+            "İ, i, true",
+            "K, k, true",
+            "Å, å, true",
+            "Ω, ω, true",
+            "ẞ, ß, true",
+            "ϴ, θ, true",
             "NULL, NULL, true",
             "NULL, a, false",
             "a, NULL, false"
