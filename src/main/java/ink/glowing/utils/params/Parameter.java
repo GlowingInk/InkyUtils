@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-import static ink.glowing.utils.params.ParameterImpl.GLOBAL_VALUE;
+import static ink.glowing.utils.params.ParameterImpl.SERIALIZED_RAW;
 
 /**
  * A parsed parameter value: either a {@link Plain} string, a {@link Listed} sequence,
@@ -49,7 +49,8 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     /**
      * Returns the string this parameter was parsed from, exactly as written: with quotes,
      * escapes and the wrapping brackets/braces.
-     * For a parameter created with {@code of(...)}, it is {@code serialize(true)}.
+     * For a parameter created with {@code of(...)}, it is {@code serialize(true)}, except for an
+     * empty {@link Plain}, whose raw string is empty.
      * @return the raw value
      */
     @NotNull String raw();
@@ -121,6 +122,13 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      */
     sealed interface Plain extends Parameterizable.ByPlain, Parameter permits PlainImpl {
         /**
+         * Returns the string, without the quotes and escapes it was written with.
+         * @return the plain value
+         */
+        @Override
+        @NotNull String value();
+
+        /**
          * {@inheritDoc}
          */
         @Override
@@ -136,7 +144,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         static @NotNull Plain of(@Nullable String value) {
             return value == null || value.isEmpty()
                     ? PlainImpl.EMPTY
-                    : new PlainImpl(value, GLOBAL_VALUE);
+                    : new PlainImpl(value, SERIALIZED_RAW);
         }
     }
 
@@ -161,7 +169,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         static @NotNull Listed of(@Nullable List<Parameter> value) {
             return value == null || value.isEmpty()
                     ? ListedImpl.EMPTY
-                    : new ListedImpl(GLOBAL_VALUE, List.copyOf(value));
+                    : new ListedImpl(SERIALIZED_RAW, List.copyOf(value));
         }
 
         /**
@@ -205,7 +213,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
 
             Map<String, Parameter> copy = CaseInsensitive.newLinkedMap(value.size());
             value.forEach((key, parameter) -> copy.put(Objects.requireNonNull(key), Objects.requireNonNull(parameter)));
-            return new MappedImpl(GLOBAL_VALUE, copy);
+            return new MappedImpl(SERIALIZED_RAW, copy);
         }
 
         /**

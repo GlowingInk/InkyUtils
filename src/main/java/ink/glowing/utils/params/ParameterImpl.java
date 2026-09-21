@@ -36,7 +36,7 @@ final class ParameterImpl {
     }
 
     static final class PlainImpl implements Parameter.Plain {
-        static final Parameter.Plain EMPTY = new PlainImpl("", EMPTY_VALUE);
+        static final Parameter.Plain EMPTY = new PlainImpl("", EMPTY_RAW);
 
         private final String value;
         private final Function<Parameter, String> rawCompute;
@@ -111,15 +111,15 @@ final class ParameterImpl {
      * and {@code String} is safely published through a data race.
      */
     private abstract static class CompoundImpl<$Internal> {
-        final Function<Parameter, String> valueCompute;
+        final Function<Parameter, String> rawCompute;
         final $Internal internalValue;
 
-        private String mainValue;
-        private String nestedValue;
+        private String topLevelForm;
+        private String nestedForm;
         private String unescapedRaw;
 
-        CompoundImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull $Internal internalValue) {
-            this.valueCompute = valueCompute;
+        CompoundImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull $Internal internalValue) {
+            this.rawCompute = rawCompute;
             this.internalValue = internalValue;
         }
 
@@ -145,26 +145,26 @@ final class ParameterImpl {
         }
 
         public final @NotNull String serialize(boolean topLevel) {
-            String cached = topLevel ? mainValue : nestedValue;
+            String cached = topLevel ? topLevelForm : nestedForm;
             if (cached == null) {
-                cached = computeValue(topLevel);
+                cached = computeSerialized(topLevel);
                 if (topLevel) {
-                    mainValue = cached;
+                    topLevelForm = cached;
                 } else {
-                    nestedValue = cached;
+                    nestedForm = cached;
                 }
             }
             return cached;
         }
 
-        private @NotNull String computeValue(boolean main) {
+        private @NotNull String computeSerialized(boolean topLevel) {
             if (count() == 0) {
-                return main ? "" : "" + open() + close();
+                return topLevel ? "" : "" + open() + close();
             }
             StringBuilder sb = new StringBuilder();
-            if (!main) sb.append(open());
+            if (!topLevel) sb.append(open());
             appendEntries(sb);
-            if (main) {
+            if (topLevel) {
                 sb.setLength(sb.length() - 1);
             } else {
                 sb.setCharAt(sb.length() - 1, close());
@@ -189,10 +189,10 @@ final class ParameterImpl {
     }
 
     static final class ListedImpl extends CompoundImpl<List<Parameter>> implements Parameter.Listed {
-        static Listed EMPTY = new ListedImpl(EMPTY_VALUE, List.of());
+        static Listed EMPTY = new ListedImpl(EMPTY_RAW, List.of());
 
-        ListedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull List<Parameter> internalValue) {
-            super(valueCompute, internalValue);
+        ListedImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull List<Parameter> internalValue) {
+            super(rawCompute, internalValue);
         }
 
         @Override
@@ -214,7 +214,7 @@ final class ParameterImpl {
 
         @Override
         public @NotNull String raw() {
-            return valueCompute.apply(this);
+            return rawCompute.apply(this);
         }
 
         @Override
@@ -249,10 +249,10 @@ final class ParameterImpl {
     }
 
     static final class MappedImpl extends CompoundImpl<Map<String, Parameter>> implements Parameter.Mapped {
-        static Mapped EMPTY = new MappedImpl(EMPTY_VALUE, Map.of());
+        static Mapped EMPTY = new MappedImpl(EMPTY_RAW, Map.of());
 
-        MappedImpl(@NotNull Function<Parameter, String> valueCompute, @NotNull Map<String, Parameter> internalValue) {
-            super(valueCompute, internalValue);
+        MappedImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull Map<String, Parameter> internalValue) {
+            super(rawCompute, internalValue);
         }
 
         @Override
@@ -277,7 +277,7 @@ final class ParameterImpl {
 
         @Override
         public @NotNull String raw() {
-            return valueCompute.apply(this);
+            return rawCompute.apply(this);
         }
 
         @Override
@@ -308,11 +308,11 @@ final class ParameterImpl {
         }
     }
 
-    static final Function<Parameter, String> EMPTY_VALUE = _ -> "";
+    static final Function<Parameter, String> EMPTY_RAW = _ -> "";
 
-    static final Function<Parameter, String> GLOBAL_VALUE = param -> param.serialize(true);
+    static final Function<Parameter, String> SERIALIZED_RAW = param -> param.serialize(true);
 
-    static final Function<Parameter, String> RAW_IS_VALUE = Parameter::value;
+    static final Function<Parameter, String> VALUE_AS_RAW = Parameter::value;
 
     /**
      * The raw string of a parameter, lazily sliced out of the parsed input.

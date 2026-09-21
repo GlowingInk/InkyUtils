@@ -106,17 +106,36 @@ public class ParameterTest {
     }
 
     @Test
-    public void valueTest() {
-        Parameter.Mapped params = parse("k:[a\\ b 'c d'] j:{x:esc\\'d} q:'quoted' s:esc\\'d");
+    public void plainValueTest() {
+        Parameter.Mapped params = parse("q:'quoted' s:esc\\'d b:bare e:''");
 
-        assertEquals("k:[a b 'c d'] j:{x:esc'd} q:'quoted' s:esc'd", params.value());
+        assertEquals("quoted", ((Parameter.Plain) params.get("q")).value());
+        assertEquals("esc'd", ((Parameter.Plain) params.get("s")).value());
+        assertEquals("bare", ((Parameter.Plain) params.get("b")).value());
+        assertEquals("", ((Parameter.Plain) params.get("e")).value());
+    }
+
+    @Test
+    public void compoundValueTest() {
+        Parameter.Mapped params = parse("k:[a\\ b 'c d'] j:{x:esc\\'d} e:[]");
+
+        assertEquals("k:[a b 'c d'] j:{x:esc'd} e:[]", params.value());
         assertEquals("[a b 'c d']", params.get("k").value());
         assertEquals("{x:esc'd}", params.get("j").value());
-        assertEquals("quoted", params.get("q").value());
-        assertEquals("esc'd", params.get("s").value());
+        assertEquals("[]", params.get("e").value());
 
-        // The raw values are not affected
+        // The raw and serialized forms are unaffected
         assertEquals("[a\\ b 'c d']", params.get("k").raw());
+        assertEquals("['a b' 'c d']", params.get("k").serialize(false));
+    }
+
+    @Test
+    public void unescapeTest() {
+        assertEquals("a b", Parameter.unescape("a\\ b"));
+        assertEquals("it's", Parameter.unescape("it\\'s"));
+        assertEquals("a\\b", Parameter.unescape("a\\\\b"));
+        assertEquals("plain", Parameter.unescape("plain"));
+        assertEquals("[a b 'c']", Parameter.unescape("[a\\ b 'c']"));
     }
 
     @Test
@@ -234,5 +253,7 @@ public class ParameterTest {
             IO.println("parse: " + parse(result).serialize(true));
             IO.println();
         }
+
+        IO.println(parse("simple:[list of values]").get("simple").value());
     }
 }

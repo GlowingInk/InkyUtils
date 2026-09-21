@@ -233,7 +233,7 @@ final class ParserImpl {
         valueEnd = end;
         pos = end < length && isWhitespace(input[end]) ? end + 1 : end; // the parent handles its closing
         // Without quotes and escapes, the raw string is the value itself
-        return new PlainImpl(string, escaped ? slice(tokenStart, end) : ParameterImpl.RAW_IS_VALUE);
+        return new PlainImpl(string, escaped ? slice(tokenStart, end) : ParameterImpl.VALUE_AS_RAW);
     }
 
     private String parseQuotedString() {
