@@ -11,12 +11,16 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class HashListTest {
+    private static String[] stringArr(String... arr) {
+        return arr;
+    }
+    
     public static Stream<Arguments> hashListData() {
         return Stream.of(
-                Arguments.of(new String[]{}, 0),
-                Arguments.of(new String[]{"a"}, 1),
-                Arguments.of(new String[]{"a", "b", "c"}, 3),
-                Arguments.of(new String[]{"a", "b", "a"}, 3)
+                Arguments.of(stringArr(), 0),
+                Arguments.of(stringArr("a"), 1),
+                Arguments.of(stringArr("a", "b", "c"), 3),
+                Arguments.of(stringArr("a", "b", "a"), 3)
         );
     }
 
@@ -29,13 +33,13 @@ public class HashListTest {
 
     public static Stream<Arguments> containsData() {
         return Stream.of(
-                Arguments.of(new String[]{}, "x", false),
-                Arguments.of(new String[]{"a"}, "a", true),
-                Arguments.of(new String[]{"a"}, "b", false),
-                Arguments.of(new String[]{"a", "b", "c"}, "b", true),
-                Arguments.of(new String[]{"a", "b", "c"}, "d", false),
-                Arguments.of(new String[]{"a", "b", "a"}, "a", true),
-                Arguments.of(new String[]{"a", "b", "a"}, "c", false)
+                Arguments.of(stringArr(), "x", false),
+                Arguments.of(stringArr("a"), "a", true),
+                Arguments.of(stringArr("a"), "b", false),
+                Arguments.of(stringArr("a", "b", "c"), "b", true),
+                Arguments.of(stringArr("a", "b", "c"), "d", false),
+                Arguments.of(stringArr("a", "b", "a"), "a", true),
+                Arguments.of(stringArr("a", "b", "a"), "c", false)
         );
     }
 
@@ -49,47 +53,30 @@ public class HashListTest {
 
     public static Stream<Arguments> indexOfData() {
         return Stream.of(
-                Arguments.of(new String[]{}, "x", -1),
-                Arguments.of(new String[]{"a"}, "a", 0),
-                Arguments.of(new String[]{"a"}, "b", -1),
-                Arguments.of(new String[]{"a", "b", "c"}, "c", 2),
-                Arguments.of(new String[]{"a", "b", "a"}, "a", 0),
-                Arguments.of(new String[]{"a", "b", "a"}, "b", 1)
+                Arguments.of(stringArr(), "x", -1, -1),
+                Arguments.of(stringArr("a"), "a", 0, 0),
+                Arguments.of(stringArr("a"), "b", -1, -1),
+                Arguments.of(stringArr("a", "b", "c"), "c", 2, 2),
+                Arguments.of(stringArr("a", "b", "a"), "a", 0, 2),
+                Arguments.of(stringArr("a", "b", "a"), "b", 1, 1)
         );
     }
 
     @ParameterizedTest
     @MethodSource("indexOfData")
-    public void testIndexOf(String[] input, String query, int expected) {
+    public void testIndexOf(String[] input, String query, int expectedFirst, int expectedLast) {
         HashList<String> list = HashList.of(input);
-        assertEquals(expected, list.indexOf(query));
-    }
-
-    public static Stream<Arguments> lastIndexOfData() {
-        return Stream.of(
-                Arguments.of(new String[]{}, "x", -1),
-                Arguments.of(new String[]{"a"}, "a", 0),
-                Arguments.of(new String[]{"a"}, "b", -1),
-                Arguments.of(new String[]{"a", "b", "c"}, "c", 2),
-                Arguments.of(new String[]{"a", "b", "a"}, "a", 2),
-                Arguments.of(new String[]{"a", "b", "a"}, "b", 1)
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("lastIndexOfData")
-    public void testLastIndexOf(String[] input, String query, int expected) {
-        HashList<String> list = HashList.of(input);
-        assertEquals(expected, list.lastIndexOf(query));
+        assertEquals(expectedFirst, list.indexOf(query), "indexOf");
+        assertEquals(expectedLast, list.lastIndexOf(query), "lastIndexOf");
     }
 
     public static Stream<Arguments> getAndToArrayData() {
         return Stream.of(
-                Arguments.of(new String[]{}, new String[]{}),
-                Arguments.of(new String[]{"a"}, new String[]{"a"}),
-                Arguments.of(new String[]{"a", "b"}, new String[]{"a", "b"}),
-                Arguments.of(new String[]{"a", "b", "c"}, new String[]{"a", "b", "c"}),
-                Arguments.of(new String[]{"a", "b", "a"}, new String[]{"a", "b", "a"})
+                Arguments.of(stringArr(), stringArr()),
+                Arguments.of(stringArr("a"), stringArr("a")),
+                Arguments.of(stringArr("a", "b"), stringArr("a", "b")),
+                Arguments.of(stringArr("a", "b", "c"), stringArr("a", "b", "c")),
+                Arguments.of(stringArr("a", "b", "a"), stringArr("a", "b", "a"))
         );
     }
 
@@ -106,9 +93,9 @@ public class HashListTest {
 
     public static Stream<Arguments> nullBehaviorData() {
         return Stream.of(
-                Arguments.of(new String[]{"a", "b"}, -1, -1),
-                Arguments.of(new String[]{}, -1, -1),
-                Arguments.of(new String[]{"a", null, "b"}, 1, 1)
+                Arguments.of(stringArr("a", "b"), -1, -1),
+                Arguments.of(stringArr(), -1, -1),
+                Arguments.of(stringArr("a", null, "b"), 1, 1)
         );
     }
 
