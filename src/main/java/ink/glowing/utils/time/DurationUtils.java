@@ -26,7 +26,7 @@ public final class DurationUtils {
 
     /**
      * Returns the units used by {@link #parseDuration(String)}: {@code ns}, {@code ms}, {@code s},
-     * {@code m}, {@code h} and {@code d}.
+     * {@code m}, {@code h} and {@code d}. Case-insensitive.
      * @return an immutable map of unit suffixes to units
      */
     public static @NotNull Map<String, TemporalUnit> defaultUnits() {
