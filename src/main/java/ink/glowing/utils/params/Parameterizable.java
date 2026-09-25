@@ -5,10 +5,10 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Something that can be represented as a {@link Parameter}.
  * <p>
- * Implement {@link ByPlain}, {@link ByList} or {@link ByMap} to also declare which kind of
+ * Implement {@link ByValue}, {@link ByList} or {@link ByMap} to also declare which kind of
  * {@code Parameter} the object is represented as.
  */
-public sealed interface Parameterizable permits Parameter, Parameterizable.ByPlain, Parameterizable.ByList, Parameterizable.ByMap {
+public interface Parameterizable {
     /**
      * Returns this object's {@link Parameter} representation.
      * @return the corresponding {@code Parameter}
@@ -16,21 +16,21 @@ public sealed interface Parameterizable permits Parameter, Parameterizable.ByPla
     @NotNull Parameter asParameter();
 
     /**
-     * Something that can be represented as a {@link Parameter.Plain}.
+     * Something that can be represented as a {@link Parameter.Value}.
      */
-    non-sealed interface ByPlain extends Parameterizable {
+    interface ByValue extends Parameterizable {
         /**
-         * Returns this object's {@link Parameter.Plain} representation.
-         * @return the corresponding {@code Parameter.Plain}
+         * Returns this object's {@link Parameter.Value} representation.
+         * @return the corresponding {@code Parameter.Value}
          */
         @Override
-        @NotNull Parameter.Plain asParameter();
+        @NotNull Parameter.Value asParameter();
     }
 
     /**
      * Something that can be represented as a {@link Parameter.Listed}.
      */
-    non-sealed interface ByList extends Parameterizable {
+    interface ByList extends Parameterizable {
         /**
          * Returns this object's {@link Parameter.Listed} representation.
          * @return the corresponding {@code Parameter.Listed}
@@ -42,7 +42,7 @@ public sealed interface Parameterizable permits Parameter, Parameterizable.ByPla
     /**
      * Something that can be represented as a {@link Parameter.Mapped}.
      */
-    non-sealed interface ByMap extends Parameterizable {
+    interface ByMap extends Parameterizable {
         /**
          * Returns this object's {@link Parameter.Mapped} representation.
          * @return the corresponding {@code Parameter.Mapped}

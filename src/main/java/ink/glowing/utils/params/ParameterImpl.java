@@ -11,37 +11,29 @@ import java.util.function.Supplier;
 final class ParameterImpl {
     private ParameterImpl() { }
 
-    private static final int NOT_AN_INDEX = Integer.MIN_VALUE;
-
-    private static int parseIndex(@NotNull String key) {
+    private static @NotNull Parameter getByIndexKey(@NotNull Parameter self, @NotNull String key) {
         int length = key.length();
-        if (length == 0) return NOT_AN_INDEX;
+        if (length == 0) return Parameter.Missing.INSTANCE;
         for (int i = 0; i < length; i++) {
             char ch = key.charAt(i);
             boolean sign = i == 0 && length > 1 && (ch == '-' || ch == '+');
-            if (!sign && Character.digit(ch, 10) < 0) return NOT_AN_INDEX;
+            if (!sign && Character.digit(ch, 10) < 0) return Parameter.Missing.INSTANCE;
         }
         try {
-            return Integer.parseInt(key);
+            return self.get(Integer.parseInt(key));
         } catch (NumberFormatException _) { // out of the int range
-            return NOT_AN_INDEX;
+            return Parameter.Missing.INSTANCE;
         }
     }
 
-    private static @Nullable Parameter getByIndexKey(@NotNull Parameter self, @Nullable String key) {
-        if (key == null) return self;
-        int index = parseIndex(key);
-        return index == NOT_AN_INDEX ? null : self.get(index);
-    }
-
-    static final class PlainImpl implements Parameter.Plain {
-        static final Parameter.Plain EMPTY = new PlainImpl("", EMPTY_RAW);
+    static final class ValueImpl implements Parameter.Value {
+        static final Value EMPTY = new ValueImpl("", EMPTY_RAW);
 
         private final String value;
         private final Function<Parameter, String> rawCompute;
         private String escaped; // racy lazy cache, see CompoundImpl
 
-        PlainImpl(@NotNull String value, @NotNull Function<Parameter, String> rawCompute) {
+        ValueImpl(@NotNull String value, @NotNull Function<Parameter, String> rawCompute) {
             this.value = value;
             this.rawCompute = rawCompute;
         }
@@ -67,12 +59,12 @@ final class ParameterImpl {
 
         @Override
         public boolean matches(@NotNull Parameter other) {
-            return other instanceof Parameter.Plain plain && value.equals(plain.textValue());
+            return other instanceof Value plain && value.equals(plain.textValue());
         }
 
         @Override
         public boolean equals(Object obj) {
-            return obj == this || obj instanceof PlainImpl other && raw().equals(other.raw());
+            return obj == this || obj instanceof ValueImpl other && raw().equals(other.raw());
         }
 
         @Override
@@ -82,7 +74,7 @@ final class ParameterImpl {
 
         @Override
         public String toString() {
-            return "PlainImpl[raw=" + raw() + "]";
+            return textValue();
         }
 
         @Override
@@ -91,13 +83,13 @@ final class ParameterImpl {
         }
 
         @Override
-        public @Nullable Parameter get(@Nullable String key) {
+        public @NotNull Parameter get(@NotNull String key) {
             return getByIndexKey(this, key);
         }
 
         @Override
-        public @Nullable Parameter get(int index) {
-            return index == SELF_INDEX || index == 0 ? this : null;
+        public @NotNull Parameter get(int index) {
+            return index == 0 ? this : Parameter.Missing.INSTANCE;
         }
     }
 
@@ -109,31 +101,31 @@ final class ParameterImpl {
      * the same time may compute the value more than once, but they all compute the same string,
      * and {@code String} is safely published through a data race.
      */
-    private abstract static class CompoundImpl<$Internal> {
-        final Function<Parameter, String> rawCompute;
-        final $Internal internalValue;
+    abstract static sealed class CompoundImpl implements Parameter {
+        private final Function<Parameter, String> rawCompute;
 
         private String topLevelForm;
         private String nestedForm;
         private String unescapedRaw;
 
-        CompoundImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull $Internal internalValue) {
+        CompoundImpl(@NotNull Function<Parameter, String> rawCompute) {
             this.rawCompute = rawCompute;
-            this.internalValue = internalValue;
         }
-
-        abstract int count();
-
-        abstract @NotNull String raw();
 
         abstract char open();
 
         abstract char close();
 
+        abstract @NotNull String empty();
+
         /**
          * Appends every entry followed by a space.
          */
         abstract void appendEntries(@NotNull StringBuilder sb);
+
+        public final @NotNull String raw() {
+            return rawCompute.apply(this);
+        }
 
         public final @NotNull String textValue() {
             String cached = unescapedRaw;
@@ -158,7 +150,7 @@ final class ParameterImpl {
 
         private @NotNull String computeSerialized(boolean topLevel) {
             if (count() == 0) {
-                return topLevel ? "" : "" + open() + close();
+                return topLevel ? "" : empty();
             }
             StringBuilder sb = new StringBuilder();
             if (!topLevel) sb.append(open());
@@ -173,7 +165,7 @@ final class ParameterImpl {
 
         @Override
         public final boolean equals(Object obj) {
-            return obj == this || obj instanceof CompoundImpl<?> other && getClass() == other.getClass() && raw().equals(other.raw());
+            return obj == this || obj != null && obj.getClass() == getClass() && raw().equals(((Parameter) obj).raw());
         }
 
         @Override
@@ -183,15 +175,18 @@ final class ParameterImpl {
 
         @Override
         public final String toString() {
-            return getClass().getSimpleName() + "[raw=" + raw() + "]";
+            return textValue();
         }
     }
 
-    static final class ListedImpl extends CompoundImpl<List<Parameter>> implements Parameter.Listed {
-        static Listed EMPTY = new ListedImpl(EMPTY_RAW, List.of());
+    static final class ListedImpl extends CompoundImpl implements Parameter.Listed {
+        static final Listed EMPTY = new ListedImpl(EMPTY_RAW, List.of());
+
+        private final List<Parameter> internalValue;
 
         ListedImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull List<Parameter> internalValue) {
-            super(rawCompute, internalValue);
+            super(rawCompute);
+            this.internalValue = internalValue;
         }
 
         @Override
@@ -205,6 +200,11 @@ final class ParameterImpl {
         }
 
         @Override
+        @NotNull String empty() {
+            return "[]";
+        }
+
+        @Override
         void appendEntries(@NotNull StringBuilder sb) {
             for (Parameter entry : internalValue) {
                 sb.append(entry.serialize(false)).append(' ');
@@ -212,16 +212,10 @@ final class ParameterImpl {
         }
 
         @Override
-        public @NotNull String raw() {
-            return rawCompute.apply(this);
-        }
-
-        @Override
         public boolean matches(@NotNull Parameter other) {
             if (!(other instanceof Parameter.Listed) || other.count() != count()) return false;
             for (int i = 0; i < internalValue.size(); i++) {
-                Parameter otherEntry = other.get(i);
-                if (otherEntry == null || !internalValue.get(i).matches(otherEntry)) return false;
+                if (!internalValue.get(i).matches(other.get(i))) return false;
             }
             return true;
         }
@@ -232,26 +226,27 @@ final class ParameterImpl {
         }
 
         @Override
-        public @Nullable Parameter get(@Nullable String key) {
+        public @NotNull Parameter get(@NotNull String key) {
             return getByIndexKey(this, key);
         }
 
         @Override
-        public @Nullable Parameter get(int index) {
-            if (index == SELF_INDEX) {
-                return this;
-            } else if (index >= 0 && index < count()) {
+        public @NotNull Parameter get(int index) {
+            if (index >= 0 && index < count()) {
                 return internalValue.get(index);
             }
-            return null;
+            return Parameter.Missing.INSTANCE;
         }
     }
 
-    static final class MappedImpl extends CompoundImpl<Map<String, Parameter>> implements Parameter.Mapped {
-        static Mapped EMPTY = new MappedImpl(EMPTY_RAW, Map.of());
+    static final class MappedImpl extends CompoundImpl implements Parameter.Mapped {
+        static final Mapped EMPTY = new MappedImpl(EMPTY_RAW, Map.of());
+
+        private final Map<String, Parameter> internalValue;
 
         MappedImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull Map<String, Parameter> internalValue) {
-            super(rawCompute, internalValue);
+            super(rawCompute);
+            this.internalValue = internalValue;
         }
 
         @Override
@@ -265,6 +260,11 @@ final class ParameterImpl {
         }
 
         @Override
+        @NotNull String empty() {
+            return "{}";
+        }
+
+        @Override
         void appendEntries(@NotNull StringBuilder sb) {
             for (var entry : internalValue.entrySet()) {
                 sb.append(Parameter.escape(entry.getKey()))
@@ -275,16 +275,10 @@ final class ParameterImpl {
         }
 
         @Override
-        public @NotNull String raw() {
-            return rawCompute.apply(this);
-        }
-
-        @Override
         public boolean matches(@NotNull Parameter other) {
             if (!(other instanceof Parameter.Mapped) || other.count() != count()) return false;
             for (var entry : internalValue.entrySet()) {
-                Parameter otherEntry = other.get(entry.getKey());
-                if (otherEntry == null || !entry.getValue().matches(otherEntry)) return false;
+                if (!entry.getValue().matches(other.get(entry.getKey()))) return false;
             }
             return true;
         }
@@ -295,14 +289,12 @@ final class ParameterImpl {
         }
 
         @Override
-        public @Nullable Parameter get(@Nullable String key) {
-            return key == null
-                    ? this
-                    : internalValue.get(key);
+        public @NotNull Parameter get(@Nullable String key) {
+            return internalValue.getOrDefault(key, Parameter.Missing.INSTANCE);
         }
 
         @Override
-        public @Nullable Parameter get(int index) {
+        public @NotNull Parameter get(int index) {
             return get(Integer.toString(index));
         }
     }

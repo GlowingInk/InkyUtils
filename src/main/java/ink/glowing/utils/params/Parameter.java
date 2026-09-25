@@ -1,23 +1,27 @@
 package ink.glowing.utils.params;
 
 import ink.glowing.utils.hash.CaseInsensitive;
+import ink.glowing.utils.hash.HashList;
 import ink.glowing.utils.params.ParameterImpl.LazyValue;
 import ink.glowing.utils.params.ParameterImpl.ListedImpl;
 import ink.glowing.utils.params.ParameterImpl.MappedImpl;
-import ink.glowing.utils.params.ParameterImpl.PlainImpl;
+import ink.glowing.utils.params.ParameterImpl.ValueImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static ink.glowing.utils.params.ParameterImpl.SERIALIZED_RAW;
 
 /**
- * A parsed parameter value: either a {@link Plain} string, a {@link Listed} sequence,
+ * A parsed parameter value: either a {@link Value} string, a {@link Listed} sequence,
  * or a {@link Mapped} set of keyed values.
+ * <p>
+ * Lookups never return {@code null}: an absent parameter is the {@link Missing} one, which
+ * is safe to keep chaining lookups on, see {@link #missing()}.
  * <p>
  * Values are whitespace-separated. Whitespace, colons and brackets in a value require quoting
  * it, and a literal {@code \} or {@code '} must be escaped:
@@ -34,14 +38,9 @@ import static ink.glowing.utils.params.ParameterImpl.SERIALIZED_RAW;
  * Nesting is limited to 512 levels, changeable with the {@code ink.glowing.utils.params.maxDepth}
  * system property.
  */
-public sealed interface Parameter extends Parameterizable permits Parameter.Listed, Parameter.Mapped, Parameter.Plain {
+public sealed interface Parameter extends Parameterizable permits Parameter.Listed, Parameter.Mapped, Parameter.Missing, Parameter.Value, ParameterImpl.CompoundImpl {
     /**
-     * The index of the parameter itself, see {@link #get(int)}.
-     */
-    int SELF_INDEX = -1;
-
-    /**
-     * Returns the number of values held by this parameter (always {@code 1} for {@link Plain}).
+     * Returns the number of values held by this parameter (always {@code 1} for {@link Value}).
      * @return the value count
      */
     int count();
@@ -50,13 +49,13 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * Returns the string this parameter was parsed from, exactly as written: with quotes,
      * escapes and the wrapping brackets/braces.
      * For a parameter created with {@code of(...)}, it is {@code serialize(true)}, except for an
-     * empty {@link Plain}, whose raw string is empty.
+     * empty {@link Value}, whose raw string is empty.
      * @return the raw value
      */
     @NotNull String raw();
 
     /**
-     * Returns {@link #raw()} with the escaping backslashes removed, and for a {@link Plain},
+     * Returns {@link #raw()} with the escaping backslashes removed, and for a {@link Value},
      * the quotes too. The result can't be reliably parsed back, use {@link #serialize(boolean)}
      * for that.
      * @return the unescaped raw value
@@ -82,27 +81,81 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
     @NotNull String serialize(boolean topLevel);
 
     /**
-     * Looks up a nested parameter by key. For {@link Plain} and {@link Listed}, the key is an index.
-     * @param key the key to look up, or {@code null} for this parameter itself
-     * @return the nested parameter, or {@code null} if absent
+     * Returns whether this is the {@link Missing} parameter, i.e. a lookup found nothing.
+     * @return {@code true} if this is {@link Missing}
      */
-    @Nullable Parameter get(@Nullable String key);
+    default boolean isMissing() {
+        return false;
+    }
+
+    /**
+     * Returns the parameter that stands for an absent one.
+     * @return the {@link Missing} parameter
+     */
+    static @NotNull Missing missing() {
+        return Missing.INSTANCE;
+    }
+
+    /**
+     * Looks up a nested parameter by key. For {@link Value} and {@link Listed}, the key is an index.
+     * @param key the key to look up
+     * @return the nested parameter, or {@link Missing} if absent
+     */
+    @NotNull Parameter get(@NotNull String key);
 
     /**
      * Looks up a nested parameter by index. For {@link Mapped}, the index is used as a key.
-     * @param index the index to look up, or {@link #SELF_INDEX} for this parameter itself
-     * @return the nested parameter, or {@code null} if absent
+     * @param index the index to look up
+     * @return the nested parameter, or {@link Missing} if absent
      */
-    @Nullable Parameter get(int index);
+    @NotNull Parameter get(int index);
+
+    /**
+     * Checks whether a nested parameter exists for the key.
+     * @param key the key to look up
+     * @return {@code true} if {@link #get(String)} finds a parameter, i.e. not {@link Missing}
+     */
+    default boolean contains(@NotNull String key) {
+        return !get(key).isMissing();
+    }
+
+    /**
+     * Checks whether a nested parameter exists at the index.
+     * @param index the index to look up
+     * @return {@code true} if {@link #get(int)} finds a parameter, i.e. not {@link Missing}
+     */
+    default boolean contains(int index) {
+        return !get(index).isMissing();
+    }
+
+    /**
+     * Looks up a nested parameter by key, as an {@link Optional}.
+     * @param key the key to look up
+     * @return the nested parameter, or empty if it is {@link Missing}
+     */
+    default @NotNull Optional<Parameter> find(@NotNull String key) {
+        Parameter parameter = get(key);
+        return parameter.isMissing() ? Optional.empty() : Optional.of(parameter);
+    }
+
+    /**
+     * Looks up a nested parameter by index, as an {@link Optional}.
+     * @param index the index to look up
+     * @return the nested parameter, or empty if it is {@link Missing}
+     */
+    default @NotNull Optional<Parameter> find(int index) {
+        Parameter parameter = get(index);
+        return parameter.isMissing() ? Optional.empty() : Optional.of(parameter);
+    }
 
     /**
      * Looks up a nested parameter by key and maps it.
      * @param <$Result> the type of the result
      * @param key the key to look up
-     * @param mapper the mapper, receiving {@code null} if the parameter is absent
+     * @param mapper the mapper, receiving {@link Missing} if the parameter is absent
      * @return the mapped result
      */
-    default <$Result> @Nullable $Result map(@Nullable String key, @NotNull Function<@Nullable Parameter, ? extends $Result> mapper) {
+    default <$Result> $Result map(@NotNull String key, @NotNull Function<@NotNull Parameter, ? extends $Result> mapper) {
         return mapper.apply(get(key));
     }
 
@@ -110,17 +163,17 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * Looks up a nested parameter by index and maps it.
      * @param <$Result> the type of the result
      * @param index the index to look up
-     * @param mapper the mapper, receiving {@code null} if the parameter is absent
+     * @param mapper the mapper, receiving {@link Missing} if the parameter is absent
      * @return the mapped result
      */
-    default <$Result> @Nullable $Result map(int index, @NotNull Function<@Nullable Parameter, ? extends $Result> mapper) {
+    default <$Result> $Result map(int index, @NotNull Function<@NotNull Parameter, ? extends $Result> mapper) {
         return mapper.apply(get(index));
     }
 
     /**
      * A {@link Parameter} holding a single string, e.g. {@code value} or {@code 'quoted value'}.
      */
-    sealed interface Plain extends Parameterizable.ByPlain, Parameter permits PlainImpl {
+    sealed interface Value extends Parameterizable.ByValue, Parameter permits ValueImpl {
         /**
          * Returns the string, without the quotes and escapes it was written with.
          * @return the plain value
@@ -132,19 +185,27 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * {@inheritDoc}
          */
         @Override
-        default @NotNull Plain asParameter() {
+        default @NotNull Parameter.Value asParameter() {
             return this;
         }
 
         /**
-         * Returns a {@code Plain} parameter of the given string.
+         * Returns an empty {@code Value} parameter.
+         * @return the empty parameter
+         */
+        static @NotNull Parameter.Value of() {
+            return ValueImpl.EMPTY;
+        }
+
+        /**
+         * Returns a {@code Value} parameter of the given string.
          * @param value the string, {@code null} counts as empty
          * @return the resulting parameter
          */
-        static @NotNull Plain of(@Nullable String value) {
+        static @NotNull Parameter.Value of(@Nullable String value) {
             return value == null || value.isEmpty()
-                    ? PlainImpl.EMPTY
-                    : new PlainImpl(value, SERIALIZED_RAW);
+                    ? ValueImpl.EMPTY
+                    : new ValueImpl(value, SERIALIZED_RAW);
         }
     }
 
@@ -162,14 +223,26 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         }
 
         /**
+         * Returns an empty {@code Listed} parameter.
+         * @return the empty parameter
+         */
+        static @NotNull Listed of() {
+            return ListedImpl.EMPTY;
+        }
+
+        /**
          * Returns a {@code Listed} parameter of the given values.
-         * @param value the values, {@code null} counts as empty
+         * @param value the values, {@code null} counts as empty, {@code null} and {@link Missing} ones become an empty {@link Value}
          * @return the resulting parameter
          */
         static @NotNull Listed of(@Nullable List<Parameter> value) {
-            return value == null || value.isEmpty()
-                    ? ListedImpl.EMPTY
-                    : new ListedImpl(SERIALIZED_RAW, List.copyOf(value));
+            if (value == null || value.isEmpty()) return ListedImpl.EMPTY;
+
+            HashList.Composer<Parameter> composer = new HashList.Composer<>(value.size());
+            for (Parameter parameter : value) {
+                composer.add(orEmpty(parameter));
+            }
+            return new ListedImpl(SERIALIZED_RAW, composer.finish());
         }
 
         /**
@@ -204,15 +277,27 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         }
 
         /**
+         * Returns an empty {@code Mapped} parameter.
+         * @return the empty parameter
+         */
+        static @NotNull Mapped of() {
+            return MappedImpl.EMPTY;
+        }
+
+        /**
          * Returns a {@code Mapped} parameter of the given entries, in their iteration order.
-         * @param value the entries, {@code null} counts as empty, but they must not hold {@code null}s
+         * @param value the entries, {@code null} or {@link Missing} value
+         * becomes an empty {@link Value}, and {@code null} keys are skipped
          * @return the resulting parameter
          */
         static @NotNull Mapped of(@Nullable Map<String, Parameter> value) {
             if (value == null || value.isEmpty()) return MappedImpl.EMPTY;
 
             Map<String, Parameter> copy = CaseInsensitive.newLinkedMap(value.size());
-            value.forEach((key, parameter) -> copy.put(Objects.requireNonNull(key), Objects.requireNonNull(parameter)));
+            for (Map.Entry<String, Parameter> entry : value.entrySet()) {
+                String key = entry.getKey();
+                if (key != null) copy.put(key, orEmpty(entry.getValue()));
+            }
             return new MappedImpl(SERIALIZED_RAW, copy);
         }
 
@@ -230,6 +315,75 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
                     new ParserImpl(input).parseMap(0)
             );
         }
+    }
+
+    /**
+     * The {@link Parameter} returned when a lookup finds nothing. It holds no values, is empty in
+     * every textual form, and every lookup on it gives {@code Missing} again.
+     * It is not the same as an empty {@link Value}, use {@link #isMissing()} to tell them apart.
+     * <p>
+     * It can't be parsed from a string or put into a {@link Listed} or {@link Mapped}: when passed
+     * to their {@code of(...)}, it is skipped.
+     */
+    enum Missing implements Parameter {
+        /**
+         * The only {@code Missing} parameter.
+         */
+        INSTANCE;
+
+        @Override
+        public int count() {
+            return 0;
+        }
+
+        @Override
+        public @NotNull String raw() {
+            return "";
+        }
+
+        @Override
+        public @NotNull String textValue() {
+            return "";
+        }
+
+        @Override
+        public boolean matches(@NotNull Parameter other) {
+            return other == this;
+        }
+
+        @Override
+        public @NotNull String serialize(boolean topLevel) {
+            return "";
+        }
+
+        @Override
+        public boolean isMissing() {
+            return true;
+        }
+
+        @Override
+        public @NotNull Missing get(@Nullable String key) {
+            return this;
+        }
+
+        @Override
+        public @NotNull Missing get(int index) {
+            return this;
+        }
+
+        @Override
+        public @NotNull Missing asParameter() {
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return textValue();
+        }
+    }
+
+    private static @NotNull Parameter orEmpty(@Nullable Parameter parameter) {
+        return parameter == null || parameter.isMissing() ? ValueImpl.EMPTY : parameter;
     }
 
     /**

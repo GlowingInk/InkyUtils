@@ -3,7 +3,7 @@ package ink.glowing.utils.params;
 import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.params.ParameterImpl.ListedImpl;
 import ink.glowing.utils.params.ParameterImpl.MappedImpl;
-import ink.glowing.utils.params.ParameterImpl.PlainImpl;
+import ink.glowing.utils.params.ParameterImpl.ValueImpl;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -198,7 +198,7 @@ final class ParserImpl {
         int entry = pos;
         if (!skipWhitespaces() || current() == parentEnd) {
             valueEnd = entry;
-            return PlainImpl.EMPTY;
+            return ValueImpl.EMPTY;
         }
 
         int tokenStart = pos;
@@ -218,7 +218,7 @@ final class ParserImpl {
                 return new MappedImpl(slice(tokenStart, valueEnd), value);
             }
             valueEnd = quotedEnd;
-            return new PlainImpl(string, slice(tokenStart, quotedEnd));
+            return new ValueImpl(string, slice(tokenStart, quotedEnd));
         }
 
         int end = scanBare(tokenStart, parentEnd);
@@ -233,7 +233,7 @@ final class ParserImpl {
         valueEnd = end;
         pos = end < length && isWhitespace(input[end]) ? end + 1 : end; // the parent handles its closing
         // Without quotes and escapes, the raw string is the value itself
-        return new PlainImpl(string, escaped ? slice(tokenStart, end) : ParameterImpl.VALUE_AS_RAW);
+        return new ValueImpl(string, escaped ? slice(tokenStart, end) : ParameterImpl.VALUE_AS_RAW);
     }
 
     private String parseQuotedString() {

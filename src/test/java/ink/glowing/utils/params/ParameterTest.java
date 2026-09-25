@@ -7,9 +7,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static ink.glowing.utils.params.Parameter.Mapped.parse;
@@ -82,7 +80,6 @@ public class ParameterTest {
         assertThrows(IllegalArgumentException.class, () -> parse(input));
     }
 
-    @SuppressWarnings("DataFlowIssue")
     @Test
     public void rawTest() {
         String input = "  k:[a 'b c'  d\\ e ] j:{x:'y z' w:v} q:'quoted' s:esc\\'d n:a:b:c z:[]  ";
@@ -101,7 +98,7 @@ public class ParameterTest {
         assertEquals("a:b:c", params.get("n").raw());
         assertEquals("[]", params.get("z").raw());
 
-        Parameter.Plain escaped = (Parameter.Plain) params.get("s");
+        Parameter.Value escaped = (Parameter.Value) params.get("s");
         assertEquals("esc'd", escaped.textValue());
     }
 
@@ -140,8 +137,8 @@ public class ParameterTest {
 
     @Test
     public void rawOfBuiltParameterTest() {
-        assertEquals("'a b'", Parameter.Plain.of("a b").raw());
-        assertEquals("a", Parameter.Plain.of("a").raw());
+        assertEquals("'a b'", Parameter.Value.of("a b").raw());
+        assertEquals("a", Parameter.Value.of("a").raw());
     }
 
     @Test
@@ -154,12 +151,60 @@ public class ParameterTest {
     }
 
     @Test
-    public void caseInsensitiveKeysTest() {
-        Parameter.Mapped params = parse("Braced:{Key:v} single:Key:v");
+    public void missingTest() {
+        Parameter.Mapped params = parse("k:[a b] p:v e:''");
+        Parameter missing = Parameter.missing();
 
-        assertEquals("v", params.get("BRACED").get("key").textValue());
-        assertEquals("v", params.get("SINGLE").get("KEY").textValue());
-        assertNull(params.get("other"));
+        assertSame(missing, params.get("nope"));
+        assertSame(missing, params.get("k").get(5));
+        assertSame(missing, params.get("k").get("x"));
+        assertSame(missing, params.get("p").get(1));
+        assertSame(missing, missing.get("deeper").get(0));
+        assertFalse(params.get("e").isMissing(), "Empty plain is not missing");
+        assertTrue(params.map("nope", Parameter::isMissing));
+
+        assertEquals(0, missing.count());
+        assertEquals("", missing.raw());
+        assertEquals("", missing.serialize(true));
+        assertTrue(missing.matches(missing));
+        assertFalse(missing.matches(Parameter.Value.of("")));
+        assertFalse(Parameter.Value.of("").matches(missing));
+    }
+
+    @Test
+    public void findTest() {
+        Parameter.Mapped params = parse("k:[a b] e:''");
+
+        assertEquals("a", params.find("k").orElseThrow().get(0).textValue());
+        assertEquals("", params.find("e").orElseThrow().textValue(), "Empty plain is present");
+        assertTrue(params.find("nope").isEmpty());
+        assertEquals("b", params.get("k").find(1).orElseThrow().textValue());
+        assertTrue(params.get("k").find(2).isEmpty());
+    }
+
+    @Test
+    public void missingBecomesEmptyInOfTest() {
+        Parameter a = Parameter.Value.of("a");
+        Parameter missing = Parameter.missing();
+        Parameter empty = Parameter.Value.of("");
+
+        Parameter.Listed listed = Parameter.Listed.of(Arrays.asList(missing, a, null));
+        assertEquals(3, listed.count());
+        assertSame(empty, listed.get(0));
+        assertSame(a, listed.get(1));
+        assertSame(empty, listed.get(2));
+        assertEquals(1, Parameter.Listed.of(Collections.singletonList(null)).count());
+
+        Map<String, Parameter> map = new LinkedHashMap<>();
+        map.put("x", missing);
+        map.put("y", a);
+        map.put("z", null);
+        Parameter.Mapped mapped = Parameter.Mapped.of(map);
+        assertEquals(3, mapped.count());
+        assertSame(empty, mapped.get("x"));
+        assertSame(a, mapped.get("y"));
+        assertSame(empty, mapped.get("z"));
+        assertEquals(1, Parameter.Mapped.of(Collections.singletonMap("x", null)).count());
     }
 
     @Test
@@ -171,7 +216,7 @@ public class ParameterTest {
     public void mappedOfTest() {
         Map<String, Parameter> entries = new LinkedHashMap<>();
         for (String key : List.of("one", "two", "three", "four", "five", "six")) {
-            entries.put(key, Parameter.Plain.of(key));
+            entries.put(key, Parameter.Value.of(key));
         }
         Parameter.Mapped params = Parameter.Mapped.of(entries);
 
