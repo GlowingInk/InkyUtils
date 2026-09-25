@@ -404,6 +404,15 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
         }
 
         /**
+         * Creates a new, empty {@code Composer} with room for the given number of elements.
+         * @param expectedSize the expected number of elements
+         * @throws IllegalArgumentException if the size is negative
+         */
+        public Composer(int expectedSize) {
+            this.elements = new ArrayList<>(expectedSize);
+        }
+
+        /**
          * Sets the custom equality and hashing strategy to use for containment checks
          * in the resulting {@code HashList}.
          * @param strategy the custom {@link Hash.Strategy} to use
