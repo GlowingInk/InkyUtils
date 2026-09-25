@@ -59,4 +59,15 @@
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>glowing-ink</id>
+            <url>https://repo.glowing.ink/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>glowing-ink</id>
+            <url>https://repo.glowing.ink/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>
