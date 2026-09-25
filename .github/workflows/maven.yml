@@ -1,0 +1,26 @@
+name: Java CI
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@main
+      - name: Set up JDK
+        uses: actions/setup-java@main
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+          server-id: glowing-ink
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+      - name: Publish package
+        run: mvn deploy
+        env:
+          MAVEN_USERNAME: ${{ secrets.REPO_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.REPO_PASSWORD }}
