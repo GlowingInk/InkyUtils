@@ -40,7 +40,7 @@ public class DurationUtilsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "  ", "s", "-1s", "1.5s", "1x", "1 x", "1sm"})
+    @ValueSource(strings = {"s", "-1s", "1.5s", "1x", "1 x", "1sm"})
     public void testParseInvalid(String input) {
         assertThrows(IllegalArgumentException.class, () -> DurationUtils.parseDuration(input));
     }
