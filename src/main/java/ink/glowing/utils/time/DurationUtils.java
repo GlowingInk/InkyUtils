@@ -21,12 +21,13 @@ public final class DurationUtils {
             "s", ChronoUnit.SECONDS,
             "m", ChronoUnit.MINUTES,
             "h", ChronoUnit.HOURS,
-            "d", ChronoUnit.DAYS
+            "d", ChronoUnit.DAYS,
+            "", ChronoUnit.SECONDS
     ), map -> Collections.unmodifiableMap(CaseInsensitive.newLinkedMap(map)));
 
     /**
      * Returns the units used by {@link #parseDuration(String)}: {@code ns}, {@code ms}, {@code s},
-     * {@code m}, {@code h} and {@code d}. Case-insensitive.
+     * {@code m}, {@code h} and {@code d} with missing unit mapped to seconds. Case-insensitive.
      * @return an immutable map of unit suffixes to units
      */
     public static @NotNull Map<String, TemporalUnit> defaultUnits() {
@@ -47,7 +48,7 @@ public final class DurationUtils {
 
     /**
      * Parses a duration from whitespace-separated parts, each a non-negative integer followed by
-     * an optional unit suffix, and sums them. A part without a suffix is in seconds.
+     * an optional unit suffix, and sums them.
      * <p>
      * For example, with the default units {@code "1h 30m"} and {@code "90m"} parse to the same
      * duration.
@@ -60,6 +61,8 @@ public final class DurationUtils {
      * estimated duration, such as {@link ChronoUnit#WEEKS} or {@link ChronoUnit#MONTHS}
      */
     public static @NotNull Duration parseDuration(@NotNull String input, @NotNull Map<String, ? extends TemporalUnit> units) {
+        if (input.isBlank()) return Duration.ZERO;
+
         StringTokenizer parts = new StringTokenizer(input);
         if (!parts.hasMoreTokens()) {
             throw new IllegalArgumentException("Invalid duration: " + input);
@@ -81,7 +84,7 @@ public final class DurationUtils {
         }
         long value = Long.parseLong(part.substring(0, digitsEnd));
         String suffix = part.substring(digitsEnd);
-        TemporalUnit unit = suffix.isEmpty() ? ChronoUnit.SECONDS : units.get(suffix);
+        TemporalUnit unit = units.get(suffix);
         if (unit == null) {
             throw new IllegalArgumentException("Invalid duration: " + part);
         }

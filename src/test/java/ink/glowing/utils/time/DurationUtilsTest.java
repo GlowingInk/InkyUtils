@@ -31,8 +31,11 @@ public class DurationUtilsTest {
 
     @Test
     public void testCustomUnits() {
-        Map<String, TemporalUnit> units = Map.of("sec", ChronoUnit.SECONDS, "min", ChronoUnit.MINUTES);
-        assertEquals(Duration.ofSeconds(90), DurationUtils.parseDuration("1min 30sec", units));
+        Map<String, TemporalUnit> units = Map.of("sec", ChronoUnit.SECONDS, "min", ChronoUnit.MINUTES, "", ChronoUnit.HOURS);
+        assertEquals(
+                Duration.ofHours(1).plus(Duration.ofMinutes(1)).plus(Duration.ofSeconds(30)),
+                DurationUtils.parseDuration("1 1min 30sec", units)
+        );
         assertThrows(IllegalArgumentException.class, () -> DurationUtils.parseDuration("1m", units));
     }
 
