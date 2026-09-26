@@ -108,7 +108,7 @@ public final class RngUtils {
      * @param b the other bound
      * @return a random value in {@code [min(a, b), max(a, b))}
      * @see #threadRandom()
-     * @see #inRange(RandomGenerator, long, long) 
+     * @see #inRange(RandomGenerator, long, long)
      */
     public static long inRange(long a, long b) {
         return inRange(threadRandom(), a, b);
@@ -155,5 +155,47 @@ public final class RngUtils {
         return (b > a)
                 ? rng.nextInt(a, b)
                 : rng.nextInt(b, a);
+    }
+
+    /**
+     * Returns {@code true} with the specified probability.
+     * @param probability the probability of returning {@code true}, in {@code [0, 1]}
+     * @return {@code true} with the specified probability
+     * @see #threadRandom()
+     * @see #chance(RandomGenerator, double)
+     */
+    public static boolean chance(double probability) {
+        return chance(threadRandom(), probability);
+    }
+
+    /**
+     * Returns {@code true} with the specified probability.
+     * @param rng the source of randomness
+     * @param probability the probability of returning {@code true}, in {@code [0, 1]}
+     * @return {@code true} with the specified probability
+     */
+    public static boolean chance(@NotNull RandomGenerator rng, double probability) {
+        return rng.nextDouble() < probability;
+    }
+
+    /**
+     * Returns {@code true} with the specified percent chance.
+     * @param percent the probability of returning {@code true}, in {@code [0, 100]}
+     * @return {@code true} with the specified percent chance
+     * @see #threadRandom()
+     * @see #percentChance(RandomGenerator, double)
+     */
+    public static boolean percentChance(double percent) {
+        return percentChance(threadRandom(), percent);
+    }
+
+    /**
+     * Returns {@code true} with the specified percent chance.
+     * @param rng the source of randomness
+     * @param percent the probability of returning {@code true}, in {@code [0, 100]}
+     * @return {@code true} with the specified percent chance
+     */
+    public static boolean percentChance(@NotNull RandomGenerator rng, double percent) {
+        return chance(rng, percent / 100.0);
     }
 }
