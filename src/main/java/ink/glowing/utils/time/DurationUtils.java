@@ -4,6 +4,7 @@ import ink.glowing.utils.FluentUtils;
 import ink.glowing.utils.hash.CaseInsensitive;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -11,6 +12,7 @@ import java.time.temporal.TemporalUnit;
 import java.util.Collections;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.function.Function;
 
 /**
  * Utilities for {@link Duration}.
@@ -50,27 +52,37 @@ public final class DurationUtils {
     }
 
     /**
+     * Parses a duration using the given unit suffixes.
+     * @param input the string to parse
+     * @param units the unit suffixes; lookup follows the map's own key comparison
+     * @return the sum of all parts
+     * @throws IllegalArgumentException if a part is malformed or has an unknown suffix
+     * @throws java.time.temporal.UnsupportedTemporalTypeException if a matched unit has an
+     * estimated duration, such as {@link ChronoUnit#WEEKS} or {@link ChronoUnit#MONTHS}
+     * @see #parseDuration(String, Function)
+     */
+    @Contract(pure = true)
+    public static @NotNull Duration parseDuration(@NotNull String input, @NotNull Map<String, ? extends TemporalUnit> units) {
+        return parseDuration(input, units::get);
+    }
+
+    /**
      * Parses a duration from whitespace-separated parts, each a non-negative integer followed by
-     * an optional unit suffix, and sums them.
+     * an optional unit suffix, and sums them. Blank input gives {@link Duration#ZERO}.
      * <p>
      * For example, with the default units {@code "1h 30m"} and {@code "90m"} parse to the same
      * duration.
      * @param input the string to parse
-     * @param units the unit suffixes, case-sensitive
+     * @param units resolves a suffix to its unit, or {@code null} if the suffix is unknown.
      * @return the sum of all parts
-     * @throws IllegalArgumentException if the input has no parts, or a part is malformed or has
-     * an unknown suffix
+     * @throws IllegalArgumentException if a part is malformed or has an unknown suffix
      * @throws java.time.temporal.UnsupportedTemporalTypeException if a matched unit has an
      * estimated duration, such as {@link ChronoUnit#WEEKS} or {@link ChronoUnit#MONTHS}
      */
-    @Contract(pure = true)
-    public static @NotNull Duration parseDuration(@NotNull String input, @NotNull Map<String, ? extends TemporalUnit> units) {
+    public static @NotNull Duration parseDuration(@NotNull String input, @NotNull Function<String, ? extends @Nullable TemporalUnit> units) {
         if (input.isBlank()) return Duration.ZERO;
 
         StringTokenizer parts = new StringTokenizer(input);
-        if (!parts.hasMoreTokens()) {
-            throw new IllegalArgumentException("Invalid duration: " + input);
-        }
         Duration result = Duration.ZERO;
         while (parts.hasMoreTokens()) {
             result = result.plus(parsePart(parts.nextToken(), units));
@@ -78,7 +90,7 @@ public final class DurationUtils {
         return result;
     }
 
-    private static @NotNull Duration parsePart(@NotNull String part, @NotNull Map<String, ? extends TemporalUnit> units) {
+    private static @NotNull Duration parsePart(@NotNull String part, @NotNull Function<String, ? extends @Nullable TemporalUnit> units) {
         int digitsEnd = 0;
         while (digitsEnd < part.length() && isDigit(part.charAt(digitsEnd))) {
             digitsEnd++;
@@ -88,7 +100,7 @@ public final class DurationUtils {
         }
         long value = Long.parseLong(part.substring(0, digitsEnd));
         String suffix = part.substring(digitsEnd);
-        TemporalUnit unit = units.get(suffix);
+        TemporalUnit unit = units.apply(suffix);
         if (unit == null) {
             throw new IllegalArgumentException("Invalid duration: " + part);
         }
