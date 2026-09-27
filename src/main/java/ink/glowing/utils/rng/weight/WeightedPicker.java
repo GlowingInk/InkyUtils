@@ -1,13 +1,15 @@
 package ink.glowing.utils.rng.weight;
 
 import ink.glowing.utils.ComposerBase;
-import ink.glowing.utils.rng.RngUtils;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.ToDoubleFunction;
 import java.util.random.RandomGenerator;
 import java.util.stream.Stream;
@@ -159,13 +161,13 @@ public interface WeightedPicker<$Type> {
      * @param <$Type> the type of elements
      */
     final class AliasMethod<$Type> implements WeightedPicker<$Type> {
-        private final List<$Type> elements;
+        private final $Type[] elements;
 
         private final int[] alias;
         private final double[] probabilities;
 
-        private AliasMethod(@NotNull List<$Type> elements, double[] rawProbabilities, double weightsSum) {
-            int size = elements.size();
+        private AliasMethod($Type @NotNull [] elements, double @NotNull [] weights, double weightsSum) {
+            int size = elements.length;
 
             this.elements = elements;
             this.probabilities = new double[size];
@@ -177,7 +179,7 @@ public interface WeightedPicker<$Type> {
             int[] large = new int[size]; int largeSize = 0;
 
             for (int i = 0; i < size; ++i) {
-                if ((rawProbabilities[i] /= weightsSum) < averageProbability) {
+                if ((weights[i] /= weightsSum) < averageProbability) {
                     small[smallSize++] = i;
                 } else {
                     large[largeSize++] = i;
@@ -188,11 +190,11 @@ public interface WeightedPicker<$Type> {
                 int less = small[--smallSize];
                 int more = large[--largeSize];
 
-                this.probabilities[less] = rawProbabilities[less] * size;
+                this.probabilities[less] = weights[less] * size;
                 this.alias[less] = more;
 
-                rawProbabilities[more] += rawProbabilities[less] - averageProbability;
-                if (rawProbabilities[more] < averageProbability) {
+                weights[more] += weights[less] - averageProbability;
+                if (weights[more] < averageProbability) {
                     small[smallSize++] = more;
                 } else {
                     large[largeSize++] = more;
@@ -208,7 +210,7 @@ public interface WeightedPicker<$Type> {
             double roll = rng.nextDouble() * this.probabilities.length;
             int column = Math.min((int) roll, this.probabilities.length - 1);
             boolean coinToss = roll - column < this.probabilities[column];
-            return this.elements.get(coinToss ? column : this.alias[column]);
+            return this.elements[coinToss ? column : this.alias[column]];
         }
     }
 
@@ -217,15 +219,15 @@ public interface WeightedPicker<$Type> {
      * @param <$Type> the type of elements
      */
     final class Uniform<$Type> implements WeightedPicker<$Type> {
-        private final List<$Type> elements;
+        private final $Type[] elements;
 
-        private Uniform(@NotNull List<$Type> elements) {
+        private Uniform($Type @NotNull [] elements) {
             this.elements = elements;
         }
 
         @Override
         public $Type next(@NotNull RandomGenerator rng) {
-            return RngUtils.randomElement(rng, this.elements);
+            return this.elements[rng.nextInt(this.elements.length)];
         }
     }
 
@@ -371,26 +373,27 @@ public interface WeightedPicker<$Type> {
          * @return a new picker, empty if no element was left
          */
         @Override
+        @SuppressWarnings("unchecked")
         protected @NotNull WeightedPicker<$Type> doFinish() {
             return switch (elements.size()) {
                 case 0 -> of();
                 case 1 -> of(elements.getFirst());
                 default -> {
-                    elements.trimToSize();
-                    if (infinite) yield new Uniform<>(elements);
+                    $Type[] array = ($Type[]) elements.toArray();
+                    if (infinite) yield new Uniform<>(array);
 
-                    double[] rawProbabilities = weights.elements();
+                    double[] rawWeights = weights.elements();
                     if (Double.isInfinite(weightsSum)) { // finite weights overflowed, rescale
                         double maxWeight = 0;
-                        for (int i = 0; i < elements.size(); i++) {
-                            maxWeight = Math.max(maxWeight, rawProbabilities[i]);
+                        for (int i = 0; i < array.length; i++) {
+                            maxWeight = Math.max(maxWeight, rawWeights[i]);
                         }
                         weightsSum = 0;
-                        for (int i = 0; i < elements.size(); i++) {
-                            weightsSum += rawProbabilities[i] /= maxWeight;
+                        for (int i = 0; i < array.length; i++) {
+                            weightsSum += rawWeights[i] /= maxWeight;
                         }
                     }
-                    yield new AliasMethod<>(elements, rawProbabilities, weightsSum);
+                    yield new AliasMethod<>(array, rawWeights, weightsSum);
                 }
             };
         }
