@@ -6,6 +6,7 @@ import ink.glowing.utils.params.ParameterImpl.LazyValue;
 import ink.glowing.utils.params.ParameterImpl.ListedImpl;
 import ink.glowing.utils.params.ParameterImpl.MappedImpl;
 import ink.glowing.utils.params.ParameterImpl.ValueImpl;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,6 +44,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * Returns the number of values held by this parameter (always {@code 1} for {@link Value}).
      * @return the value count
      */
+    @Contract(pure = true)
     int count();
 
     /**
@@ -52,6 +54,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * empty {@link Value}, whose raw string is empty.
      * @return the raw value
      */
+    @Contract(pure = true)
     @NotNull String raw();
 
     /**
@@ -60,6 +63,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * for that.
      * @return the unescaped raw value
      */
+    @Contract(pure = true)
     @NotNull String textValue();
 
     /**
@@ -70,6 +74,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param other the parameter to compare with
      * @return {@code true} if both hold the same values
      */
+    @Contract(pure = true)
     boolean matches(@NotNull Parameter other);
 
     /**
@@ -78,12 +83,14 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param topLevel whether to omit the wrapping brackets/braces
      * @return the serialized form
      */
+    @Contract(pure = true)
     @NotNull String serialize(boolean topLevel);
 
     /**
      * Returns whether this is the {@link Missing} parameter, i.e. a lookup found nothing.
      * @return {@code true} if this is {@link Missing}
      */
+    @Contract(pure = true)
     default boolean isMissing() {
         return false;
     }
@@ -92,6 +99,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * Returns the parameter that stands for an absent one.
      * @return the {@link Missing} parameter
      */
+    @Contract(pure = true)
     static @NotNull Missing missing() {
         return Missing.INSTANCE;
     }
@@ -101,6 +109,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param key the key to look up
      * @return the nested parameter, or {@link Missing} if absent
      */
+    @Contract(pure = true)
     @NotNull Parameter get(@NotNull String key);
 
     /**
@@ -108,6 +117,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param index the index to look up
      * @return the nested parameter, or {@link Missing} if absent
      */
+    @Contract(pure = true)
     @NotNull Parameter get(int index);
 
     /**
@@ -115,6 +125,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param key the key to look up
      * @return {@code true} if {@link #get(String)} finds a parameter, i.e. not {@link Missing}
      */
+    @Contract(pure = true)
     default boolean contains(@NotNull String key) {
         return !get(key).isMissing();
     }
@@ -124,6 +135,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param index the index to look up
      * @return {@code true} if {@link #get(int)} finds a parameter, i.e. not {@link Missing}
      */
+    @Contract(pure = true)
     default boolean contains(int index) {
         return !get(index).isMissing();
     }
@@ -133,6 +145,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param key the key to look up
      * @return the nested parameter, or empty if it is {@link Missing}
      */
+    @Contract(pure = true)
     default @NotNull Optional<Parameter> find(@NotNull String key) {
         Parameter parameter = get(key);
         return parameter.isMissing() ? Optional.empty() : Optional.of(parameter);
@@ -143,6 +156,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param index the index to look up
      * @return the nested parameter, or empty if it is {@link Missing}
      */
+    @Contract(pure = true)
     default @NotNull Optional<Parameter> find(int index) {
         Parameter parameter = get(index);
         return parameter.isMissing() ? Optional.empty() : Optional.of(parameter);
@@ -185,6 +199,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * {@inheritDoc}
          */
         @Override
+        @Contract(value = "-> this", pure = true)
         default @NotNull Parameter.Value asParameter() {
             return this;
         }
@@ -193,6 +208,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * Returns an empty {@code Value} parameter.
          * @return the empty parameter
          */
+        @Contract(pure = true)
         static @NotNull Parameter.Value of() {
             return ValueImpl.EMPTY;
         }
@@ -202,6 +218,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * @param value the string, {@code null} counts as empty
          * @return the resulting parameter
          */
+        @Contract(pure = true)
         static @NotNull Parameter.Value of(@Nullable String value) {
             return value == null || value.isEmpty()
                     ? ValueImpl.EMPTY
@@ -218,6 +235,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * {@inheritDoc}
          */
         @Override
+        @Contract(value = "-> this", pure = true)
         default @NotNull Listed asParameter() {
             return this;
         }
@@ -226,6 +244,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * Returns an empty {@code Listed} parameter.
          * @return the empty parameter
          */
+        @Contract(pure = true)
         static @NotNull Listed of() {
             return ListedImpl.EMPTY;
         }
@@ -235,6 +254,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * @param value the values, {@code null} counts as empty, {@code null} and {@link Missing} ones become an empty {@link Value}
          * @return the resulting parameter
          */
+        @Contract(pure = true)
         static @NotNull Listed of(@Nullable List<Parameter> value) {
             if (value == null || value.isEmpty()) return ListedImpl.EMPTY;
 
@@ -251,6 +271,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * @return the parsed parameter
          * @throws IllegalArgumentException if the string is malformed
          */
+        @Contract(pure = true)
         static @NotNull Listed parse(@NotNull String inputStr) {
             if (inputStr.isEmpty()) return ListedImpl.EMPTY;
             char[] input = inputStr.toCharArray();
@@ -272,6 +293,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * {@inheritDoc}
          */
         @Override
+        @Contract(value = "-> this", pure = true)
         default @NotNull Mapped asParameter() {
             return this;
         }
@@ -280,6 +302,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * Returns an empty {@code Mapped} parameter.
          * @return the empty parameter
          */
+        @Contract(pure = true)
         static @NotNull Mapped of() {
             return MappedImpl.EMPTY;
         }
@@ -290,6 +313,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * becomes an empty {@link Value}, and {@code null} keys are skipped
          * @return the resulting parameter
          */
+        @Contract(pure = true)
         static @NotNull Mapped of(@Nullable Map<String, Parameter> value) {
             if (value == null || value.isEmpty()) return MappedImpl.EMPTY;
 
@@ -307,6 +331,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
          * @return the parsed parameter
          * @throws IllegalArgumentException if the string is malformed
          */
+        @Contract(pure = true)
         static @NotNull Mapped parse(@NotNull String inputStr) {
             if (inputStr.isEmpty()) return MappedImpl.EMPTY;
             char[] input = inputStr.toCharArray();
@@ -362,16 +387,19 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
         }
 
         @Override
+        @Contract(value = "_ -> this", pure = true)
         public @NotNull Missing get(@Nullable String key) {
             return this;
         }
 
         @Override
+        @Contract(value = "_ -> this", pure = true)
         public @NotNull Missing get(int index) {
             return this;
         }
 
         @Override
+        @Contract(value = "-> this", pure = true)
         public @NotNull Missing asParameter() {
             return this;
         }
@@ -392,6 +420,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param value the string to escape
      * @return the escaped string, {@code value} itself if nothing had to change
      */
+    @Contract(pure = true)
     static @NotNull String escape(@NotNull String value) {
         int length = value.length();
         if (length == 0) return "''";
@@ -424,6 +453,7 @@ public sealed interface Parameter extends Parameterizable permits Parameter.List
      * @param raw the string to unescape
      * @return the unescaped string, {@code raw} itself if nothing had to change
      */
+    @Contract(pure = true)
     static @NotNull String unescape(@NotNull String raw) {
         int index = raw.indexOf('\\');
         if (index == -1) return raw;

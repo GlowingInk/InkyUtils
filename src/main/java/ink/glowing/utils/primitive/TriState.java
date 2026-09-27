@@ -21,6 +21,7 @@ public enum TriState {
      * @param bool the value
      * @return {@link #TRUE} if the value is {@code true}, otherwise {@link #FALSE}
      */
+    @Contract(pure = true)
     public static @NotNull TriState of(boolean bool) {
         return bool ? TRUE : FALSE;
     }
@@ -30,6 +31,7 @@ public enum TriState {
      * @param bool the value, may be {@code null}
      * @return the matching state
      */
+    @Contract(pure = true)
     public static @NotNull TriState of(@Nullable Boolean bool) {
         return bool == null ? UNSET : of(bool.booleanValue());
     }
@@ -42,6 +44,7 @@ public enum TriState {
      * @return the parsed state
      * @see Mapper
      */
+    @Contract(pure = true)
     public static @NotNull TriState of(@Nullable String str) {
         return Mapper.DEFAULT.parse(str);
     }
@@ -50,6 +53,7 @@ public enum TriState {
      * Returns whether this is {@link #TRUE}.
      * @return {@code true} if this is {@link #TRUE}
      */
+    @Contract(pure = true)
     public boolean isTrue() {
         return this == TRUE;
     }
@@ -58,6 +62,7 @@ public enum TriState {
      * Returns whether this is {@link #FALSE}.
      * @return {@code true} if this is {@link #FALSE}
      */
+    @Contract(pure = true)
     public boolean isFalse() {
         return this == FALSE;
     }
@@ -66,6 +71,7 @@ public enum TriState {
      * Returns whether this holds a value, i.e. is not {@link #UNSET}.
      * @return {@code true} if this is {@link #TRUE} or {@link #FALSE}
      */
+    @Contract(pure = true)
     public boolean isPresent() {
         return this != UNSET;
     }
@@ -74,6 +80,7 @@ public enum TriState {
      * Returns whether this is {@link #UNSET}.
      * @return {@code true} if this is {@link #UNSET}
      */
+    @Contract(pure = true)
     public boolean isEmpty() {
         return this == UNSET;
     }
@@ -82,6 +89,7 @@ public enum TriState {
      * Returns the negation: {@link #TRUE} and {@link #FALSE} swap, {@link #UNSET} stays as is.
      * @return the negated state
      */
+    @Contract(pure = true)
     public @NotNull TriState not() {
         return switch (this) {
             case TRUE -> FALSE;
@@ -136,6 +144,7 @@ public enum TriState {
      * Returns the value, or {@code null} if this is {@link #UNSET}.
      * @return the value, or {@code null}
      */
+    @Contract(pure = true)
     public @Nullable Boolean asBoolean() {
         return isPresent() ? isTrue() : null;
     }
@@ -145,6 +154,7 @@ public enum TriState {
      * @param fallback the value to return if this is {@link #UNSET}
      * @return the value, or the fallback
      */
+    @Contract(pure = true)
     public boolean asBoolean(boolean fallback) {
         return isPresent() ? isTrue() : fallback;
     }
@@ -165,6 +175,7 @@ public enum TriState {
      * @return {@code true} if this is {@link #UNSET} or equals the value
      * @see #isExactly(boolean)
      */
+    @Contract(pure = true)
     public boolean isValidFor(boolean bool) {
         return isEmpty() || isTrue() == bool;
     }
@@ -176,6 +187,7 @@ public enum TriState {
      * @return {@code true} if this is {@link #UNSET} or equals the value
      * @see #isExactly(Boolean)
      */
+    @Contract(pure = true)
     public boolean isValidFor(@Nullable Boolean bool) {
         return isEmpty() || bool != null && isTrue() == bool;
     }
@@ -185,6 +197,7 @@ public enum TriState {
      * @param bool the value to check
      * @return {@code true} if this equals the value
      */
+    @Contract(pure = true)
     public boolean isExactly(boolean bool) {
         return this == of(bool);
     }
@@ -194,6 +207,7 @@ public enum TriState {
      * @param bool the value to check, may be {@code null}
      * @return {@code true} if this is the state {@link #of(Boolean)} returns for the value
      */
+    @Contract(pure = true)
     public boolean isExactly(@Nullable Boolean bool) {
         return this == of(bool);
     }
@@ -243,6 +257,7 @@ public enum TriState {
          * and {@link TriState#UNSET} as the fallback.
          * @return a new builder
          */
+        @Contract(value = "-> new", pure = true)
         public static @NotNull Builder builder() {
             return new Builder();
         }
@@ -253,6 +268,7 @@ public enum TriState {
          * @param str the string to map, may be {@code null}
          * @return the matching state, or the fallback
          */
+        @Contract(pure = true)
         public @NotNull TriState parse(@Nullable String str) {
             return lookup.getOrDefault(str, fallback);
         }
@@ -262,6 +278,7 @@ public enum TriState {
          * @param state the state
          * @return the main name
          */
+        @Contract(pure = true)
         public @NotNull String name(@NotNull TriState state) {
             return names.get(state);
         }
@@ -272,6 +289,7 @@ public enum TriState {
          * @param state the state
          * @return the strings of the state
          */
+        @Contract(pure = true)
         public @NotNull SortedSet<String> strings(@NotNull TriState state) {
             return strings.get(state);
         }
@@ -280,6 +298,7 @@ public enum TriState {
          * Returns the state used for {@code null} and unknown strings.
          * @return the fallback state
          */
+        @Contract(pure = true)
         public @NotNull TriState fallback() {
             return fallback;
         }

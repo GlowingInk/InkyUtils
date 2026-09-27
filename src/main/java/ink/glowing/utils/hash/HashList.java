@@ -49,10 +49,12 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
         this.strategy = strategy;
     }
 
+    @Contract(pure = true)
     public @NotNull Hash.Strategy<$Type> getStrategy() {
         return strategy;
     }
 
+    @Contract(pure = true)
     public boolean isCustomStrategy() {
         return strategy != STANDARD_STRATEGY;
     }
@@ -83,6 +85,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @param <$Type> the type of elements in the list
      * @return an empty, unmodifiable {@code HashList}
      */
+    @Contract(pure = true)
     public static <$Type> @NotNull HashList<$Type> of() {
         return (HashList<$Type>) Empty.INSTANCE;
     }
@@ -94,6 +97,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @param element the single element to be contained in the list
      * @return a singleton, unmodifiable {@code HashList}
      */
+    @Contract(value = "_ -> new", pure = true)
     public static <$Type> @NotNull HashList<$Type> of(@Nullable $Type element) {
         return new Singleton<>(element, (Hash.Strategy<$Type>) STANDARD_STRATEGY);
     }
@@ -105,6 +109,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @return an unmodifiable {@code HashList} containing the specified elements
      */
     @SafeVarargs
+    @Contract(pure = true)
     public static <$Type> @NotNull HashList<$Type> of($Type @NotNull ... elements) {
         return fromCollection((Hash.Strategy<$Type>) STANDARD_STRATEGY, Arrays.asList(elements));
     }
@@ -116,6 +121,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @param elements the collection whose elements are to be placed into the list
      * @return an unmodifiable {@code HashList} containing the collection's elements
      */
+    @Contract(pure = true)
     public static <$Type> @NotNull HashList<$Type> of(@NotNull Collection<$Type> elements) {
         return fromCollection((Hash.Strategy<$Type>) STANDARD_STRATEGY, elements);
     }
@@ -127,6 +133,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @param elements the iterable whose elements are to be placed into the list
      * @return an unmodifiable {@code HashList} containing the iterable's elements
      */
+    @Contract(pure = true)
     public static <$Type> @NotNull HashList<$Type> of(@NotNull Iterable<$Type> elements) {
         return new Composer<$Type>().addAll(elements).finish();
     }
@@ -139,6 +146,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @param element the single element to be contained in the list
      * @return a singleton, unmodifiable {@code HashList} using the specified strategy
      */
+    @Contract(value = "_, _ -> new", pure = true)
     public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @Nullable $Type element) {
         return new Singleton<>(element, strategy);
     }
@@ -152,6 +160,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @return an unmodifiable {@code HashList} using the specified strategy
      */
     @SafeVarargs
+    @Contract(pure = true)
     public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, $Type @NotNull ... elements) {
         return fromCollection(strategy, Arrays.asList(elements));
     }
@@ -164,6 +173,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @param elements the collection whose elements are to be placed into the list
      * @return an unmodifiable {@code HashList} using the specified strategy
      */
+    @Contract(pure = true)
     public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
         return fromCollection(strategy, elements);
     }
@@ -176,6 +186,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @param elements the iterable whose elements are to be placed into the list
      * @return an unmodifiable {@code HashList} using the specified strategy
      */
+    @Contract(pure = true)
     public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Iterable<$Type> elements) {
         return new Composer<$Type>().containsStrategy(strategy).addAll(elements).finish();
     }

@@ -2,6 +2,7 @@ package ink.glowing.utils.time;
 
 import ink.glowing.utils.FluentUtils;
 import ink.glowing.utils.hash.CaseInsensitive;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
@@ -30,6 +31,7 @@ public final class DurationUtils {
      * {@code m}, {@code h} and {@code d} with missing unit mapped to seconds. Case-insensitive.
      * @return an immutable map of unit suffixes to units
      */
+    @Contract(pure = true)
     public static @NotNull Map<String, TemporalUnit> defaultUnits() {
         return DEFAULT_UNITS;
     }
@@ -42,6 +44,7 @@ public final class DurationUtils {
      * @see #parseDuration(String, Map)
      * @see #defaultUnits()
      */
+    @Contract(pure = true)
     public static @NotNull Duration parseDuration(@NotNull String input) {
         return parseDuration(input, DEFAULT_UNITS);
     }
@@ -60,6 +63,7 @@ public final class DurationUtils {
      * @throws java.time.temporal.UnsupportedTemporalTypeException if a matched unit has an
      * estimated duration, such as {@link ChronoUnit#WEEKS} or {@link ChronoUnit#MONTHS}
      */
+    @Contract(pure = true)
     public static @NotNull Duration parseDuration(@NotNull String input, @NotNull Map<String, ? extends TemporalUnit> units) {
         if (input.isBlank()) return Duration.ZERO;
 

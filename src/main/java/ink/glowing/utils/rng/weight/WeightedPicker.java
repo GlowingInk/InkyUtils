@@ -31,6 +31,7 @@ public interface WeightedPicker<$Type> {
      * @return an empty picker
      */
     @SuppressWarnings("unchecked")
+    @Contract(pure = true)
     static <$Type> @NotNull WeightedPicker<$Type> of() {
         return (WeightedPicker<$Type>) Empty.INSTANCE;
     }
@@ -41,6 +42,7 @@ public interface WeightedPicker<$Type> {
      * @param element the only element
      * @return a picker of the single element
      */
+    @Contract(value = "_ -> new", pure = true)
     static <$Type> @NotNull WeightedPicker<$Type> of($Type element) {
         return _ -> element;
     }
@@ -51,6 +53,7 @@ public interface WeightedPicker<$Type> {
      * @param elements the map of elements to their weights
      * @return a picker of the map's keys
      */
+    @Contract(pure = true)
     static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Map<? extends $Type, @NotNull Double> elements) {
         return new Composer<$Type>(elements.size()).addAll(elements).finish();
     }
@@ -62,6 +65,7 @@ public interface WeightedPicker<$Type> {
      * @param elements the map of elements to their weights
      * @return a picker of the map's keys
      */
+    @Contract(pure = true)
     static <$Type> @NotNull WeightedPicker<$Type> ofMapped(@NotNull Object2DoubleMap<? extends $Type> elements) {
         return new Composer<$Type>(elements.size()).addAll(elements).finish();
     }
@@ -73,6 +77,7 @@ public interface WeightedPicker<$Type> {
      * @param collection the elements to pick from
      * @return a picker of the collection's elements
      */
+    @Contract(pure = true)
     static <$WeightableType extends Weightable> @NotNull WeightedPicker<$WeightableType> ofCollection(@NotNull Collection<? extends $WeightableType> collection) {
         return ofCollection(collection, (t, _) -> t == null ? 0 : t.weight());
     }
@@ -105,6 +110,7 @@ public interface WeightedPicker<$Type> {
      * Returns whether this picker has no elements to pick from.
      * @return {@code true} if {@link #next} would throw
      */
+    @Contract(pure = true)
     default boolean isEmpty() {
         return false;
     }
@@ -123,6 +129,7 @@ public interface WeightedPicker<$Type> {
      * @return a stream calling {@link #next} for each element
      * @throws NoSuchElementException when the stream is consumed, if this picker is empty
      */
+    @Contract(value = "_ -> new", pure = true)
     default @NotNull Stream<$Type> stream(@NotNull RandomGenerator rng) {
         return Stream.generate(() -> next(rng));
     }
@@ -344,6 +351,7 @@ public interface WeightedPicker<$Type> {
          * Returns the number of elements that were added and not dropped so far.
          * @return the number of retained elements
          */
+        @Contract(pure = true)
         public int size() {
             return elements.size();
         }
@@ -352,6 +360,7 @@ public interface WeightedPicker<$Type> {
          * Returns whether no element was retained so far.
          * @return {@code true} if {@link #size()} is {@code 0}
          */
+        @Contract(pure = true)
         public boolean isEmpty() {
             return elements.isEmpty();
         }

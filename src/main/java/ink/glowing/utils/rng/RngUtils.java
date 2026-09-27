@@ -1,5 +1,6 @@
 package ink.glowing.utils.rng;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -16,6 +17,7 @@ public final class RngUtils {
      * Returns the {@link ThreadLocalRandom} of the current thread.
      * @return the current thread's random generator
      */
+    @Contract(pure = true)
     public static @NotNull ThreadLocalRandom threadRandom() {
         return ThreadLocalRandom.current();
     }
