@@ -107,6 +107,8 @@ int length = FluentUtils.map(parameter.get("name").textValue(), String::length);
 
 String name = FluentUtils.orElse(System.getenv("USER_NAME"), "guest");
 Config config = FluentUtils.orElseGet(cachedConfig, Config::load); // load() is only called if cachedConfig is null
+
+Optional<Duration> timeout = FluentUtils.attempt(() -> DurationUtils.parseDuration(input)); // empty if parsing throws
 ```
 
 ### `TextUtils`

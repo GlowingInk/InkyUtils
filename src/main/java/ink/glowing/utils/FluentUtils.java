@@ -4,6 +4,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -62,5 +63,20 @@ public final class FluentUtils {
     @Contract("!null, _ -> param1")
     public static <$Type> $Type orElseGet(@Nullable $Type value, @NotNull Supplier<? extends $Type> def) {
         return value != null ? value : def.get();
+    }
+
+    /**
+     * Calls the supplier, turning a thrown {@link RuntimeException} into an empty {@link Optional}.
+     * Errors are not caught.
+     * @param <$Type> the type of the result
+     * @param supplier the supplier to call
+     * @return the supplied value, or empty if it is {@code null} or the supplier threw
+     */
+    public static <$Type> @NotNull Optional<$Type> attempt(@NotNull Supplier<? extends $Type> supplier) {
+        try {
+            return Optional.ofNullable(supplier.get());
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
     }
 }
