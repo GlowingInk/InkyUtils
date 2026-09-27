@@ -1,5 +1,6 @@
 package ink.glowing.utils.params;
 
+import ink.glowing.utils.TextUtils;
 import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.params.ParameterImpl.ListedImpl;
 import ink.glowing.utils.params.ParameterImpl.MappedImpl;
@@ -83,7 +84,7 @@ final class ParserImpl {
     }
 
     private @NotNull String unescape(int start, int end, boolean escaped) {
-        if (!escaped) return new String(input, start, end - start);
+        if (!escaped) return TextUtils.substring(input, start, end);
 
         StringBuilder stringBuilder = new StringBuilder(end - start);
         for (int i = start; i < end; i++) {

@@ -1,5 +1,6 @@
 package ink.glowing.utils.params;
 
+import ink.glowing.utils.TextUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -313,7 +314,7 @@ final class ParameterImpl {
 
         LazyValue(char[] input, int start, int end) {
             this.valueGetter = () -> {
-                String value = new String(input, start, end - start);
+                String value = TextUtils.substring(input, start, end);
                 valueGetter = () -> value;
                 return value;
             };
