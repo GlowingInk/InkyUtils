@@ -9,7 +9,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Helpers for chaining operations on a value without a temporary variable.
+ * Helpers for chaining operations on a value without temporary variables.
  */
 public final class FluentUtils {
     private FluentUtils() { }

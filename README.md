@@ -99,9 +99,28 @@ DurationUtils.parseDuration("2min", Map.of("min", ChronoUnit.MINUTES)); // custo
 ```
 Default units: `ns`, `ms`, `s`, `m`, `h`, `d`, case-insensitive.
 
-### Misc
-- `FluentUtils` - `peek` and `map` helpers to act on a value inline without a temporary variable.
-- `TextUtils` - for better experience with `char` array `String` counterparts.
+### `FluentUtils`
+Helpers to act on a value inline, without temporary variables.
+```java
+Map<String, Integer> ids = FluentUtils.peek(new HashMap<>(), map -> map.put("admin", 0));
+int length = FluentUtils.map(parameter.get("name").textValue(), String::length);
+
+String name = FluentUtils.orElse(System.getenv("USER_NAME"), "guest");
+Config config = FluentUtils.orElseGet(cachedConfig, Config::load); // load() is only called if cachedConfig is null
+```
+
+### `TextUtils`
+Index-aware search and replace, plus `char` array counterparts of common `String` methods.
+```java
+TextUtils.replaceEach("a-b-c", "-", index -> "[" + index + "]"); // "a[1]b[3]c"
+TextUtils.findEach("1a 2a 3a", "a", index -> System.out.println(index)); // 1, 4, 7
+
+char[] chars = "key:value".toCharArray();
+int colonAt = TextUtils.indexOf(chars, ':'); // 3
+TextUtils.substring(chars, 0, colonAt); // "key"
+TextUtils.subarray(chars, colonAt + 1); // ['v', 'a', 'l', 'u', 'e']
+```
+An empty search string matches nothing.
 
 ## Get it ![Version](https://img.shields.io/github/v/tag/GlowingInk/InkyUtils?sort=semver&style=flat&label=release)
 Versions in dependency sections may be outdated. Check the badge above for the latest one.
@@ -121,7 +140,7 @@ Add to dependencies
 <dependency>
     <groupId>ink.glowing.utils</groupId>
     <artifactId>inkyutils</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 ### Gradle
