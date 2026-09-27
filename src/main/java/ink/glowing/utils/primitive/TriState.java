@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.*;
 import java.util.function.BooleanSupplier;
@@ -290,7 +291,7 @@ public enum TriState {
          * @return the strings of the state
          */
         @Contract(pure = true)
-        public @NotNull SortedSet<String> strings(@NotNull TriState state) {
+        public @NotNull @Unmodifiable SortedSet<String> strings(@NotNull TriState state) {
             return strings.get(state);
         }
 

@@ -85,7 +85,7 @@ WeightedPicker<String> loot = new WeightedPicker.Composer<String>()
         .add("common", 9)
         .add("rare", 1)
         .finish();
-String drop = loot.next(RngUtils.threadRandom()); // "common" ~90% of the time
+String drop = loot.next(RngUtils.threadRandom()); // "common" 90% of the time
 ```
 Pickers can also be created from a map of weights, or from a collection with a function that computes each element's weight.
 Elements with zero or negative weight are never picked. If any element has an infinite weight, only such elements are picked.
@@ -155,6 +155,6 @@ repositories {
 }
 
 dependencies {
-    implementation("ink.glowing.utils:inkyutils:1.0.0-SNAPSHOT")
+    implementation("ink.glowing.utils:inkyutils:0.1.0")
 }
 ```
