@@ -1,5 +1,6 @@
 package ink.glowing.utils;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -15,10 +16,16 @@ import org.jetbrains.annotations.NotNull;
  * @param <$Result> the type of the built result
  */
 public abstract class ComposerBase<$Result> {
+    private boolean built = false;
+
     /**
-     * Whether {@link #finish()} was already called.
+     * Returns whether {@link #finish()} was already called.
+     * @return {@code true} if this composer is finalized
      */
-    protected boolean built = false;
+    @Contract(pure = true)
+    public final boolean isBuilt() {
+        return built;
+    }
 
     /**
      * Ensures this composer is not finalized yet.
