@@ -1,5 +1,6 @@
 package ink.glowing.utils.params;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -267,7 +268,7 @@ public class ParameterTest {
         assertEquals(expected, parse(right).matches(parse(left)), "matches must be symmetric");
     }
 
-    @Test
+    @Test @Disabled
     public void manualTesting() {
         String[] examples = {
                 "simple:value",

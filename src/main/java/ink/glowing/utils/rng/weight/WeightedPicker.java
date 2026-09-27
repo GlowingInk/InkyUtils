@@ -205,8 +205,9 @@ public interface WeightedPicker<$Type> {
 
         @Override
         public $Type next(@NotNull RandomGenerator rng) {
-            int column = rng.nextInt(this.probabilities.length);
-            boolean coinToss = rng.nextDouble() < this.probabilities[column];
+            double roll = rng.nextDouble() * this.probabilities.length;
+            int column = Math.min((int) roll, this.probabilities.length - 1);
+            boolean coinToss = roll - column < this.probabilities[column];
             return this.elements.get(coinToss ? column : this.alias[column]);
         }
     }
