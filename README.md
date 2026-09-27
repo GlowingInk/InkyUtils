@@ -44,20 +44,21 @@ requireOp.isValidFor(player.isOp()); // true for any player
 `TriState.of(String)` uses `TriState.Mapper.DEFAULT`, which understands `true/on/yes/allow/enable` and their negatives. Anything else is `UNSET`.
 
 `TriState.Mapper` converts between states and strings with custom words.
-Each state has a main name, used when converting back to a string, and any number of extra variants that are also accepted when parsing.
+Each state has a main name, used when converting back to a string. `TRUE` and `FALSE` can also have extra variants that are accepted when parsing.
 Matching ignores case, and unknown strings or `null` give the fallback state (`UNSET` unless changed with `fallback(...)`).
 ```java
 TriState.Mapper mapper = TriState.Mapper.builder()
-        .main(TriState.TRUE, "allow")
-        .main(TriState.FALSE, "deny")
-        .main(TriState.UNSET, "default")
-        .addVariants(TriState.TRUE, "yes", "+")
-        .addVariants(TriState.FALSE, "no", "-")
+        .name(TriState.TRUE, "allow")
+        .name(TriState.FALSE, "deny")
+        .name(TriState.UNSET, "default")
+        .addVariants(true, "yes", "+")
+        .addVariants(false, "no", "-")
         .build();
 
-mapper.byString("YES"); // TRUE
-mapper.byString("maybe"); // UNSET, the fallback
-mapper.toString(TriState.FALSE); // "deny"
+mapper.parse("YES"); // TRUE
+mapper.parse("maybe"); // UNSET, the fallback
+mapper.name(TriState.FALSE); // "deny"
+mapper.strings(TriState.TRUE); // [allow, yes, +]
 ```
 An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Mapper.DEFAULT`.
 `build()` throws if the same word is assigned to different states.
@@ -100,6 +101,7 @@ Default units: `ns`, `ms`, `s`, `m`, `h`, `d`, case-insensitive.
 
 ### Misc
 - `FluentUtils` - `peek` and `map` helpers to act on a value inline without a temporary variable.
+- `TextUtils` - for better experience with `char` array `String` counterparts.
 
 ## Get it ![Version](https://img.shields.io/github/v/tag/GlowingInk/InkyUtils?sort=semver&style=flat&label=release)
 Versions in dependency sections may be outdated. Check the badge above for the latest one.
