@@ -43,7 +43,7 @@ public enum TriState {
      * @see Mapper
      */
     public static @NotNull TriState of(@Nullable String str) {
-        return Mapper.DEFAULT.byString(str);
+        return Mapper.DEFAULT.parse(str);
     }
 
     /**
@@ -207,25 +207,35 @@ public enum TriState {
          * and their negative counterparts; anything else is {@link TriState#UNSET}.
          */
         public static final Mapper DEFAULT = builder()
-                .addVariants(TRUE, "ON", "YES", "ALLOW", "ALLOWED", "ENABLE", "ENABLED")
-                .addVariants(FALSE, "OFF", "NO", "DENY", "DENIED", "DISABLE", "DISABLED")
+                .addVariants(true, "ON", "YES", "ALLOW", "ALLOWED", "ENABLE", "ENABLED")
+                .addVariants(false, "OFF", "NO", "DENY", "DENIED", "DISABLE", "DISABLED")
                 .build();
 
         private final Map<String, TriState> lookup;
         private final Map<TriState, String> names;
-        private final Map<TriState, Set<String>> variants;
+        private final Map<TriState, SortedSet<String>> strings;
         private final TriState fallback;
 
-        private Mapper(
-                @NotNull Map<String, TriState> lookup,
-                @NotNull Map<TriState, String> names,
-                @NotNull Map<TriState, Set<String>> variants,
-                @NotNull TriState fallback
-        ) {
-            this.lookup = lookup;
-            this.names = names;
-            this.variants = variants;
-            this.fallback = fallback;
+        private Mapper(@NotNull Builder builder) {
+            this.names = Collections.unmodifiableMap(new EnumMap<>(builder.names));
+            this.fallback = builder.fallback;
+
+            Map<String, TriState> lookup = CaseInsensitive.newMap();
+            Map<TriState, SortedSet<String>> strings = new EnumMap<>(TriState.class);
+            for (TriState state : values()) {
+                SortedSet<String> set = CaseInsensitive.newLinkedSet();
+                set.add(names.get(state));
+                if (state != UNSET) set.addAll(builder.variants(state.isTrue()));
+                for (String str : set) {
+                    TriState previous = lookup.putIfAbsent(str, state);
+                    if (previous != null) {
+                        throw new IllegalStateException("'" + str + "' is mapped to both " + previous + " and " + state);
+                    }
+                }
+                strings.put(state, Collections.unmodifiableSortedSet(set));
+            }
+            this.lookup = Collections.unmodifiableMap(lookup);
+            this.strings = Collections.unmodifiableMap(strings);
         }
 
         /**
@@ -243,7 +253,7 @@ public enum TriState {
          * @param str the string to map, may be {@code null}
          * @return the matching state, or the fallback
          */
-        public @NotNull TriState byString(@Nullable String str) {
+        public @NotNull TriState parse(@Nullable String str) {
             return lookup.getOrDefault(str, fallback);
         }
 
@@ -251,29 +261,19 @@ public enum TriState {
          * Returns the main name of the state.
          * @param state the state
          * @return the main name
-         * @see #main(TriState)
          */
-        public @NotNull String toString(@NotNull TriState state) {
-            return main(state);
-        }
-
-        /**
-         * Returns the main name of the state.
-         * @param state the state
-         * @return the main name
-         */
-        public @NotNull String main(@NotNull TriState state) {
+        public @NotNull String name(@NotNull TriState state) {
             return names.get(state);
         }
 
         /**
-         * Returns the extra strings that parse to the state, not including its main name.
+         * Returns every string that parses to the state: its name first, then its variants.
          * The returned set is unmodifiable and case-insensitive.
          * @param state the state
-         * @return the variants of the state
+         * @return the strings of the state
          */
-        public @NotNull Set<String> variants(@NotNull TriState state) {
-            return variants.get(state);
+        public @NotNull SortedSet<String> strings(@NotNull TriState state) {
+            return strings.get(state);
         }
 
         /**
@@ -299,12 +299,12 @@ public enum TriState {
             if (!(obj instanceof Mapper other)) return false;
             return fallback == other.fallback
                     && names.equals(other.names)
-                    && variants.equals(other.variants);
+                    && strings.equals(other.strings);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(names, variants, fallback);
+            return Objects.hash(names, strings, fallback);
         }
 
         /**
@@ -312,96 +312,74 @@ public enum TriState {
          */
         public static final class Builder {
             private final Map<TriState, String> names = new EnumMap<>(TriState.class);
-            private final Map<TriState, Set<String>> variants = new EnumMap<>(TriState.class);
+            private final Set<String> trueVariants = CaseInsensitive.newLinkedSet();
+            private final Set<String> falseVariants = CaseInsensitive.newLinkedSet();
             private TriState fallback = UNSET;
 
             private Builder() {
                 for (TriState state : values()) {
                     names.put(state, state.name());
-                    variants.put(state, CaseInsensitive.newLinkedSet());
                 }
             }
 
             private Builder(@NotNull Mapper mapper) {
-                for (TriState state : values()) {
-                    names.put(state, mapper.names.get(state));
-                    variants.put(state, CaseInsensitive.newLinkedSet(mapper.variants.get(state)));
-                }
+                names.putAll(mapper.names);
+                trueVariants.addAll(mapper.strings(TRUE));
+                trueVariants.remove(mapper.name(TRUE));
+                falseVariants.addAll(mapper.strings(FALSE));
+                falseVariants.remove(mapper.name(FALSE));
                 fallback = mapper.fallback;
             }
 
+            private @NotNull Set<String> variants(boolean state) {
+                return state ? trueVariants : falseVariants;
+            }
+
             /**
-             * Sets the main name of the state, used by {@link Mapper#toString(TriState)}.
+             * Sets the main name of the state, used by {@link Mapper#name(TriState)}.
              * It is also recognized when parsing.
              * @param state the state
-             * @param main the main name
+             * @param name the main name
              * @return this builder
              */
             @Contract("_, _ -> this")
-            public @NotNull Builder main(@NotNull TriState state, @NotNull String main) {
-                names.put(state, main);
+            public @NotNull Builder name(@NotNull TriState state, @NotNull String name) {
+                names.put(state, name);
                 return this;
             }
 
             /**
-             * Adds an extra string that parses to the state.
-             * @param state the state
-             * @param variant the string to add
-             * @return this builder
-             */
-            @Contract("_, _ -> this")
-            public @NotNull Builder addVariant(@NotNull TriState state, @NotNull String variant) {
-                variants.get(state).add(variant);
-                return this;
-            }
-
-            /**
-             * Adds extra strings that parse to the state.
-             * @param state the state
+             * Adds extra strings that parse to {@link #TRUE} or {@link #FALSE}.
+             * @param state {@code true} for {@link #TRUE}, {@code false} for {@link #FALSE}
              * @param variants the strings to add
              * @return this builder
              */
             @Contract("_, _ -> this")
-            public @NotNull Builder addVariants(@NotNull TriState state, @NotNull String @NotNull ... variants) {
-                Collections.addAll(this.variants.get(state), variants);
+            public @NotNull Builder addVariants(boolean state, @NotNull String @NotNull ... variants) {
+                Collections.addAll(variants(state), variants);
                 return this;
             }
 
             /**
-             * Adds extra strings that parse to the state.
-             * @param state the state
+             * Adds extra strings that parse to {@link #TRUE} or {@link #FALSE}.
+             * @param state {@code true} for {@link #TRUE}, {@code false} for {@link #FALSE}
              * @param variants the strings to add
              * @return this builder
              */
             @Contract("_, _ -> this")
-            public @NotNull Builder addVariants(@NotNull TriState state, @NotNull Collection<@NotNull String> variants) {
-                this.variants.get(state).addAll(variants);
+            public @NotNull Builder addVariants(boolean state, @NotNull Iterable<@NotNull String> variants) {
+                variants.forEach(variants(state)::add);
                 return this;
             }
 
             /**
-             * Adds extra strings that parse to the state.
-             * @param state the state
-             * @param variants the strings to add
-             * @return this builder
-             */
-            @Contract("_, _ -> this")
-            public @NotNull Builder addVariants(@NotNull TriState state, @NotNull Iterable<@NotNull String> variants) {
-                var variantsMap = this.variants.get(state);
-                for (String variant : variants) {
-                    variantsMap.add(variant);
-                }
-                return this;
-            }
-
-            /**
-             * Removes all extra strings of the state. The main name is kept.
-             * @param state the state
+             * Removes all extra strings of {@link #TRUE} or {@link #FALSE}. The main name is kept.
+             * @param state {@code true} for {@link #TRUE}, {@code false} for {@link #FALSE}
              * @return this builder
              */
             @Contract("_ -> this")
-            public @NotNull Builder clearVariants(@NotNull TriState state) {
-                variants.get(state).clear();
+            public @NotNull Builder clearVariants(boolean state) {
+                variants(state).clear();
                 return this;
             }
 
@@ -423,28 +401,7 @@ public enum TriState {
              */
             @Contract(value = "-> new", pure = true)
             public @NotNull Mapper build() {
-                Map<String, TriState> lookup = CaseInsensitive.newMap();
-                for (TriState state : values()) {
-                    register(lookup, names.get(state), state);
-                    for (String variant : variants.get(state)) {
-                        register(lookup, variant, state);
-                    }
-                }
-                Map<TriState, Set<String>> variantsCopy = new EnumMap<>(TriState.class);
-                variants.forEach((state, set) -> variantsCopy.put(state, Collections.unmodifiableSet(CaseInsensitive.newLinkedSet(set))));
-                return new Mapper(
-                        Collections.unmodifiableMap(lookup),
-                        Collections.unmodifiableMap(new EnumMap<>(names)),
-                        Collections.unmodifiableMap(variantsCopy),
-                        fallback
-                );
-            }
-
-            private static void register(@NotNull Map<String, TriState> lookup, @NotNull String str, @NotNull TriState state) {
-                TriState previous = lookup.putIfAbsent(str, state);
-                if (previous != null && previous != state) {
-                    throw new IllegalStateException("'" + str + "' is mapped to both " + previous + " and " + state);
-                }
+                return new Mapper(this);
             }
         }
     }

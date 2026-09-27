@@ -95,64 +95,49 @@ public class TriStateTest {
     }
 
     @Test
-    public void testMapperDefaults() {
-        Mapper mapper = Mapper.builder().build();
-        assertEquals(TRUE, mapper.byString("true"));
-        assertEquals(FALSE, mapper.byString("False"));
-        assertEquals(UNSET, mapper.byString("unset"));
-        assertEquals(UNSET, mapper.byString("yes"), "Synonyms belong to Mapper.DEFAULT only");
-        assertEquals(UNSET, mapper.byString(null));
-        assertEquals("TRUE", mapper.toString(TRUE));
-        assertEquals("UNSET", mapper.toString(UNSET));
-    }
-
-    @Test
     public void testMapperCustom() {
         Mapper mapper = Mapper.builder()
-                .main(TRUE, "Enabled").addVariants(TRUE, "on")
-                .main(FALSE, "Disabled").addVariants(FALSE, "off")
-                .main(UNSET, "Any").addVariants(UNSET, "*")
+                .name(TRUE, "Enabled").addVariants(true, "on")
+                .name(FALSE, "Disabled").addVariants(false, "off")
+                .name(UNSET, "Any")
                 .fallback(FALSE)
                 .build();
 
-        assertEquals(TRUE, mapper.byString("ENABLED"));
-        assertEquals(TRUE, mapper.byString("On"));
-        assertEquals(FALSE, mapper.byString("disabled"));
-        assertEquals(UNSET, mapper.byString("any"));
-        assertEquals(UNSET, mapper.byString("*"));
-        assertEquals(FALSE, mapper.byString("garbage"));
-        assertEquals(FALSE, mapper.byString(null));
-        assertEquals("Enabled", mapper.toString(TRUE), "Main name keeps its casing");
+        assertEquals(TRUE, mapper.parse("ENABLED"));
+        assertEquals(TRUE, mapper.parse("On"));
+        assertEquals(FALSE, mapper.parse("disabled"));
+        assertEquals(UNSET, mapper.parse("any"));
+        assertEquals(FALSE, mapper.parse("garbage"));
+        assertEquals(FALSE, mapper.parse(null));
+        assertEquals("Enabled", mapper.name(TRUE), "Main name keeps its casing");
     }
 
     @Test
     public void testMapperClearVariants() {
         Mapper mapper = Mapper.builder()
-                .addVariants(TRUE, "yes").clearVariants(TRUE)
-                .addVariants(FALSE, "no").clearVariants(FALSE)
-                .addVariants(UNSET, "any").clearVariants(UNSET)
+                .addVariants(true, "yes").clearVariants(true)
+                .addVariants(false, "no").clearVariants(false)
                 .build();
 
-        assertEquals(UNSET, mapper.byString("yes"));
-        assertEquals(UNSET, mapper.byString("any"));
-        assertEquals(TRUE, mapper.byString("true"), "Main name survives clearing");
+        assertEquals(UNSET, mapper.parse("yes"));
+        assertEquals(TRUE, mapper.parse("true"), "Main name survives clearing");
     }
 
     @Test
     public void testMapperConflicts() {
-        assertThrows(IllegalStateException.class, () -> Mapper.builder().addVariants(FALSE, "true").build());
-        assertThrows(IllegalStateException.class, () -> Mapper.builder().addVariants(TRUE, "yes").addVariants(FALSE, "YES").build());
-        assertThrows(IllegalStateException.class, () -> Mapper.builder().main(TRUE, "").main(FALSE, "").build());
-        assertDoesNotThrow(() -> Mapper.builder().addVariants(TRUE, "true", "TRUE", "yes", "Yes").build());
+        assertThrows(IllegalStateException.class, () -> Mapper.builder().addVariants(false, "true").build());
+        assertThrows(IllegalStateException.class, () -> Mapper.builder().addVariants(true, "yes").addVariants(false, "YES").build());
+        assertThrows(IllegalStateException.class, () -> Mapper.builder().name(TRUE, "").name(FALSE, "").build());
+        assertDoesNotThrow(() -> Mapper.builder().addVariants(true, "true", "TRUE", "yes", "Yes").build());
     }
 
     @Test
     public void testMapperBuilderReuse() {
         Mapper.Builder builder = Mapper.builder();
         Mapper first = builder.build();
-        Mapper second = builder.addVariants(FALSE, "nope").build();
+        Mapper second = builder.addVariants(false, "nope").build();
 
-        assertEquals(UNSET, first.byString("nope"));
-        assertEquals(FALSE, second.byString("nope"));
+        assertEquals(UNSET, first.parse("nope"));
+        assertEquals(FALSE, second.parse("nope"));
     }
 }
