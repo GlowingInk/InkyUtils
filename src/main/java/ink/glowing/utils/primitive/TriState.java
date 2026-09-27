@@ -15,7 +15,18 @@ import java.util.function.Supplier;
  * A boolean that can also be {@link #UNSET}, e.g. "not configured" or "any".
  */
 public enum TriState {
-    TRUE, FALSE, UNSET;
+    /**
+     * The {@code true} value.
+     */
+    TRUE,
+    /**
+     * The {@code false} value.
+     */
+    FALSE,
+    /**
+     * No value: not configured, or doesn't matter.
+     */
+    UNSET;
 
     /**
      * Returns {@link #TRUE} or {@link #FALSE} for the given value.

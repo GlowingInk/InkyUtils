@@ -43,19 +43,27 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
         }
     };
 
-    protected final Hash.Strategy<$Type> strategy;
+    private final Hash.Strategy<$Type> strategy;
 
-    protected HashList(Hash.Strategy<$Type> strategy) {
+    private HashList(Hash.Strategy<$Type> strategy) {
         this.strategy = strategy;
     }
 
+    /**
+     * Returns the strategy used to compare elements.
+     * @return the strategy, {@link #STANDARD_STRATEGY} unless a custom one was given
+     */
     @Contract(pure = true)
-    public @NotNull Hash.Strategy<$Type> getStrategy() {
+    public final @NotNull Hash.Strategy<$Type> getStrategy() {
         return strategy;
     }
 
+    /**
+     * Returns whether this list compares elements with a custom strategy.
+     * @return {@code true} if the strategy is not {@link #STANDARD_STRATEGY}
+     */
     @Contract(pure = true)
-    public boolean isCustomStrategy() {
+    public final boolean isCustomStrategy() {
         return strategy != STANDARD_STRATEGY;
     }
 
@@ -354,12 +362,12 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
 
         @Override
         public boolean contains(@Nullable Object o) {
-            return strategy.equals(($Type) o, value);
+            return getStrategy().equals(($Type) o, value);
         }
 
         @Override
         public int indexOf(@Nullable Object o) {
-            return strategy.equals(($Type) o, value) ? 0 : -1;
+            return getStrategy().equals(($Type) o, value) ? 0 : -1;
         }
 
         @Override

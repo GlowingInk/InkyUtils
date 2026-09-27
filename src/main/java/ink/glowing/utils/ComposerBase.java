@@ -19,6 +19,11 @@ public abstract class ComposerBase<$Result> {
     private boolean built = false;
 
     /**
+     * Creates a composer that is not finalized yet.
+     */
+    protected ComposerBase() { }
+
+    /**
      * Returns whether {@link #finish()} was already called.
      * @return {@code true} if this composer is finalized
      */
