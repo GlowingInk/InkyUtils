@@ -14,13 +14,15 @@
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <fastutil.version>8.5.18</fastutil.version>
+        <annotations.version>26.1.0</annotations.version>
+        <jmh.version>1.37</jmh.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <version>26.0.2-1</version>
+            <version>${annotations.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -40,13 +42,13 @@
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-core</artifactId>
-            <version>1.37</version>
+            <version>${jmh.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-generator-annprocess</artifactId>
-            <version>1.37</version>
+            <version>${jmh.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -60,6 +62,7 @@
                 <configuration>
                     <links>
                         <link>https://javadoc.io/doc/it.unimi.dsi/fastutil/${fastutil.version}/</link>
+                        <link>https://javadoc.io/doc/org.jetbrains/annotations/${annotations.version}/</link>
                     </links>
                 </configuration>
                 <executions>
