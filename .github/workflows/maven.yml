@@ -17,8 +17,8 @@ jobs:
           java-version: '25'
           cache: 'maven'
           server-id: glowing-ink
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
+          server-username-env-var: MAVEN_USERNAME
+          server-password-env-var: MAVEN_PASSWORD
       - name: Publish package
         run: mvn deploy
         env:
