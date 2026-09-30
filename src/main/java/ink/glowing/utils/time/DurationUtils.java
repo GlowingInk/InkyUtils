@@ -5,6 +5,7 @@ import ink.glowing.utils.hash.CaseInsensitive;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -48,7 +49,7 @@ public final class DurationUtils {
      * @return an immutable map of unit suffixes to units
      */
     @Contract(pure = true)
-    public static @NotNull Map<String, TemporalUnit> defaultUnits() {
+    public static @Unmodifiable @NotNull Map<String, TemporalUnit> defaultUnits() {
         return DEFAULT_UNITS;
     }
 
