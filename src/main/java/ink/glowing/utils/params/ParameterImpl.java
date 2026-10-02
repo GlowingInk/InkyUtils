@@ -1,11 +1,12 @@
 package ink.glowing.utils.params;
 
 import ink.glowing.utils.TextUtils;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -14,21 +15,88 @@ final class ParameterImpl {
 
     private static @NotNull Parameter getByIndexKey(@NotNull Parameter self, @NotNull String key) {
         int length = key.length();
-        if (length == 0) return Parameter.Missing.INSTANCE;
+        if (length == 0) return MissingImpl.INSTANCE;
         for (int i = 0; i < length; i++) {
             char ch = key.charAt(i);
             boolean sign = i == 0 && length > 1 && (ch == '-' || ch == '+');
-            if (!sign && Character.digit(ch, 10) < 0) return Parameter.Missing.INSTANCE;
+            if (!sign && Character.digit(ch, 10) < 0) return MissingImpl.INSTANCE;
         }
         try {
             return self.get(Integer.parseInt(key));
         } catch (NumberFormatException _) { // out of the int range
-            return Parameter.Missing.INSTANCE;
+            return MissingImpl.INSTANCE;
         }
     }
 
-    static final class ValueImpl implements Parameter.Value {
-        static final Value EMPTY = new ValueImpl("", EMPTY_RAW);
+    private static final Set<String> SINGLE_KEY = Set.of("0");
+
+    /**
+     * The only parameter that stands for an absent one, see {@link Parameter#missing()}.
+     */
+    enum MissingImpl implements Parameter {
+        INSTANCE;
+
+        @Override
+        public int count() {
+            return 0;
+        }
+
+        @Override
+        public @NotNull @Unmodifiable Set<String> keys() {
+            return Set.of();
+        }
+
+        @Override
+        public @NotNull String raw() {
+            return "";
+        }
+
+        @Override
+        public @NotNull String textValue() {
+            return "";
+        }
+
+        @Override
+        public boolean matches(@NotNull Parameter other) {
+            return other == this;
+        }
+
+        @Override
+        public @NotNull String serialize(boolean topLevel) {
+            return "";
+        }
+
+        @Override
+        public boolean isMissing() {
+            return true;
+        }
+
+        @Override
+        @Contract(value = "_ -> this", pure = true)
+        public @NotNull @Unmodifiable MissingImpl get(@Nullable String key) {
+            return this;
+        }
+
+        @Override
+        @Contract(value = "_ -> this", pure = true)
+        public @NotNull @Unmodifiable MissingImpl get(int index) {
+            return this;
+        }
+
+        @Override
+        @Contract(value = "-> this", pure = true)
+        public @NotNull @Unmodifiable MissingImpl asParameter() {
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return textValue();
+        }
+    }
+
+    static final class ValueImpl implements Parameter {
+        static final Parameter EMPTY = new ValueImpl("", EMPTY_RAW);
 
         private final String value;
         private final Function<Parameter, String> rawCompute;
@@ -60,7 +128,7 @@ final class ParameterImpl {
 
         @Override
         public boolean matches(@NotNull Parameter other) {
-            return other instanceof Value plain && value.equals(plain.textValue());
+            return other instanceof ValueImpl plain && value.equals(plain.value);
         }
 
         @Override
@@ -84,13 +152,18 @@ final class ParameterImpl {
         }
 
         @Override
-        public @NotNull Parameter get(@NotNull String key) {
+        public @NotNull @Unmodifiable Set<String> keys() {
+            return SINGLE_KEY;
+        }
+
+        @Override
+        public @NotNull @Unmodifiable Parameter get(@NotNull String key) {
             return getByIndexKey(this, key);
         }
 
         @Override
-        public @NotNull Parameter get(int index) {
-            return index == 0 ? this : Parameter.Missing.INSTANCE;
+        public @NotNull @Unmodifiable Parameter get(int index) {
+            return index == 0 ? this : MissingImpl.INSTANCE;
         }
     }
 
@@ -180,14 +253,20 @@ final class ParameterImpl {
         }
     }
 
-    static final class ListedImpl extends CompoundImpl implements Parameter.Listed {
-        static final Listed EMPTY = new ListedImpl(EMPTY_RAW, List.of());
+    static final class ListedImpl extends CompoundImpl {
+        static final Parameter EMPTY = new ListedImpl(EMPTY_RAW, List.of());
 
         private final List<Parameter> internalValue;
+        private Set<String> indexes; // racy lazy cache, see CompoundImpl
 
         ListedImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull List<Parameter> internalValue) {
             super(rawCompute);
             this.internalValue = internalValue;
+        }
+
+        @Override
+        public boolean isList() {
+            return true;
         }
 
         @Override
@@ -214,7 +293,7 @@ final class ParameterImpl {
 
         @Override
         public boolean matches(@NotNull Parameter other) {
-            if (!(other instanceof Parameter.Listed) || other.count() != count()) return false;
+            if (!other.isList() || other.count() != count()) return false;
             for (int i = 0; i < internalValue.size(); i++) {
                 if (!internalValue.get(i).matches(other.get(i))) return false;
             }
@@ -227,27 +306,46 @@ final class ParameterImpl {
         }
 
         @Override
-        public @NotNull Parameter get(@NotNull String key) {
+        public @NotNull @Unmodifiable Set<String> keys() {
+            Set<String> cached = indexes;
+            if (cached == null) {
+                int size = internalValue.size();
+                Set<String> set = new LinkedHashSet<>(size * 4 / 3 + 1);
+                for (int i = 0; i < size; i++) {
+                    set.add(Integer.toString(i));
+                }
+                indexes = cached = Collections.unmodifiableSet(set);
+            }
+            return cached;
+        }
+
+        @Override
+        public @NotNull @Unmodifiable Parameter get(@NotNull String key) {
             return getByIndexKey(this, key);
         }
 
         @Override
-        public @NotNull Parameter get(int index) {
+        public @NotNull @Unmodifiable Parameter get(int index) {
             if (index >= 0 && index < count()) {
                 return internalValue.get(index);
             }
-            return Parameter.Missing.INSTANCE;
+            return MissingImpl.INSTANCE;
         }
     }
 
-    static final class MappedImpl extends CompoundImpl implements Parameter.Mapped {
-        static final Mapped EMPTY = new MappedImpl(EMPTY_RAW, Map.of());
+    static final class MappedImpl extends CompoundImpl {
+        static final Parameter EMPTY = new MappedImpl(EMPTY_RAW, Map.of());
 
         private final Map<String, Parameter> internalValue;
 
         MappedImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull Map<String, Parameter> internalValue) {
             super(rawCompute);
             this.internalValue = internalValue;
+        }
+
+        @Override
+        public boolean isMap() {
+            return true;
         }
 
         @Override
@@ -277,7 +375,7 @@ final class ParameterImpl {
 
         @Override
         public boolean matches(@NotNull Parameter other) {
-            if (!(other instanceof Parameter.Mapped) || other.count() != count()) return false;
+            if (!other.isMap() || other.count() != count()) return false;
             for (var entry : internalValue.entrySet()) {
                 if (!entry.getValue().matches(other.get(entry.getKey()))) return false;
             }
@@ -290,12 +388,17 @@ final class ParameterImpl {
         }
 
         @Override
-        public @NotNull Parameter get(@Nullable String key) {
-            return internalValue.getOrDefault(key, Parameter.Missing.INSTANCE);
+        public @NotNull @Unmodifiable Set<String> keys() {
+            return Collections.unmodifiableSet(internalValue.keySet());
         }
 
         @Override
-        public @NotNull Parameter get(int index) {
+        public @NotNull @Unmodifiable Parameter get(@Nullable String key) {
+            return internalValue.getOrDefault(key, MissingImpl.INSTANCE);
+        }
+
+        @Override
+        public @NotNull @Unmodifiable Parameter get(int index) {
             return get(Integer.toString(index));
         }
     }

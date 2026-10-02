@@ -1,5 +1,7 @@
 # InkyUtils
-Small Java 25 utility library built on top of [fastutil](https://github.com/vigna/fastutil): config-style parameter parsing, a three-state boolean, hash-backed collections, weighted randomness and duration parsing.
+Small Java 25 utility library built on top of [fastutil](https://github.com/vigna/fastutil).
+
+## Overview
 
 ### `params`
 Parses compact, human-written parameter strings (commands, config values, tags) into a tree of values, lists and maps.
@@ -9,7 +11,7 @@ Parses compact, human-written parameter strings (commands, config values, tags) 
 - The top level can be parsed as either a map or a list, without the wrapping brackets.
 
 ```java
-Parameter.Mapped config = Parameter.Mapped.parse(
+Parameter config = Parameter.parseMap(
         "title:'Main servers' servers:[{host:eu.example.com ports:[25565 25566]} {host:us.example.com}]"
 );
 
@@ -17,14 +19,32 @@ config.get("title").textValue(); // "Main servers"
 config.get("servers").count(); // 2
 config.get("servers").get(0).get("ports").get(1).textValue(); // "25566"
 config.get("servers").get(1).get("ports").isMissing(); // true
-config.get("servers").get(7).get("host").get(0).isMissing(); // true, no exceptions along the way
+config.get("servers").get(7).get("host").get(0).isMissing(); // true, because there's no index 7 element
 ```
 Lookups never return `null` or throw: anything absent is `Parameter.missing()`, which can be chained further.
 Map keys are case-insensitive.
 
+There is a single `Parameter` type: `isList()` and `isMap()` tell the kinds apart, and a parameter that is neither is a plain value.
+`keys()` gives the keys to look up by: a map's keys, a list's indexes, or just `"0"` for a plain value.
+`find(...)` returns an `Optional` instead of `missing()`, and `getMapped(...)` applies a function to the looked-up parameter.
+
+The text of a parameter can be read with `getText(...)`, or converted with a fallback for absent and malformed values:
+```java
+Parameter config = Parameter.parseMap("name:Main port:25565 ratio:0.5 debug:yes mode:fast");
+
+config.getText("name"); // "Main"
+config.get("port").asInt(0); // 25565
+config.get("timeout").asInt(30); // 30, it's absent
+config.get("ratio").asDouble(1.0); // 0.5
+config.get("debug").asBoolean(false); // true, see TriState for the accepted words
+config.get("mode").asEnum(Mode.SLOW); // Mode.FAST, ignoring case; asEnum(Mode.class, def) works too
+config.get("port").asInt(Integer::parseInt); // own parsing, receives "" if absent
+config.get("id").as(UUID::fromString); // same for any type
+```
+
 A parameter can be turned back into a string with `serialize(...)`, which produces a normalized form that parses back to the same thing,
 and compared with `matches(...)`, which ignores quoting, spacing and map entry order.
-Parameters can also be built in code with `Parameter.Value.of(...)`, `Parameter.Listed.of(...)` and `Parameter.Mapped.of(...)`.
+Parameters can also be built in code with `Parameter.ofValue(...)`, `Parameter.ofList(...)` and `Parameter.ofMap(...)`, or their no-arg forms for an empty one. `null` and missing entries are skipped.
 Classes can implement `Parameterizable` to provide their own parameter representation.
 
 Nesting depth is limited to 512, configurable via the `ink.glowing.utils.params.maxDepth` system property.
@@ -63,6 +83,15 @@ mapper.strings(TriState.TRUE); // [allow, yes, +]
 An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Mapper.DEFAULT`.
 `build()` throws if the same word is assigned to different states.
 
+### `primitive.NumberUtils`
+Helpers for working with numbers. Parsing returns a fallback instead of throwing on a malformed string.
+```java
+NumberUtils.parseInt("42", 0); // 42
+NumberUtils.parseInt("many", 0); // 0, the fallback
+NumberUtils.parseDouble(null, 1.5); // 1.5
+```
+There are `parseInt`, `parseLong`, `parseFloat` and `parseDouble`.
+
 ### `hash`
 `HashList` is an unmodifiable `List` with O(1) `contains`, `indexOf` and `lastIndexOf`, for when a list needs both order and fast lookups.
 A custom fastutil `Hash.Strategy` can be used to change how elements are compared.
@@ -99,6 +128,14 @@ DurationUtils.parseDuration("2min", Map.of("min", ChronoUnit.MINUTES)); // custo
 ```
 Default units: `ns`, `ms`, `s`, `m`, `h`, `d`, case-insensitive.
 
+### `EnumUtils`
+Helpers for working with enums. Looking up a constant by name ignores case and returns a fallback when there is no match.
+```java
+EnumUtils.asEnum("fast", Mode.SLOW); // Mode.FAST
+EnumUtils.asEnum("warp", Mode.SLOW); // Mode.SLOW, the fallback
+EnumUtils.asEnum("warp", Mode.class); // null, there is no fallback
+```
+
 ### `FluentUtils`
 Helpers to act on a value inline, without temporary variables.
 ```java
@@ -109,6 +146,7 @@ String name = FluentUtils.orElse(System.getenv("USER_NAME"), "guest");
 Config config = FluentUtils.orElseGet(cachedConfig, Config::load); // load() is only called if cachedConfig is null
 
 Optional<Duration> timeout = FluentUtils.attempt(() -> DurationUtils.parseDuration(input)); // empty if parsing throws
+Duration limit = FluentUtils.attemptOrElse(() -> DurationUtils.parseDuration(input), Duration.ofMinutes(1)); // the fallback if parsing throws
 ```
 
 ### `TextUtils`
@@ -142,7 +180,7 @@ Add to dependencies
 <dependency>
     <groupId>ink.glowing.utils</groupId>
     <artifactId>inkyutils</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 ### Gradle
@@ -155,6 +193,6 @@ repositories {
 }
 
 dependencies {
-    implementation("ink.glowing.utils:inkyutils:0.1.0")
+    implementation("ink.glowing.utils:inkyutils:0.2.0")
 }
 ```

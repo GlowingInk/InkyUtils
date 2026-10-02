@@ -79,4 +79,31 @@ public final class FluentUtils {
             return Optional.empty();
         }
     }
+
+    /**
+     * Calls the supplier, falling back if it throws a {@link RuntimeException} or returns {@code null}.
+     * Errors are not caught.
+     * @param <$Type> the type of the result
+     * @param supplier the supplier to call
+     * @param def the fallback, may also be {@code null}
+     * @return the supplied value, or the fallback
+     * @see #attempt(Supplier)
+     */
+    public static <$Type> $Type attemptOrElse(@NotNull Supplier<? extends $Type> supplier, @Nullable $Type def) {
+        return FluentUtils.<$Type>attempt(supplier).orElse(def);
+    }
+
+    /**
+     * Calls the supplier, falling back to the other supplier if it throws a {@link RuntimeException}
+     * or returns {@code null}. The fallback supplier is called only when needed.
+     * Errors are not caught.
+     * @param <$Type> the type of the result
+     * @param supplier the supplier to call
+     * @param def the supplier of the fallback
+     * @return the supplied value, or the supplied fallback
+     * @see #attempt(Supplier)
+     */
+    public static <$Type> $Type attemptOrElseGet(@NotNull Supplier<? extends $Type> supplier, @NotNull Supplier<? extends $Type> def) {
+        return FluentUtils.<$Type>attempt(supplier).orElseGet(def);
+    }
 }

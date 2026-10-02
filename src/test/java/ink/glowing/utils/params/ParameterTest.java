@@ -10,7 +10,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static ink.glowing.utils.params.Parameter.Mapped.parse;
+import static ink.glowing.utils.params.Parameter.parseMap;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ParameterTest {
@@ -62,14 +62,14 @@ public class ParameterTest {
     @ParameterizedTest
     @MethodSource("parseData")
     public void parseTest(String input, String expected) {
-        String result = parse(input).serialize(true);
+        String result = parseMap(input).serialize(true);
         assertEquals(
                 expected,
                 result
         );
         assertEquals(
                 expected,
-                parse(result).serialize(true),
+                parseMap(result).serialize(true),
                 "Double-parsing input lead to another result"
         );
     }
@@ -77,13 +77,13 @@ public class ParameterTest {
     @ParameterizedTest
     @ValueSource(strings = {"k:\\", "k:'unterminated", "k:[a", "k:'x'y", "k", "a :b", "'a' :b", "k:a :b", "k:'a' :b"})
     public void malformedTest(String input) {
-        assertThrows(IllegalArgumentException.class, () -> parse(input));
+        assertThrows(IllegalArgumentException.class, () -> parseMap(input));
     }
 
     @Test
     public void rawTest() {
         String input = "  k:[a 'b c'  d\\ e ] j:{x:'y z' w:v} q:'quoted' s:esc\\'d n:a:b:c z:[]  ";
-        Parameter.Mapped params = parse(input);
+        Parameter params = parseMap(input);
 
         assertEquals(input, params.raw());
         assertEquals("[a 'b c'  d\\ e ]", params.get("k").raw());
@@ -98,13 +98,13 @@ public class ParameterTest {
         assertEquals("a:b:c", params.get("n").raw());
         assertEquals("[]", params.get("z").raw());
 
-        Parameter.Value escaped = (Parameter.Value) params.get("s");
+        Parameter escaped = params.get("s");
         assertEquals("esc'd", escaped.textValue());
     }
 
     @Test
     public void plainTextValueTest() {
-        Parameter.Mapped params = parse("q:'quoted' s:esc\\'d b:bare e:''");
+        Parameter params = parseMap("q:'quoted' s:esc\\'d b:bare e:''");
 
         assertEquals("quoted", params.get("q").textValue());
         assertEquals("esc'd", params.get("s").textValue());
@@ -114,7 +114,7 @@ public class ParameterTest {
 
     @Test
     public void compoundTextValueTest() {
-        Parameter.Mapped params = parse("k:[a\\ b 'c d'] j:{x:esc\\'d} e:[]");
+        Parameter params = parseMap("k:[a\\ b 'c d'] j:{x:esc\\'d} e:[]");
 
         assertEquals("k:[a b 'c d'] j:{x:esc'd} e:[]", params.textValue());
         assertEquals("[a b 'c d']", params.get("k").textValue());
@@ -137,22 +137,22 @@ public class ParameterTest {
 
     @Test
     public void rawOfBuiltParameterTest() {
-        assertEquals("'a b'", Parameter.Value.of("a b").raw());
-        assertEquals("a", Parameter.Value.of("a").raw());
+        assertEquals("'a b'", Parameter.ofValue("a b").raw());
+        assertEquals("a", Parameter.ofValue("a").raw());
     }
 
     @Test
     public void nestingLimitTest() {
         int limit = ParserImpl.MAX_DEPTH;
-        assertEquals(1, Parameter.Listed.parse("[".repeat(limit - 1) + "]".repeat(limit - 1)).count());
-        assertThrows(IllegalArgumentException.class, () -> Parameter.Listed.parse("[".repeat(limit + 1) + "]".repeat(limit + 1)));
-        assertThrows(IllegalArgumentException.class, () -> Parameter.Listed.parse("[".repeat(100_000)));
-        assertThrows(IllegalArgumentException.class, () -> parse("a:".repeat(limit + 1) + "b"));
+        assertEquals(1, Parameter.parseList("[".repeat(limit - 1) + "]".repeat(limit - 1)).count());
+        assertThrows(IllegalArgumentException.class, () -> Parameter.parseList("[".repeat(limit + 1) + "]".repeat(limit + 1)));
+        assertThrows(IllegalArgumentException.class, () -> Parameter.parseList("[".repeat(100_000)));
+        assertThrows(IllegalArgumentException.class, () -> parseMap("a:".repeat(limit + 1) + "b"));
     }
 
     @Test
     public void missingTest() {
-        Parameter.Mapped params = parse("k:[a b] p:v e:''");
+        Parameter params = parseMap("k:[a b] p:v e:''");
         Parameter missing = Parameter.missing();
 
         assertSame(missing, params.get("nope"));
@@ -161,20 +161,24 @@ public class ParameterTest {
         assertSame(missing, params.get("p").get(1));
         assertSame(missing, missing.get("deeper").get(0));
         assertFalse(params.get("e").isMissing(), "Empty plain is not missing");
-        assertTrue(params.map("nope", Parameter::isMissing));
+        assertTrue(params.getMapped("nope", Parameter::isMissing));
+        assertEquals(7, params.get("nope").asInt(7));
 
         assertEquals(0, missing.count());
         assertEquals("", missing.raw());
         assertEquals("", missing.serialize(true));
         assertTrue(missing.matches(missing));
-        assertFalse(missing.matches(Parameter.Value.of("")));
-        assertFalse(Parameter.Value.of("").matches(missing));
+        assertFalse(missing.matches(Parameter.ofValue("")));
+        assertFalse(Parameter.ofValue("").matches(missing));
     }
 
     @Test
     public void findTest() {
-        Parameter.Mapped params = parse("k:[a b] e:''");
+        Parameter params = parseMap("k:[a b] e:''");
 
+        assertTrue(params.isMap() && !params.isList());
+        assertEquals(List.of("k", "e"), List.copyOf(params.keys()));
+        assertTrue(params.get("k").isList() && !params.get("k").isMap());
         assertEquals("a", params.find("k").orElseThrow().get(0).textValue());
         assertEquals("", params.find("e").orElseThrow().textValue(), "Empty plain is present");
         assertTrue(params.find("nope").isEmpty());
@@ -183,42 +187,38 @@ public class ParameterTest {
     }
 
     @Test
-    public void missingBecomesEmptyInOfTest() {
-        Parameter a = Parameter.Value.of("a");
+    public void absentSkippedInOfTest() {
+        Parameter a = Parameter.ofValue("a");
         Parameter missing = Parameter.missing();
-        Parameter empty = Parameter.Value.of("");
 
-        Parameter.Listed listed = Parameter.Listed.of(Arrays.asList(missing, a, null));
-        assertEquals(3, listed.count());
-        assertSame(empty, listed.get(0));
-        assertSame(a, listed.get(1));
-        assertSame(empty, listed.get(2));
-        assertEquals(1, Parameter.Listed.of(Collections.singletonList(null)).count());
+        Parameter listed = Parameter.ofList(Arrays.asList(missing, a, null));
+        assertEquals(1, listed.count());
+        assertSame(a, listed.get(0));
+        assertEquals(0, Parameter.ofList(Collections.singletonList(null)).count());
 
         Map<String, Parameter> map = new LinkedHashMap<>();
         map.put("x", missing);
         map.put("y", a);
         map.put("z", null);
-        Parameter.Mapped mapped = Parameter.Mapped.of(map);
-        assertEquals(3, mapped.count());
-        assertSame(empty, mapped.get("x"));
+        Parameter mapped = Parameter.ofMap(map);
+        assertEquals(1, mapped.count());
         assertSame(a, mapped.get("y"));
-        assertSame(empty, mapped.get("z"));
-        assertEquals(1, Parameter.Mapped.of(Collections.singletonMap("x", null)).count());
+        assertSame(missing, mapped.get("x"));
+        assertEquals(0, Parameter.ofMap(Collections.singletonMap("x", null)).count());
     }
 
     @Test
     public void duplicateKeysTest() {
-        assertEquals("a:2", parse("a:1 A:2").serialize(true));
+        assertEquals("a:2", parseMap("a:1 A:2").serialize(true));
     }
 
     @Test
     public void mappedOfTest() {
         Map<String, Parameter> entries = new LinkedHashMap<>();
         for (String key : List.of("one", "two", "three", "four", "five", "six")) {
-            entries.put(key, Parameter.Value.of(key));
+            entries.put(key, Parameter.ofValue(key));
         }
-        Parameter.Mapped params = Parameter.Mapped.of(entries);
+        Parameter params = Parameter.ofMap(entries);
 
         assertEquals("one:one two:two three:three four:four five:five six:six", params.serialize(true));
         assertEquals("three", params.get("THREE").textValue());
@@ -226,8 +226,8 @@ public class ParameterTest {
 
     @Test
     public void equalsTest() {
-        Parameter first = parse("k:[a 'b c'] j:{x:y}");
-        Parameter same = parse( "k:[a 'b c'] j:{x:y}");
+        Parameter first = parseMap("k:[a 'b c'] j:{x:y}");
+        Parameter same = parseMap( "k:[a 'b c'] j:{x:y}");
 
         assertEquals(first, same);
         assertEquals(first.hashCode(), same.hashCode());
@@ -235,11 +235,11 @@ public class ParameterTest {
         assertEquals(first.get("k").hashCode(), same.get("k").hashCode());
 
         // Different raw values are not equal, even if they hold the same values
-        assertNotEquals(first, parse("k:[a  'b c'] j:{x:y}"));
-        assertNotEquals(parse("k:a").get("k"), parse("k:'a'").get("k"));
+        assertNotEquals(first, parseMap("k:[a  'b c'] j:{x:y}"));
+        assertNotEquals(parseMap("k:a").get("k"), parseMap("k:'a'").get("k"));
 
         // Different kinds are not equal
-        assertNotEquals(parse("k:a").get("k"), Parameter.Listed.parse("a"));
+        assertNotEquals(parseMap("k:a").get("k"), Parameter.parseList("a"));
     }
 
     @ParameterizedTest
@@ -263,8 +263,8 @@ public class ParameterTest {
             "k:[a]              | k:{0:a}               | false"
     })
     public void matchesTest(String left, String right, boolean expected) {
-        assertEquals(expected, parse(left).matches(parse(right)));
-        assertEquals(expected, parse(right).matches(parse(left)), "matches must be symmetric");
+        assertEquals(expected, parseMap(left).matches(parseMap(right)));
+        assertEquals(expected, parseMap(right).matches(parseMap(left)), "matches must be symmetric");
     }
 
     // @Test
@@ -290,15 +290,15 @@ public class ParameterTest {
         for (String ex : examples) {
             IO.println(ex);
             IO.println("========================================");
-            var params = parse(ex);
+            var params = parseMap(ex);
             String result = params.serialize(true);
             IO.println("raw  : " + params.raw());
             IO.println("value: " + params.textValue());
             IO.println("tostr: " + result);
-            IO.println("parse: " + parse(result).serialize(true));
+            IO.println("parse: " + parseMap(result).serialize(true));
             IO.println();
         }
 
-        IO.println(parse("simple:[list of values]").get("simple").textValue());
+        IO.println(parseMap("simple:[list of values]").get("simple").textValue());
     }
 }
