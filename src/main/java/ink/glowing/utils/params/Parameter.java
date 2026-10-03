@@ -14,8 +14,6 @@ import org.jetbrains.annotations.Unmodifiable;
 import java.util.*;
 import java.util.function.*;
 
-import static ink.glowing.utils.params.ParameterImpl.SERIALIZED_RAW;
-
 /**
  * A parsed parameter value: either a plain string, a list ({@link #isList()}) of parameters,
  * or a map ({@link #isMap()}) of keyed parameters.
@@ -399,7 +397,7 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
     static @NotNull @Unmodifiable Parameter ofValue(@Nullable String value) {
         return value == null || value.isEmpty()
                 ? ValueImpl.EMPTY
-                : new ValueImpl(value, SERIALIZED_RAW);
+                : new ValueImpl(value, ParameterImpl.SERIALIZED_RAW);
     }
 
     /**
@@ -427,7 +425,7 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
             if (isExists(parameter)) copy.add(parameter);
         }
         copy.trimToSize();
-        return new ListedImpl(SERIALIZED_RAW, copy);
+        return new ListedImpl(ParameterImpl.SERIALIZED_RAW, copy);
     }
 
     /**
@@ -455,7 +453,7 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
             String key = entry.getKey();
             if (key != null && isExists(entry.getValue())) copy.put(key, entry.getValue());
         }
-        return new MappedImpl(SERIALIZED_RAW, copy);
+        return new MappedImpl(ParameterImpl.SERIALIZED_RAW, copy);
     }
 
     /**
