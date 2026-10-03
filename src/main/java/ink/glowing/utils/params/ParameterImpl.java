@@ -310,7 +310,7 @@ final class ParameterImpl {
             Set<String> cached = indexes;
             if (cached == null) {
                 int size = internalValue.size();
-                Set<String> set = new LinkedHashSet<>(size * 4 / 3 + 1);
+                Set<String> set = LinkedHashSet.newLinkedHashSet(size);
                 for (int i = 0; i < size; i++) {
                     set.add(Integer.toString(i));
                 }
