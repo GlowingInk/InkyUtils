@@ -161,14 +161,22 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
     @NotNull @Unmodifiable Parameter get(int index);
 
     /**
+     * Returns this parameter as an {@link Optional}.
+     * @return this parameter, or empty if it is {@link #missing()}
+     */
+    @Contract(pure = true)
+    default @NotNull Optional<Parameter> toOptional() {
+        return isMissing() ? Optional.empty() : Optional.of(this);
+    }
+
+    /**
      * Looks up a nested parameter by key, as an {@link Optional}.
      * @param key the key to look up
      * @return the nested parameter, or empty if it is {@link #missing()}
      */
     @Contract(pure = true)
     default @NotNull Optional<Parameter> find(@NotNull String key) {
-        Parameter parameter = get(key);
-        return parameter.isMissing() ? Optional.empty() : Optional.of(parameter);
+        return get(key).toOptional();
     }
 
     /**
@@ -178,8 +186,7 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
      */
     @Contract(pure = true)
     default @NotNull Optional<Parameter> find(int index) {
-        Parameter parameter = get(index);
-        return parameter.isMissing() ? Optional.empty() : Optional.of(parameter);
+        return get(index).toOptional();
     }
 
     /**

@@ -407,7 +407,7 @@ final class ParameterImpl {
 
     static final Function<Parameter, String> SERIALIZED_RAW = param -> param.serialize(true);
 
-    static final Function<Parameter, String> VALUE_AS_RAW = Parameter::textValue;
+    static final Function<Parameter, String> VALUE_RAW = Parameter::textValue;
 
     /**
      * The raw string of a parameter, lazily sliced out of the parsed input.

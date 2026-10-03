@@ -120,10 +120,10 @@ final class ParserImpl {
         return i;
     }
 
-    private static @NotNull Map<String, Parameter> singletonMap(@NotNull String key, @NotNull Parameter value) {
+    private @NotNull Parameter parseSingleton(@NotNull String key, int tokenStart, char parentEnd) {
         Map<String, Parameter> map = CaseInsensitive.newLinkedMap(1);
-        map.put(key, value);
-        return map;
+        map.put(key, parseSingleValue(parentEnd));
+        return new MappedImpl(slice(tokenStart, valueEnd), map);
     }
 
     @NotNull Map<String, Parameter> parseMap(final int start) {
@@ -131,14 +131,7 @@ final class ParserImpl {
         char endCh = start == 0 ? NIL : '}';
         while (hasMore()) {
             char ch = pop();
-            if (ch == '\'') {
-                String key = parseQuotedString();
-                if (advanceOn(':')) {
-                    map.put(key, parseSingleValue(endCh));
-                    continue;
-                }
-                throw new IllegalArgumentException("Couldn't find colon for the map value at pos " + pos);
-            } else if (ch == '}') {
+            if (ch == '}') {
                 if (start == 0) {
                     throw new IllegalArgumentException("Found trailing '}' while parsing global map at pos " + (pos - 1));
                 }
@@ -147,15 +140,19 @@ final class ParserImpl {
                 continue;
             }
 
-            int keyStart = pos - 1;
-            int keyEnd = scanBare(keyStart, ':');
-            String key = unescape(keyStart, keyEnd, scanEscaped);
-            pos = keyEnd;
-            if (advanceOn(':')) {
-                map.put(key, parseSingleValue(endCh));
-                continue;
+            String key;
+            if (ch == '\'') {
+                key = parseQuotedString();
+            } else {
+                int keyStart = pos - 1;
+                int keyEnd = scanBare(keyStart, ':');
+                key = unescape(keyStart, keyEnd, scanEscaped);
+                pos = keyEnd;
             }
-            throw new IllegalArgumentException("Couldn't find colon for the map value at pos " + pos);
+            if (!advanceOn(':')) {
+                throw new IllegalArgumentException("Couldn't find colon for the map value at pos " + pos);
+            }
+            map.put(key, parseSingleValue(endCh));
         }
         if (start != 0) {
             throw new IllegalArgumentException("Couldn't find the end of a map started at " + start);
@@ -215,8 +212,7 @@ final class ParserImpl {
             String string = parseQuotedString();
             int quotedEnd = pos;
             if (advanceOn(':')) { // Singleton map
-                var value = singletonMap(string, parseSingleValue(parentEnd));
-                return new MappedImpl(slice(tokenStart, valueEnd), value);
+                return parseSingleton(string, tokenStart, parentEnd);
             }
             valueEnd = quotedEnd;
             return new ValueImpl(string, slice(tokenStart, quotedEnd));
@@ -227,14 +223,13 @@ final class ParserImpl {
         String string = unescape(tokenStart, end, escaped);
         if (end < length && input[end] == ':') { // Singleton map
             pos = end + 1;
-            var value = singletonMap(string, parseSingleValue(NIL));
-            return new MappedImpl(slice(tokenStart, valueEnd), value);
+            return parseSingleton(string, tokenStart, NIL);
         }
 
         valueEnd = end;
         pos = end < length && isWhitespace(input[end]) ? end + 1 : end; // the parent handles its closing
         // Without quotes and escapes, the raw string is the value itself
-        return new ValueImpl(string, escaped ? slice(tokenStart, end) : ParameterImpl.VALUE_AS_RAW);
+        return new ValueImpl(string, escaped ? slice(tokenStart, end) : ParameterImpl.VALUE_RAW);
     }
 
     private String parseQuotedString() {
