@@ -116,7 +116,7 @@ public final class DurationUtils {
             @NotNull Function<String, ? extends @Nullable TemporalUnit> units
     ) {
         int digitsEnd = 0;
-        while (digitsEnd < part.length() && isDigit(part.charAt(digitsEnd))) {
+        while (digitsEnd < part.length() && Character.isDigit(part.charAt(digitsEnd))) {
             digitsEnd++;
         }
         if (digitsEnd == 0) {
@@ -131,9 +131,5 @@ public final class DurationUtils {
         return unit.isDurationEstimated()
                 ? result.plus(unit.getDuration().multipliedBy(value))
                 : result.plus(value, unit);
-    }
-
-    private static boolean isDigit(char c) {
-        return c >= '0' && c <= '9';
     }
 }

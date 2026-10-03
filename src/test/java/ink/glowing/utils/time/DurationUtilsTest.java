@@ -2,31 +2,39 @@ package ink.glowing.utils.time;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class DurationUtilsTest {
+    static Stream<Arguments> parseData() {
+        return Stream.of(
+                Arguments.of("5",Duration.ofSeconds(5)),
+                Arguments.of("5s", Duration.ofSeconds(5)),
+                Arguments.of("5ms", Duration.ofMillis(5)),
+                Arguments.of("1m", Duration.ofMinutes(1)),
+                Arguments.of("2h", Duration.ofHours(2)),
+                Arguments.of("1d", Duration.ofDays(1)),
+                Arguments.of("1h 30m", Duration.ofMinutes(90)),
+                Arguments.of("  1m   30s ", Duration.ofSeconds(90)),
+                // Arabic 7d, Devanagari 5h, Gurmukhi 3m, Thai 5s
+                Arguments.of("٧d ५h ੩m ๕s", Duration.ofDays(7).plusHours(5).plusMinutes(3).plusSeconds(5))
+        );
+    }
+
     @ParameterizedTest
-    @CsvSource({
-            "5, 5000",
-            "5s, 5000",
-            "5ms, 5",
-            "1m, 60000",
-            "2h, 7200000",
-            "1d, 86400000",
-            "'1h 30m', 5400000",
-            "'  1m   30s ', 90000"
-    })
-    public void testParse(String input, long expectedMillis) {
-        assertEquals(Duration.ofMillis(expectedMillis), DurationUtils.parseDuration(input));
+    @MethodSource("parseData")
+    public void testParse(String input, Duration expected) {
+        assertEquals(expected, DurationUtils.parseDuration(input));
     }
 
     @Test
