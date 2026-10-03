@@ -14,6 +14,8 @@ import org.jetbrains.annotations.Unmodifiable;
 import java.util.*;
 import java.util.function.*;
 
+import static ink.glowing.utils.params.ParameterImpl.SERIALIZED_RAW;
+
 /**
  * A parsed parameter value: either a plain string, a list ({@link #isList()}) of parameters,
  * or a map ({@link #isMap()}) of keyed parameters.
