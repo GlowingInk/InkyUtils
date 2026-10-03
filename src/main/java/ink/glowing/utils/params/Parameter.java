@@ -2,10 +2,12 @@ package ink.glowing.utils.params;
 
 import ink.glowing.utils.EnumUtils;
 import ink.glowing.utils.hash.CaseInsensitive;
+import ink.glowing.utils.params.ParameterEditorImpl.NoopEditor;
 import ink.glowing.utils.params.ParameterImpl.*;
 import ink.glowing.utils.primitive.NumberUtils;
 import ink.glowing.utils.primitive.ToFloatFunction;
 import ink.glowing.utils.primitive.TriState;
+import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -207,6 +209,91 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
     @Contract(pure = true)
     default boolean contains(int index) {
         return !get(index).isMissing();
+    }
+
+    /**
+     * Returns a copy of this map with the key set. The key is matched ignoring case, and an existing
+     * key keeps its spelling and position. Any other kind of parameter is returned as is.
+     * @param key the key to set
+     * @param value the value, an absent one ({@code null} or {@link #missing()}) removes the key
+     * @return the resulting map, or this if nothing changes
+     */
+    @Contract(pure = true)
+    default @NotNull @Unmodifiable Parameter with(@NotNull String key, @Nullable Parameter value) {
+        return this;
+    }
+
+    /**
+     * Returns a copy of this map with the entries set, as by {@link #with(String, Parameter)}.
+     * Any other kind of parameter is returned as is.
+     * @param entries the entries, {@code null} keys are skipped
+     * @return the resulting map, or this if nothing changes
+     */
+    @Contract(pure = true)
+    default @NotNull @Unmodifiable Parameter with(@NotNull Map<String, Parameter> entries) {
+        return this;
+    }
+
+    /**
+     * Returns a copy of this list with the entry at the index set. An index past the end extends
+     * the list, filling the gap with {@link #missing()}. Any other kind of parameter is returned as is.
+     * <p>
+     * The memory taken grows with the index, so bound it if it's untrusted.
+     * @param index the zero-based index, a negative one changes nothing
+     * @param value the value, an absent one blanks an existing entry and never extends the list
+     * @return the resulting list, or this if nothing changes
+     */
+    @Contract(pure = true)
+    default @NotNull @Unmodifiable Parameter with(int index, @Nullable Parameter value) {
+        return this;
+    }
+
+    /**
+     * Returns a copy of this list with the pairs set, as by {@link #with(int, Parameter)}.
+     * Any other kind of parameter is returned as is.
+     * <p>
+     * The memory taken grows with the highest index, so bound them if they're untrusted.
+     * @param pairs the index and value pairs, {@code null} pairs and negative indexes are skipped
+     * @return the resulting list, or this if nothing changes
+     */
+    @Contract(pure = true)
+    default @NotNull @Unmodifiable Parameter with(@NotNull Collection<? extends IntObjectPair<Parameter>> pairs) {
+        return this;
+    }
+
+    /**
+     * Returns a copy of this list with each value inserted right after the entry at its index, shifting
+     * the later ones. The indexes refer to this list, and values with the same index keep their order.
+     * An index past the end first extends the list with {@link #missing()}. Any other kind of parameter
+     * is returned as is.
+     * <p>
+     * The memory taken grows with the highest index, so bound them if they're untrusted.
+     * @param pairs the index and value pairs, {@code null} pairs, negative indexes and absent values are skipped
+     * @return the resulting list, or this if nothing changes
+     */
+    @Contract(pure = true)
+    default @NotNull @Unmodifiable Parameter withInsert(@NotNull Collection<? extends IntObjectPair<Parameter>> pairs) {
+        return this;
+    }
+
+    /**
+     * Starts a chain of edits of this list, for what {@code with} can't express, like removing entries.
+     * Any other kind of parameter gets an editor that ignores the edits.
+     * @return the list editor
+     */
+    @Contract(pure = true)
+    default @NotNull ParameterEditor.OfList editList() {
+        return new NoopEditor(this);
+    }
+
+    /**
+     * Starts a chain of edits of this map, for what {@code with} can't express, like removing keys.
+     * Any other kind of parameter gets an editor that ignores the edits.
+     * @return the map editor
+     */
+    @Contract(pure = true)
+    default @NotNull ParameterEditor.OfMap editMap() {
+        return new NoopEditor(this);
     }
 
     /**
@@ -448,7 +535,7 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
     static @NotNull @Unmodifiable Parameter ofMap(@Nullable Map<String, Parameter> value) {
         if (value == null || value.isEmpty()) return MappedImpl.EMPTY;
 
-        Map<String, Parameter> copy = CaseInsensitive.newLinkedMap(value.size());
+        var copy = CaseInsensitive.<Parameter>newLinkedMap(value.size());
         for (Map.Entry<String, Parameter> entry : value.entrySet()) {
             String key = entry.getKey();
             if (key != null && isExists(entry.getValue())) copy.put(key, entry.getValue());

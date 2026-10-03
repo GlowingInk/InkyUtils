@@ -5,11 +5,11 @@ import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.params.ParameterImpl.ListedImpl;
 import ink.glowing.utils.params.ParameterImpl.MappedImpl;
 import ink.glowing.utils.params.ParameterImpl.ValueImpl;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import static java.lang.Character.isWhitespace;
@@ -121,13 +121,13 @@ final class ParserImpl {
     }
 
     private @NotNull Parameter parseSingleton(@NotNull String key, int tokenStart, char parentEnd) {
-        Map<String, Parameter> map = CaseInsensitive.newLinkedMap(1);
+        Object2ObjectLinkedOpenCustomHashMap<String, Parameter> map = CaseInsensitive.newLinkedMap(1);
         map.put(key, parseSingleValue(parentEnd));
         return new MappedImpl(slice(tokenStart, valueEnd), map);
     }
 
-    @NotNull Map<String, Parameter> parseMap(final int start) {
-        Map<String, Parameter> map = CaseInsensitive.newLinkedMap();
+    @NotNull Object2ObjectLinkedOpenCustomHashMap<String, Parameter> parseMap(final int start) {
+        Object2ObjectLinkedOpenCustomHashMap<String, Parameter> map = CaseInsensitive.newLinkedMap();
         char endCh = start == 0 ? NIL : '}';
         while (hasMore()) {
             char ch = pop();

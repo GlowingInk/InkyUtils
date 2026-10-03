@@ -1,5 +1,6 @@
 package ink.glowing.utils.params;
 
+import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -222,6 +223,44 @@ public class ParameterTest {
 
         assertEquals("one:one two:two three:three four:four five:five six:six", params.serialize(true));
         assertEquals("three", params.get("THREE").textValue());
+    }
+
+    @Test
+    public void withTest() {
+        Parameter list = Parameter.parseList("a b c");
+        Parameter map = parseMap("A:1 b:2");
+        Parameter x = Parameter.ofValue("x");
+
+        assertEquals("[a x c]", list.with(1, x).serialize(false));
+        assertEquals("[a b c '' x]", list.with(4, x).serialize(false));
+        assertEquals("[x b c x]", list.with(List.of(IntObjectPair.of(0, x), IntObjectPair.of(3, x))).serialize(false));
+        assertEquals("[a x b c x]", list.withInsert(List.of(IntObjectPair.of(0, x), IntObjectPair.of(2, x))).serialize(false));
+
+        assertEquals("{A:x b:2}", map.with("a", x).serialize(false));
+        assertEquals("{A:1}", map.with("B", null).serialize(false));
+        assertEquals("{A:1 b:2 c:x}", map.with(Map.of("c", x)).serialize(false));
+
+        assertSame(list, list.with(1, list.get(1)));
+        assertSame(list, list.with("k", x));
+        assertSame(map, map.with(0, x));
+    }
+
+    @Test
+    public void editorTest() {
+        Parameter list = Parameter.parseList("a b c");
+        Parameter map = parseMap("A:1 b:2");
+        Parameter x = Parameter.ofValue("x");
+
+        assertEquals("[x b c]", list.editList().insert(1, x).remove(0).finish().serialize(false));
+        assertEquals("[a '' c]", list.editList().set(1, Parameter.missing()).finish().serialize(false));
+        assertEquals("{A:x}", map.editMap().put("a", x).remove("B").finish().serialize(false));
+
+        assertSame(list, list.editList().finish());
+        assertSame(map, map.editList().add(x).finish());
+
+        ParameterEditor.OfList editor = list.editList();
+        editor.finish();
+        assertThrows(IllegalStateException.class, () -> editor.add(x));
     }
 
     @Test

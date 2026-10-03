@@ -47,6 +47,21 @@ and compared with `matches(...)`, which ignores quoting, spacing and map entry o
 Parameters can also be built in code with `Parameter.ofValue(...)`, `Parameter.ofList(...)` and `Parameter.ofMap(...)`, or their no-arg forms for an empty one. `null` and missing entries are skipped.
 Classes can implement `Parameterizable` to provide their own parameter representation.
 
+Parameters are immutable. `with(...)` returns a modified copy: it sets a key on a map or an index on a list, and returns the parameter as is for any other kind.
+For several edits or removals, `editList()` and `editMap()` apply them in order with a single copy:
+```java
+Parameter list = Parameter.parseList("a b c");
+
+list.with(1, Parameter.ofValue("B")); // [a B c]
+list.with(4, Parameter.ofValue("e")); // [a b c '' e], the gap is filled with missing
+Parameter.parseMap("mode:fast").with("MODE", Parameter.ofValue("slow")); // {mode:slow}, an absent value removes the key
+
+list.editList()
+        .insert(1, Parameter.ofValue("x"))
+        .remove(0)
+        .finish(); // [x b c]
+```
+
 Nesting depth is limited to 512, configurable via the `ink.glowing.utils.params.maxDepth` system property.
 
 ### `primitive.TriState`

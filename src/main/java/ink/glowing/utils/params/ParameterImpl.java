@@ -1,6 +1,9 @@
 package ink.glowing.utils.params;
 
 import ink.glowing.utils.TextUtils;
+import ink.glowing.utils.hash.CaseInsensitive;
+import it.unimi.dsi.fastutil.ints.IntObjectPair;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,6 +29,18 @@ final class ParameterImpl {
         } catch (NumberFormatException _) { // out of the int range
             return MissingImpl.INSTANCE;
         }
+    }
+
+    static boolean isAbsent(@Nullable Parameter parameter) {
+        return parameter == null || parameter == MissingImpl.INSTANCE;
+    }
+
+    static @NotNull Parameter orMissing(@Nullable Parameter parameter) {
+        return parameter == null ? MissingImpl.INSTANCE : parameter;
+    }
+
+    private static @NotNull String serializeEntry(@NotNull Parameter entry) {
+        return entry == MissingImpl.INSTANCE ? "''" : entry.serialize(false);
     }
 
     private static final Set<String> SINGLE_KEY = Set.of("0");
@@ -256,7 +271,7 @@ final class ParameterImpl {
     static final class ListedImpl extends CompoundImpl {
         static final Parameter EMPTY = new ListedImpl(EMPTY_RAW, List.of());
 
-        private final List<Parameter> internalValue;
+        final List<Parameter> internalValue;
         private Set<String> indexes; // racy lazy cache, see CompoundImpl
 
         ListedImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull List<Parameter> internalValue) {
@@ -287,8 +302,78 @@ final class ParameterImpl {
         @Override
         void appendEntries(@NotNull StringBuilder sb) {
             for (Parameter entry : internalValue) {
-                sb.append(entry.serialize(false)).append(' ');
+                sb.append(serializeEntry(entry)).append(' ');
             }
+        }
+
+        @Override
+        public @NotNull @Unmodifiable Parameter with(int index, @Nullable Parameter value) {
+            int size = internalValue.size();
+            if (index < 0 || index >= size && isAbsent(value)) return this;
+            if (index < size && internalValue.get(index) == orMissing(value)) return this;
+
+            Parameter[] copy = copyWithFiller(Math.max(size, index + 1));
+            copy[index] = orMissing(value);
+            return new ListedImpl(SERIALIZED_RAW, Arrays.asList(copy));
+        }
+
+        @Override
+        public @NotNull @Unmodifiable Parameter with(@NotNull Collection<? extends IntObjectPair<Parameter>> pairs) {
+            int newSize = internalValue.size();
+            boolean changed = false;
+            for (IntObjectPair<Parameter> pair : pairs) {
+                if (pair == null || pair.leftInt() < 0) continue;
+
+                int index = pair.leftInt();
+                if (index >= newSize && isAbsent(pair.right())) continue;
+                newSize = Math.max(newSize, index + 1);
+                changed = true;
+            }
+            if (!changed) return this;
+
+            Parameter[] copy = copyWithFiller(newSize);
+            for (IntObjectPair<Parameter> pair : pairs) {
+                // An absent pair skipped above is out of range, or lands on a filler, which is the same missing
+                if (pair != null && pair.leftInt() >= 0 && pair.leftInt() < newSize) {
+                    copy[pair.leftInt()] = orMissing(pair.right());
+                }
+            }
+            return new ListedImpl(SERIALIZED_RAW, Arrays.asList(copy));
+        }
+
+        @Override
+        public @NotNull @Unmodifiable Parameter withInsert(@NotNull Collection<? extends IntObjectPair<Parameter>> pairs) {
+            ArrayList<IntObjectPair<Parameter>> inserts = new ArrayList<>(pairs.size());
+            for (IntObjectPair<Parameter> pair : pairs) {
+                if (pair != null && pair.leftInt() >= 0 && !isAbsent(pair.right())) inserts.add(pair);
+            }
+            if (inserts.isEmpty()) return this;
+            inserts.sort(Comparator.comparingInt(IntObjectPair::leftInt)); // stable
+
+            int size = internalValue.size();
+            int baseSize = Math.max(size, inserts.getLast().leftInt() + 1);
+            Parameter[] copy = new Parameter[baseSize + inserts.size()];
+            int out = 0;
+            int next = 0;
+            for (int i = 0; i < baseSize; i++) {
+                copy[out++] = i < size ? internalValue.get(i) : MissingImpl.INSTANCE;
+                while (next < inserts.size() && inserts.get(next).leftInt() == i) {
+                    copy[out++] = inserts.get(next++).right();
+                }
+            }
+            return new ListedImpl(SERIALIZED_RAW, Arrays.asList(copy));
+        }
+
+        private @NotNull Parameter[] copyWithFiller(int newSize) {
+            int size = internalValue.size();
+            Parameter[] copy = internalValue.toArray(new Parameter[newSize]);
+            if (newSize > size) Arrays.fill(copy, size, newSize, MissingImpl.INSTANCE);
+            return copy;
+        }
+
+        @Override
+        public @NotNull ParameterEditor.OfList editList() {
+            return new ParameterEditorImpl.ListEditor(this);
         }
 
         @Override
@@ -334,11 +419,11 @@ final class ParameterImpl {
     }
 
     static final class MappedImpl extends CompoundImpl {
-        static final Parameter EMPTY = new MappedImpl(EMPTY_RAW, Map.of());
+        static final Parameter EMPTY = new MappedImpl(EMPTY_RAW, CaseInsensitive.newLinkedMap(0));
 
-        private final Map<String, Parameter> internalValue;
+        final Object2ObjectLinkedOpenCustomHashMap<String, Parameter> internalValue;
 
-        MappedImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull Map<String, Parameter> internalValue) {
+        MappedImpl(@NotNull Function<Parameter, String> rawCompute, @NotNull Object2ObjectLinkedOpenCustomHashMap<String, Parameter> internalValue) {
             super(rawCompute);
             this.internalValue = internalValue;
         }
@@ -368,9 +453,46 @@ final class ParameterImpl {
             for (var entry : internalValue.entrySet()) {
                 sb.append(Parameter.escape(entry.getKey()))
                         .append(':')
-                        .append(entry.getValue().serialize(false))
+                        .append(serializeEntry(entry.getValue()))
                         .append(' ');
             }
+        }
+
+        @Override
+        public @NotNull @Unmodifiable Parameter with(@NotNull String key, @Nullable Parameter value) {
+            boolean absent = isAbsent(value);
+            Parameter current = internalValue.get(key);
+            if (absent ? current == null : current == value) return this;
+
+            var copy = internalValue.clone();
+            if (absent) {
+                copy.remove(key);
+            } else {
+                copy.put(key, value);
+            }
+            return new MappedImpl(SERIALIZED_RAW, copy);
+        }
+
+        @Override
+        public @NotNull @Unmodifiable Parameter with(@NotNull Map<String, Parameter> entries) {
+            if (entries.isEmpty()) return this;
+
+            var copy = internalValue.clone();
+            for (Map.Entry<String, Parameter> entry : entries.entrySet()) {
+                String key = entry.getKey();
+                if (key == null) continue;
+                if (isAbsent(entry.getValue())) {
+                    copy.remove(key);
+                } else {
+                    copy.put(key, entry.getValue());
+                }
+            }
+            return new MappedImpl(SERIALIZED_RAW, copy);
+        }
+
+        @Override
+        public @NotNull ParameterEditor.OfMap editMap() {
+            return new ParameterEditorImpl.MapEditor(this);
         }
 
         @Override
