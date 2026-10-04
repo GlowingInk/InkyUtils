@@ -1,7 +1,9 @@
 package ink.glowing.utils.params;
 
 import ink.glowing.utils.ComposerBase;
-import ink.glowing.utils.params.ParameterImpl.*;
+import ink.glowing.utils.params.ParameterImpl.ListedImpl;
+import ink.glowing.utils.params.ParameterImpl.MappedImpl;
+import ink.glowing.utils.params.ParameterImpl.MissingImpl;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,25 +41,25 @@ final class ParameterEditorImpl {
         @Override
         public @NotNull ListEditor set(int index, @Nullable Parameter value) {
             checkBuilt();
-            if (index < 0 || index >= size() && isAbsent(value)) return this;
+            if (index < 0 || index >= size() && ParameterImpl.isAbsent(value)) return this;
 
             ArrayList<Parameter> target = working();
             fillTo(target, index + 1);
-            target.set(index, orMissing(value));
+            target.set(index, ParameterImpl.orMissing(value));
             return this;
         }
 
         @Override
         public @NotNull ListEditor add(@Nullable Parameter value) {
             checkBuilt();
-            if (!isAbsent(value)) working().add(value);
+            if (!ParameterImpl.isAbsent(value)) working().add(value);
             return this;
         }
 
         @Override
         public @NotNull ListEditor insert(int index, @Nullable Parameter value) {
             checkBuilt();
-            if (index < 0 || isAbsent(value)) return this;
+            if (index < 0 || ParameterImpl.isAbsent(value)) return this;
 
             ArrayList<Parameter> target = working();
             fillTo(target, index);
@@ -72,7 +74,7 @@ final class ParameterEditorImpl {
 
             ArrayList<Parameter> present = new ArrayList<>(values.size());
             for (Parameter value : values) {
-                if (!isAbsent(value)) present.add(value);
+                if (!ParameterImpl.isAbsent(value)) present.add(value);
             }
             if (present.isEmpty()) return this;
 
@@ -94,7 +96,7 @@ final class ParameterEditorImpl {
             if (list == null) return source;
 
             list.trimToSize();
-            return new ListedImpl(SERIALIZED_RAW, list);
+            return new ListedImpl(ParameterImpl.SERIALIZED_RAW, list);
         }
     }
 
@@ -114,7 +116,7 @@ final class ParameterEditorImpl {
         @Override
         public @NotNull MapEditor put(@NotNull String key, @Nullable Parameter value) {
             checkBuilt();
-            if (isAbsent(value)) return remove(key);
+            if (ParameterImpl.isAbsent(value)) return remove(key);
 
             working().put(key, value);
             return this;
@@ -138,7 +140,7 @@ final class ParameterEditorImpl {
 
         @Override
         protected @NotNull Parameter doFinish() {
-            return map == null ? source : new MappedImpl(SERIALIZED_RAW, map);
+            return map == null ? source : new MappedImpl(ParameterImpl.SERIALIZED_RAW, map);
         }
     }
 
