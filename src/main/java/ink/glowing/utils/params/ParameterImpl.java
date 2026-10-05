@@ -45,9 +45,6 @@ final class ParameterImpl {
 
     private static final Set<String> SINGLE_KEY = Set.of("0");
 
-    /**
-     * The only parameter that stands for an absent one, see {@link Parameter#missing()}.
-     */
     enum MissingImpl implements Parameter {
         INSTANCE;
 
