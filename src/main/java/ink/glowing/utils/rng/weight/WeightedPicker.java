@@ -1,6 +1,7 @@
 package ink.glowing.utils.rng.weight;
 
 import ink.glowing.utils.ComposerBase;
+import ink.glowing.utils.rng.RngUtils;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import org.jetbrains.annotations.Contract;
@@ -118,12 +119,33 @@ public interface WeightedPicker<$Type> {
     }
 
     /**
+     * Picks a random element, with probability proportional to its weight using thread-local random generator.
+     * @return the picked element
+     * @throws NoSuchElementException if this picker is empty
+     * @see RngUtils#threadRandom()
+     */
+    default $Type next() {
+        return next(RngUtils.threadRandom());
+    }
+
+    /**
      * Picks a random element, with probability proportional to its weight.
      * @param rng the source of randomness
      * @return the picked element
      * @throws NoSuchElementException if this picker is empty
      */
     $Type next(@NotNull RandomGenerator rng);
+
+    /**
+     * Returns an infinite stream of picked elements using thread-local random generator.
+     * @return a stream calling {@link #next} for each element
+     * @throws NoSuchElementException when the stream is consumed, if this picker is empty
+     * @see RngUtils#threadRandom()
+     */
+    @Contract(value = "-> new", pure = true)
+    default @NotNull Stream<$Type> stream() {
+        return Stream.generate(this::next);
+    }
 
     /**
      * Returns an infinite stream of picked elements.
