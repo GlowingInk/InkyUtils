@@ -4,6 +4,8 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
+
 /**
  * Helpers for working with enums.
  */
@@ -46,7 +48,7 @@ public final class EnumUtils {
     @Contract(value = "_, _, !null -> !null", pure = true)
     public static <$Enum extends Enum<$Enum>> @Nullable $Enum asEnum(@NotNull String name, @NotNull Class<$Enum> type, @Nullable $Enum def) {
         try {
-            return Enum.valueOf(type, name);
+            return Enum.valueOf(type, name.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException _) {
             for ($Enum constant : type.getEnumConstants()) {
                 if (constant.name().equalsIgnoreCase(name)) return constant;
