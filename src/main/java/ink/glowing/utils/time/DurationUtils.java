@@ -23,7 +23,7 @@ public final class DurationUtils {
 
     private static final Duration MAX_DURATION = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
 
-    private static final Map<String, TemporalUnit> DEFAULT_UNITS = FluentUtils.map(Map.of(
+    private static final Map<String, TemporalUnit> DEFAULT_UNITS_MAP = FluentUtils.map(Map.of(
             "ns", ChronoUnit.NANOS,
             "ms", ChronoUnit.MILLIS,
             "s", ChronoUnit.SECONDS,
@@ -32,6 +32,8 @@ public final class DurationUtils {
             "d", ChronoUnit.DAYS,
             "", ChronoUnit.SECONDS
     ), map -> Collections.unmodifiableMap(CaseInsensitive.newLinkedMap(map)));
+
+    private static final Function<String, @Nullable TemporalUnit> DEFAULT_UNITS = DEFAULT_UNITS_MAP::get;
 
     /**
      * Returns the longest possible {@link Duration}: {@link Long#MAX_VALUE} seconds and
@@ -45,12 +47,22 @@ public final class DurationUtils {
 
     /**
      * Returns the units used by {@link #parseDuration(String)}: {@code ns}, {@code ms}, {@code s},
-     * {@code m}, {@code h} and {@code d} with missing unit mapped to seconds. Case-insensitive.
+     * {@code m}, {@code h} and {@code d}, and an empty suffix counts as seconds. Case-insensitive.
+     * @return a function that resolves a suffix to its unit, or {@code null} if the suffix is unknown
+     * @see #defaultUnitsMap()
+     */
+    @Contract(pure = true)
+    public static @NotNull Function<String, @Nullable TemporalUnit> defaultUnits() {
+        return DEFAULT_UNITS;
+    }
+
+    /**
+     * Returns {@link #defaultUnits()} as a map, to pass to {@link #parseDuration(String, Map)} or to extend.
      * @return an immutable map of unit suffixes to units
      */
     @Contract(pure = true)
-    public static @Unmodifiable @NotNull Map<String, TemporalUnit> defaultUnits() {
-        return DEFAULT_UNITS;
+    public static @Unmodifiable @NotNull Map<String, TemporalUnit> defaultUnitsMap() {
+        return DEFAULT_UNITS_MAP;
     }
 
     /**
