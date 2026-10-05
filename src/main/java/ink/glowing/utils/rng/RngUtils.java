@@ -31,7 +31,8 @@ public final class RngUtils {
      * @see #threadRandom()
      * @see #randomElement(RandomGenerator, Object[])
      */
-    public static <$Type> $Type randomElement($Type @NotNull [] array) {
+    @SafeVarargs
+    public static <$Type> $Type randomElement($Type @NotNull ... array) {
         return randomElement(threadRandom(), array);
     }
 
@@ -43,7 +44,8 @@ public final class RngUtils {
      * @return a random element of the array
      * @throws IllegalArgumentException if the array is empty
      */
-    public static <$Type> $Type randomElement(@NotNull RandomGenerator rng, $Type @NotNull [] array) {
+    @SafeVarargs
+    public static <$Type> $Type randomElement(@NotNull RandomGenerator rng, $Type @NotNull ... array) {
         return array[rng.nextInt(array.length)];
     }
 
