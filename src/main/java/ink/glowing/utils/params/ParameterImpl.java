@@ -16,6 +16,14 @@ import java.util.function.Supplier;
 final class ParameterImpl {
     private ParameterImpl() { }
 
+    static final Function<Parameter, String> EMPTY_RAW = _ -> "";
+
+    static final Function<Parameter, String> SERIALIZED_RAW = param -> param.serialize(true);
+
+    static final Function<Parameter, String> VALUE_RAW = Parameter::textValue;
+
+    private static final Set<String> SINGLE_KEY = Set.of("0");
+
     private static @NotNull Parameter getByIndexKey(@NotNull Parameter self, @NotNull String key) {
         int length = key.length();
         if (length == 0) return MissingImpl.INSTANCE;
@@ -42,8 +50,6 @@ final class ParameterImpl {
     private static @NotNull String serializeEntry(@NotNull Parameter entry) {
         return entry == MissingImpl.INSTANCE ? "''" : entry.serialize(false);
     }
-
-    private static final Set<String> SINGLE_KEY = Set.of("0");
 
     enum MissingImpl implements Parameter {
         INSTANCE;
@@ -112,7 +118,7 @@ final class ParameterImpl {
 
         private final String value;
         private final Function<Parameter, String> rawCompute;
-        private String escaped; // racy lazy cache, see CompoundImpl
+        private String serialized; // racy lazy cache, see CompoundImpl
 
         ValueImpl(@NotNull String value, @NotNull Function<Parameter, String> rawCompute) {
             this.value = value;
@@ -131,9 +137,9 @@ final class ParameterImpl {
 
         @Override
         public @NotNull String serialize(boolean topLevel) {
-            String cached = escaped;
+            String cached = serialized;
             if (cached == null) {
-                escaped = cached = Parameter.escape(value);
+                serialized = cached = Parameter.escape(value);
             }
             return cached;
         }
@@ -209,10 +215,12 @@ final class ParameterImpl {
          */
         abstract void appendEntries(@NotNull StringBuilder sb);
 
+        @Override
         public final @NotNull String raw() {
             return rawCompute.apply(this);
         }
 
+        @Override
         public final @NotNull String textValue() {
             String cached = unescapedRaw;
             if (cached == null) {
@@ -221,6 +229,7 @@ final class ParameterImpl {
             return cached;
         }
 
+        @Override
         public final @NotNull String serialize(boolean topLevel) {
             String cached = topLevel ? topLevelForm : nestedForm;
             if (cached == null) {
@@ -522,16 +531,10 @@ final class ParameterImpl {
         }
     }
 
-    static final Function<Parameter, String> EMPTY_RAW = _ -> "";
-
-    static final Function<Parameter, String> SERIALIZED_RAW = param -> param.serialize(true);
-
-    static final Function<Parameter, String> VALUE_RAW = Parameter::textValue;
-
     /**
      * The raw string of a parameter, lazily sliced out of the parsed input.
      */
-    static class LazyValue implements Function<Parameter, String> {
+    static final class LazyValue implements Function<Parameter, String> {
         private Supplier<String> valueGetter;
 
         LazyValue(char[] input, int start, int end) {
