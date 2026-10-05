@@ -373,7 +373,7 @@ final class ParameterImpl {
 
         @Override
         public @NotNull ParameterEditor.OfList editList() {
-            return new ParameterEditorImpl.ListEditor(this);
+            return new ParameterEditorImpl.OfListImpl(this);
         }
 
         @Override
@@ -492,7 +492,7 @@ final class ParameterImpl {
 
         @Override
         public @NotNull ParameterEditor.OfMap editMap() {
-            return new ParameterEditorImpl.MapEditor(this);
+            return new ParameterEditorImpl.OfMapImpl(this);
         }
 
         @Override

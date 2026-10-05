@@ -15,11 +15,11 @@ import java.util.Map;
 final class ParameterEditorImpl {
     private ParameterEditorImpl() { }
 
-    static final class ListEditor extends ComposerBase<Parameter> implements ParameterEditor.OfList {
+    static final class OfListImpl extends ComposerBase<Parameter> implements ParameterEditor.OfList {
         private final ListedImpl source;
         private ArrayList<Parameter> list;
 
-        ListEditor(@NotNull ListedImpl source) {
+        OfListImpl(@NotNull ListedImpl source) {
             this.source = source;
         }
 
@@ -39,7 +39,7 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull ListEditor set(int index, @Nullable Parameter value) {
+        public @NotNull ParameterEditorImpl.OfListImpl set(int index, @Nullable Parameter value) {
             checkBuilt();
             if (index < 0 || index >= size() && ParameterImpl.isAbsent(value)) return this;
 
@@ -50,14 +50,14 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull ListEditor add(@Nullable Parameter value) {
+        public @NotNull ParameterEditorImpl.OfListImpl add(@Nullable Parameter value) {
             checkBuilt();
             if (!ParameterImpl.isAbsent(value)) working().add(value);
             return this;
         }
 
         @Override
-        public @NotNull ListEditor insert(int index, @Nullable Parameter value) {
+        public @NotNull ParameterEditorImpl.OfListImpl insert(int index, @Nullable Parameter value) {
             checkBuilt();
             if (index < 0 || ParameterImpl.isAbsent(value)) return this;
 
@@ -68,7 +68,7 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull ListEditor insert(int index, @NotNull List<Parameter> values) {
+        public @NotNull ParameterEditorImpl.OfListImpl insert(int index, @NotNull List<Parameter> values) {
             checkBuilt();
             if (index < 0) return this;
 
@@ -85,7 +85,7 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull ListEditor remove(int index) {
+        public @NotNull ParameterEditorImpl.OfListImpl remove(int index) {
             checkBuilt();
             if (index >= 0 && index < size()) working().remove(index);
             return this;
@@ -100,11 +100,11 @@ final class ParameterEditorImpl {
         }
     }
 
-    static final class MapEditor extends ComposerBase<Parameter> implements ParameterEditor.OfMap {
+    static final class OfMapImpl extends ComposerBase<Parameter> implements ParameterEditor.OfMap {
         private final MappedImpl source;
         private Object2ObjectLinkedOpenCustomHashMap<String, Parameter> map;
 
-        MapEditor(@NotNull MappedImpl source) {
+        OfMapImpl(@NotNull MappedImpl source) {
             this.source = source;
         }
 
@@ -114,7 +114,7 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull MapEditor put(@NotNull String key, @Nullable Parameter value) {
+        public @NotNull ParameterEditorImpl.OfMapImpl put(@NotNull String key, @Nullable Parameter value) {
             checkBuilt();
             if (ParameterImpl.isAbsent(value)) return remove(key);
 
@@ -123,7 +123,7 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull MapEditor putAll(@NotNull Map<String, Parameter> entries) {
+        public @NotNull ParameterEditorImpl.OfMapImpl putAll(@NotNull Map<String, Parameter> entries) {
             checkBuilt();
             for (Map.Entry<String, Parameter> entry : entries.entrySet()) {
                 if (entry.getKey() != null) put(entry.getKey(), entry.getValue());
@@ -132,7 +132,7 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull MapEditor remove(@NotNull String key) {
+        public @NotNull ParameterEditorImpl.OfMapImpl remove(@NotNull String key) {
             checkBuilt();
             if ((map == null ? source.internalValue : map).containsKey(key)) working().remove(key);
             return this;

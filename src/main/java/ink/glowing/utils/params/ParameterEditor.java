@@ -28,7 +28,7 @@ public sealed interface ParameterEditor permits ParameterEditor.OfList, Paramete
      * An editor of a list. Indexes are zero-based, and a negative one changes nothing.
      * @see Parameter#editList()
      */
-    sealed interface OfList extends ParameterEditor permits ParameterEditorImpl.ListEditor, ParameterEditorImpl.NoopEditor {
+    sealed interface OfList extends ParameterEditor permits ParameterEditorImpl.OfListImpl, ParameterEditorImpl.NoopEditor {
         /**
          * Sets the entry at the index. An index past the end extends the list, filling the gap
          * with {@link Parameter#missing()}.
@@ -74,7 +74,7 @@ public sealed interface ParameterEditor permits ParameterEditor.OfList, Paramete
      * An editor of a map.
      * @see Parameter#editMap()
      */
-    sealed interface OfMap extends ParameterEditor permits ParameterEditorImpl.MapEditor, ParameterEditorImpl.NoopEditor {
+    sealed interface OfMap extends ParameterEditor permits ParameterEditorImpl.OfMapImpl, ParameterEditorImpl.NoopEditor {
         /**
          * Sets the key, matched ignoring case. An existing key keeps its spelling and position.
          * @param key the key to set
