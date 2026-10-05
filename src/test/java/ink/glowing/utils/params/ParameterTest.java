@@ -56,6 +56,10 @@ public class ParameterTest {
                 Arguments.of(
                         "'a:b':value",
                         "'a:b':value"
+                ),
+                Arguments.of(
+                        "nul:a\0b",
+                        "nul:a\0b"
                 )
         );
     }
@@ -98,6 +102,7 @@ public class ParameterTest {
         assertEquals("esc\\'d", params.get("s").raw());
         assertEquals("a:b:c", params.get("n").raw());
         assertEquals("[]", params.get("z").raw());
+        assertEquals("a\0b", Parameter.parseList("a\0b").get(0).raw());
 
         Parameter escaped = params.get("s");
         assertEquals("esc'd", escaped.textValue());

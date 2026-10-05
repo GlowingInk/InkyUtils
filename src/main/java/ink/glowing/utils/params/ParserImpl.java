@@ -17,7 +17,7 @@ import static java.lang.Character.isWhitespace;
 final class ParserImpl {
     static final int MAX_DEPTH = Math.max(1, Integer.getInteger("ink.glowing.utils.params.maxDepth", 512));
 
-    private static final char NIL = '\0';
+    private static final int NONE = -1;
 
     private final char[] input;
     private final int length;
@@ -36,7 +36,7 @@ final class ParserImpl {
     }
 
     private boolean advanceOn(char ch) {
-        if (currentSafe() == ch) {
+        if (hasMore() && input[pos] == ch) {
             ++pos;
             return true;
         }
@@ -51,10 +51,6 @@ final class ParserImpl {
         char ch = input[pos];
         ++pos;
         return ch;
-    }
-
-    private char currentSafe() {
-        return hasMore() ? input[pos] : NIL;
     }
 
     private boolean hasMore() {
@@ -95,7 +91,7 @@ final class ParserImpl {
         return stringBuilder.toString();
     }
 
-    private int scanBare(int start, char stopAt) {
+    private int scanBare(int start, int stopAt) {
         boolean escaped = false;
         int i = start;
         if (input[i] == '\\') {
@@ -120,7 +116,7 @@ final class ParserImpl {
         return i;
     }
 
-    private @NotNull Parameter parseSingleton(@NotNull String key, int tokenStart, char parentEnd) {
+    private @NotNull Parameter parseSingleton(@NotNull String key, int tokenStart, int parentEnd) {
         Object2ObjectLinkedOpenCustomHashMap<String, Parameter> map = CaseInsensitive.newLinkedMap(1);
         map.put(key, parseSingleValue(parentEnd));
         return new MappedImpl(slice(tokenStart, valueEnd), map);
@@ -128,11 +124,12 @@ final class ParserImpl {
 
     @NotNull Object2ObjectLinkedOpenCustomHashMap<String, Parameter> parseMap(final int start) {
         Object2ObjectLinkedOpenCustomHashMap<String, Parameter> map = CaseInsensitive.newLinkedMap();
-        char endCh = start == 0 ? NIL : '}';
+        boolean global = start == 0;
+        int endCh = global ? NONE : '}';
         while (hasMore()) {
             char ch = pop();
             if (ch == '}') {
-                if (start == 0) {
+                if (global) {
                     throw new IllegalArgumentException("Found trailing '}' while parsing global map at pos " + (pos - 1));
                 }
                 return map;
@@ -154,7 +151,7 @@ final class ParserImpl {
             }
             map.put(key, parseSingleValue(endCh));
         }
-        if (start != 0) {
+        if (!global) {
             throw new IllegalArgumentException("Couldn't find the end of a map started at " + start);
         }
         return map;
@@ -162,26 +159,27 @@ final class ParserImpl {
 
     @NotNull List<Parameter> parseList(final int start) {
         List<Parameter> list = new ArrayList<>();
-        char endCh = start == 0 ? NIL : ']';
+        boolean global = start == 0;
+        int endCh = global ? NONE : ']';
         while (hasMore()) {
             if (!skipWhitespaces()) {
                 break;
             }
             if (advanceOn(']')) {
-                if (start == 0) {
+                if (global) {
                     throw new IllegalArgumentException("Found trailing ']' while parsing global list at pos " + (pos - 1));
                 }
                 return list;
             }
             list.add(parseSingleValue(endCh));
         }
-        if (start != 0) {
+        if (!global) {
             throw new IllegalArgumentException("Couldn't find the end of a list started at " + start);
         }
         return list;
     }
 
-    private Parameter parseSingleValue(char parentEnd) {
+    private @NotNull Parameter parseSingleValue(int parentEnd) {
         if (++depth > MAX_DEPTH) {
             throw new IllegalArgumentException("Nesting is deeper than " + MAX_DEPTH + " levels at pos " + pos);
         }
@@ -192,7 +190,7 @@ final class ParserImpl {
         }
     }
 
-    private Parameter parseSingleValueUnchecked(char parentEnd) {
+    private @NotNull Parameter parseSingleValueUnchecked(int parentEnd) {
         int entry = pos;
         if (!skipWhitespaces() || current() == parentEnd) {
             valueEnd = entry;
@@ -223,7 +221,7 @@ final class ParserImpl {
         String string = unescape(tokenStart, end, escaped);
         if (end < length && input[end] == ':') { // Singleton map
             pos = end + 1;
-            return parseSingleton(string, tokenStart, NIL);
+            return parseSingleton(string, tokenStart, NONE);
         }
 
         valueEnd = end;
@@ -232,7 +230,7 @@ final class ParserImpl {
         return new ValueImpl(string, escaped ? slice(tokenStart, end) : ParameterImpl.VALUE_RAW);
     }
 
-    private String parseQuotedString() {
+    private @NotNull String parseQuotedString() {
         int start = pos;
         boolean escaped = false;
         int i = start;
