@@ -143,6 +143,16 @@ DurationUtils.parseDuration("2min", Map.of("min", ChronoUnit.MINUTES)); // custo
 ```
 Default units: `ns`, `ms`, `s`, `m`, `h`, `d`, case-insensitive.
 
+### `Comparison`
+The result of a comparison as a constant: `BELOW`, `EQUAL` or `ABOVE`, instead of the sign of an `int`.
+```java
+Comparison.of(5, 10); // BELOW, by natural order
+Comparison.of("b", "a"); // ABOVE
+Comparison.of(String.CASE_INSENSITIVE_ORDER, "A", "a"); // EQUAL, with a comparator
+Comparison.is(7, Comparison.EQUAL, 7); // true, reads as "7 is EQUAL 7"
+Comparison.ofSignum(-42); // BELOW, for the result of compareTo or compare
+```
+
 ### `EnumUtils`
 Helpers for working with enums. Looking up a constant by name ignores case and returns a fallback when there is no match.
 ```java
