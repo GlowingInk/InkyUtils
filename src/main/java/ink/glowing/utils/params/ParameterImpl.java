@@ -348,6 +348,21 @@ final class ParameterImpl {
         }
 
         @Override
+        public @NotNull @Unmodifiable Parameter withInsert(int index, @Nullable Parameter value) {
+            if (index < 0 || isAbsent(value)) return this;
+
+            int size = internalValue.size();
+            Parameter[] copy = internalValue.toArray(new Parameter[Math.max(size, index) + 1]);
+            if (index < size) {
+                System.arraycopy(copy, index, copy, index + 1, size - index);
+            } else {
+                Arrays.fill(copy, size, index, MissingImpl.INSTANCE);
+            }
+            copy[index] = value;
+            return new ListedImpl(SERIALIZED_RAW, Arrays.asList(copy));
+        }
+
+        @Override
         public @NotNull @Unmodifiable Parameter withInsert(@NotNull Collection<? extends IntObjectPair<Parameter>> pairs) {
             ArrayList<IntObjectPair<Parameter>> inserts = new ArrayList<>(pairs.size());
             for (IntObjectPair<Parameter> pair : pairs) {

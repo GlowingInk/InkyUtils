@@ -262,6 +262,21 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
     }
 
     /**
+     * Returns a copy of this list with the value inserted at the index, shifting the later entries.
+     * An index past the end first extends the list with {@link #missing()}. Any other kind of parameter
+     * is returned as is.
+     * <p>
+     * The memory taken grows with the index, so bound it if it's untrusted.
+     * @param index the zero-based index, a negative one changes nothing
+     * @param value the value, an absent one changes nothing
+     * @return the resulting list, or this if nothing changes
+     */
+    @Contract(pure = true)
+    default @NotNull @Unmodifiable Parameter withInsert(int index, @Nullable Parameter value) {
+        return this;
+    }
+
+    /**
      * Returns a copy of this list with each value inserted right after the entry at its index, shifting
      * the later ones. The indexes refer to this list, and values with the same index keep their order.
      * An index past the end first extends the list with {@link #missing()}. Any other kind of parameter

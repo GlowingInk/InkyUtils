@@ -240,6 +240,8 @@ public class ParameterTest {
         assertEquals("[a b c '' x]", list.with(4, x).serialize(false));
         assertEquals("[x b c x]", list.with(List.of(IntObjectPair.of(0, x), IntObjectPair.of(3, x))).serialize(false));
         assertEquals("[a x b c x]", list.withInsert(List.of(IntObjectPair.of(0, x), IntObjectPair.of(2, x))).serialize(false));
+        assertEquals("[a x b c]", list.withInsert(1, x).serialize(false));
+        assertEquals("[a b c '' x]", list.withInsert(4, x).serialize(false));
 
         assertEquals("{A:x b:2}", map.with("a", x).serialize(false));
         assertEquals("{A:1}", map.with("B", null).serialize(false));
@@ -248,6 +250,8 @@ public class ParameterTest {
         assertSame(list, list.with(1, list.get(1)));
         assertSame(list, list.with("k", x));
         assertSame(map, map.with(0, x));
+        assertSame(map, map.withInsert(0, x));
+        assertSame(list, list.withInsert(1, null));
     }
 
     @Test
