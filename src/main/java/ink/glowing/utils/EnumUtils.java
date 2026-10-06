@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Helpers for working with enums.
@@ -29,11 +30,11 @@ public final class EnumUtils {
      * @param <$Enum> the type of the enum
      * @param name the name to look up
      * @param type the enum class
-     * @return the matching constant, or {@code null} if there is none
+     * @return the matching constant, or empty if there is none
      */
     @Contract(pure = true)
-    public static <$Enum extends Enum<$Enum>> @Nullable $Enum asEnum(@NotNull String name, @NotNull Class<$Enum> type) {
-        return asEnum(name, type, null);
+    public static <$Enum extends Enum<$Enum>> @NotNull Optional<$Enum> asEnum(@NotNull String name, @NotNull Class<$Enum> type) {
+        return Optional.ofNullable(asEnum(name, type, null));
     }
 
     /**

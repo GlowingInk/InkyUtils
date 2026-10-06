@@ -105,7 +105,7 @@ NumberUtils.parseInt("42", 0); // 42
 NumberUtils.parseInt("many", 0); // 0, the fallback
 NumberUtils.parseDouble(null, 1.5); // 1.5
 ```
-There are `parseInt`, `parseLong`, `parseFloat` and `parseDouble`.
+There are `parseInt`, `parseLong`, `parseFloat` and `parseDouble`. Without a fallback they return an `OptionalInt`, `OptionalLong`, `OptionalFloat` or `OptionalDouble`.
 
 ### `hash`
 `HashList` is an unmodifiable `List` with O(1) `contains`, `indexOf` and `lastIndexOf`, for when a list needs both order and fast lookups.
@@ -158,7 +158,7 @@ Helpers for working with enums. Looking up a constant by name ignores case and r
 ```java
 EnumUtils.asEnum("fast", Mode.SLOW); // Mode.FAST
 EnumUtils.asEnum("warp", Mode.SLOW); // Mode.SLOW, the fallback
-EnumUtils.asEnum("warp", Mode.class); // null, there is no fallback
+EnumUtils.asEnum("warp", Mode.class); // Optional.empty(), there is no fallback
 ```
 
 ### `FluentUtils`

@@ -4,6 +4,9 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.function.DoubleSupplier;
 import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
@@ -15,6 +18,22 @@ public final class NumberUtils {
     private NumberUtils() { }
 
     // TODO There are also bytes... But I don't care for now
+
+    /**
+     * Parses an {@code int}.
+     * @param str the string to parse, may be {@code null}
+     * @return the parsed value, or empty if the string is not a number
+     * @see Integer#parseInt(String)
+     */
+    @Contract(pure = true)
+    public static @NotNull OptionalInt parseInt(@Nullable String str) {
+        if (str == null || str.isEmpty()) return OptionalInt.empty();
+        try {
+            return OptionalInt.of(Integer.parseInt(str));
+        } catch (NumberFormatException _) {
+            return OptionalInt.empty();
+        }
+    }
 
     /**
      * Parses an {@code int}.
@@ -46,6 +65,22 @@ public final class NumberUtils {
             return Integer.parseInt(str);
         } catch (NumberFormatException _) {
             return def.getAsInt();
+        }
+    }
+
+    /**
+     * Parses a {@code long}.
+     * @param str the string to parse, may be {@code null}
+     * @return the parsed value, or empty if the string is not a number
+     * @see Long#parseLong(String)
+     */
+    @Contract(pure = true)
+    public static @NotNull OptionalLong parseLong(@Nullable String str) {
+        if (str == null || str.isEmpty()) return OptionalLong.empty();
+        try {
+            return OptionalLong.of(Long.parseLong(str));
+        } catch (NumberFormatException _) {
+            return OptionalLong.empty();
         }
     }
 
@@ -85,6 +120,22 @@ public final class NumberUtils {
     /**
      * Parses a {@code float}.
      * @param str the string to parse, may be {@code null}
+     * @return the parsed value, or empty if the string is not a number
+     * @see Float#parseFloat(String)
+     */
+    @Contract(pure = true)
+    public static @NotNull OptionalFloat parseFloat(@Nullable String str) {
+        if (str == null || str.isEmpty()) return OptionalFloat.empty();
+        try {
+            return OptionalFloat.of(Float.parseFloat(str));
+        } catch (NumberFormatException _) {
+            return OptionalFloat.empty();
+        }
+    }
+
+    /**
+     * Parses a {@code float}.
+     * @param str the string to parse, may be {@code null}
      * @param def the fallback
      * @return the parsed value, or the fallback if the string is not a number
      * @see Float#parseFloat(String)
@@ -112,6 +163,22 @@ public final class NumberUtils {
             return Float.parseFloat(str);
         } catch (NumberFormatException _) {
             return def.getAsFloat();
+        }
+    }
+
+    /**
+     * Parses a {@code double}.
+     * @param str the string to parse, may be {@code null}
+     * @return the parsed value, or empty if the string is not a number
+     * @see Double#parseDouble(String)
+     */
+    @Contract(pure = true)
+    public static @NotNull OptionalDouble parseDouble(@Nullable String str) {
+        if (str == null || str.isEmpty()) return OptionalDouble.empty();
+        try {
+            return OptionalDouble.of(Double.parseDouble(str));
+        } catch (NumberFormatException _) {
+            return OptionalDouble.empty();
         }
     }
 
