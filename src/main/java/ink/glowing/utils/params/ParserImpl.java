@@ -15,7 +15,6 @@ import java.util.function.Function;
 import static java.lang.Character.isWhitespace;
 
 final class ParserImpl {
-    static final int MAX_DEPTH = Math.max(1, Integer.getInteger("ink.glowing.utils.params.maxDepth", 512));
 
     private static final int NONE = -1;
 
@@ -180,8 +179,8 @@ final class ParserImpl {
     }
 
     private @NotNull Parameter parseSingleValue(int parentEnd) {
-        if (++depth > MAX_DEPTH) {
-            throw new IllegalArgumentException("Nesting is deeper than " + MAX_DEPTH + " levels at pos " + pos);
+        if (++depth > Parameter.MAX_DEPTH) {
+            throw new IllegalArgumentException("Nesting is deeper than " + Parameter.MAX_DEPTH + " levels at pos " + pos);
         }
         try {
             return parseSingleValueUnchecked(parentEnd);

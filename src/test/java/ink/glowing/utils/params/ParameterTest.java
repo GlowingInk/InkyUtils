@@ -149,7 +149,7 @@ public class ParameterTest {
 
     @Test
     public void nestingLimitTest() {
-        int limit = ParserImpl.MAX_DEPTH;
+        int limit = Parameter.MAX_DEPTH;
         assertEquals(1, Parameter.parseList("[".repeat(limit - 1) + "]".repeat(limit - 1)).count());
         assertThrows(IllegalArgumentException.class, () -> Parameter.parseList("[".repeat(limit + 1) + "]".repeat(limit + 1)));
         assertThrows(IllegalArgumentException.class, () -> Parameter.parseList("[".repeat(100_000)));

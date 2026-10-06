@@ -35,10 +35,21 @@ import java.util.function.*;
  * <pre>{@code
  * key1:value1 key2:[value2 value3] key3:{key4:value4}
  * }</pre>
- * Nesting is limited to 512 levels, changeable with the {@code ink.glowing.utils.params.maxDepth}
- * system property.
+ * Nesting is limited to {@link #MAX_DEPTH} levels.
  */
 public sealed interface Parameter extends Parameterizable permits ParameterImpl.MissingImpl, ParameterImpl.ValueImpl, ParameterImpl.CompoundImpl {
+    /**
+     * The name of the system property that overrides {@link #MAX_DEPTH}.
+     */
+    String MAX_DEPTH_PROPERTY = "ink.glowing.utils.params.maxDepth";
+
+    /**
+     * The maximum nesting depth of a parsed parameter: {@code 512} by default, or the value of the
+     * {@link #MAX_DEPTH_PROPERTY} system property if set (clamped to {@code >=1}), read once when this
+     * interface is initialized. Deeper input fails to parse with an {@link IllegalArgumentException}.
+     */
+    int MAX_DEPTH = Math.max(1, Integer.getInteger(MAX_DEPTH_PROPERTY, 512));
+
     /**
      * Returns the number of values held by this parameter (always {@code 1} for a plain value).
      * @return the value count
