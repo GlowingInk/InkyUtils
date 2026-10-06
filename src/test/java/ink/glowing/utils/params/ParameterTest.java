@@ -169,6 +169,7 @@ public class ParameterTest {
         assertFalse(params.get("e").isMissing(), "Empty plain is not missing");
         assertTrue(params.getMapped("nope", Parameter::isMissing));
         assertEquals(7, params.get("nope").asInt(7));
+        assertEquals(8, params.get("nope").asInt(() -> 8));
 
         assertEquals(0, missing.count());
         assertEquals("", missing.raw());

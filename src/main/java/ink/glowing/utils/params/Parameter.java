@@ -4,9 +4,10 @@ import ink.glowing.utils.EnumUtils;
 import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.params.ParameterEditorImpl.NoopEditor;
 import ink.glowing.utils.params.ParameterImpl.*;
-import ink.glowing.utils.primitive.NumberUtils;
-import ink.glowing.utils.primitive.ToFloatFunction;
 import ink.glowing.utils.primitive.TriState;
+import ink.glowing.utils.primitive.num.FloatSupplier;
+import ink.glowing.utils.primitive.num.NumberUtils;
+import ink.glowing.utils.primitive.num.ToFloatFunction;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -383,6 +384,16 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
     }
 
     /**
+     * Parses this parameter's {@link #textValue()} as an {@code int}, with a lazily computed fallback.
+     * @param def the supplier of the fallback, called only if the value is absent or malformed
+     * @return the parsed value, or the fallback
+     * @see NumberUtils#parseInt(String, IntSupplier)
+     */
+    default int asInt(@NotNull IntSupplier def) {
+        return NumberUtils.parseInt(textValue(), def);
+    }
+
+    /**
      * Maps this parameter's {@link #textValue()} to an {@code int}.
      * @param mapper the mapper, receiving an empty string for {@link #missing()}
      * @return the mapped result
@@ -398,6 +409,16 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
      * @see NumberUtils#parseLong(String, long)
      */
     default long asLong(long def) {
+        return NumberUtils.parseLong(textValue(), def);
+    }
+
+    /**
+     * Parses this parameter's {@link #textValue()} as a {@code long}, with a lazily computed fallback.
+     * @param def the supplier of the fallback, called only if the value is absent or malformed
+     * @return the parsed value, or the fallback
+     * @see NumberUtils#parseLong(String, LongSupplier)
+     */
+    default long asLong(@NotNull LongSupplier def) {
         return NumberUtils.parseLong(textValue(), def);
     }
 
@@ -421,6 +442,16 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
     }
 
     /**
+     * Parses this parameter's {@link #textValue()} as a {@code float}, with a lazily computed fallback.
+     * @param def the supplier of the fallback, called only if the value is absent or malformed
+     * @return the parsed value, or the fallback
+     * @see NumberUtils#parseFloat(String, FloatSupplier)
+     */
+    default float asFloat(@NotNull FloatSupplier def) {
+        return NumberUtils.parseFloat(textValue(), def);
+    }
+
+    /**
      * Maps this parameter's {@link #textValue()} to a {@code float}.
      * @param mapper the mapper, receiving an empty string for {@link #missing()}
      * @return the mapped result
@@ -436,6 +467,16 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
      * @see NumberUtils#parseDouble(String, double)
      */
     default double asDouble(double def) {
+        return NumberUtils.parseDouble(textValue(), def);
+    }
+
+    /**
+     * Parses this parameter's {@link #textValue()} as a {@code double}, with a lazily computed fallback.
+     * @param def the supplier of the fallback, called only if the value is absent or malformed
+     * @return the parsed value, or the fallback
+     * @see NumberUtils#parseDouble(String, DoubleSupplier)
+     */
+    default double asDouble(@NotNull DoubleSupplier def) {
         return NumberUtils.parseDouble(textValue(), def);
     }
 
@@ -456,6 +497,16 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
      * @see TriState#of(String)
      */
     default boolean asBoolean(boolean def) {
+        return TriState.of(textValue()).asBoolean(def);
+    }
+
+    /**
+     * Parses this parameter's {@link #textValue()} as a {@code boolean}, with a lazily computed fallback.
+     * @param def the supplier of the fallback, called only if the value is absent or not recognized
+     * @return the parsed value, or the fallback
+     * @see TriState#asBoolean(BooleanSupplier)
+     */
+    default boolean asBoolean(@NotNull BooleanSupplier def) {
         return TriState.of(textValue()).asBoolean(def);
     }
 

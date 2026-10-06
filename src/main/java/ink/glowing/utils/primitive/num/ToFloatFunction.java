@@ -1,4 +1,4 @@
-package ink.glowing.utils.primitive;
+package ink.glowing.utils.primitive.num;
 
 import it.unimi.dsi.fastutil.objects.Object2FloatFunction;
 

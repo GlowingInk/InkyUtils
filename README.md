@@ -98,7 +98,7 @@ mapper.strings(TriState.TRUE); // [allow, yes, +]
 An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Mapper.DEFAULT`.
 `build()` throws if the same word is assigned to different states.
 
-### `primitive.NumberUtils`
+### `primitive.num.NumberUtils`
 Helpers for working with numbers. Parsing returns a fallback instead of throwing on a malformed string.
 ```java
 NumberUtils.parseInt("42", 0); // 42
