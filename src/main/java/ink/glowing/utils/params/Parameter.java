@@ -3,7 +3,6 @@ package ink.glowing.utils.params;
 import ink.glowing.utils.EnumUtils;
 import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.params.ParameterEditorImpl.NoopEditor;
-import ink.glowing.utils.params.ParameterImpl.*;
 import ink.glowing.utils.primitive.TriState;
 import ink.glowing.utils.primitive.num.NumberUtils;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
@@ -14,6 +13,8 @@ import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.*;
 import java.util.function.*;
+
+import static ink.glowing.utils.params.ParameterHelper.isAbsent;
 
 /**
  * A parsed parameter value: either a plain string, a list ({@link #isList()}) of parameters,
@@ -36,7 +37,7 @@ import java.util.function.*;
  * }</pre>
  * Nesting is limited to {@link #MAX_DEPTH} levels.
  */
-public sealed interface Parameter extends Parameterizable permits ParameterImpl.MissingImpl, ParameterImpl.ValueImpl, ParameterImpl.CompoundImpl {
+public sealed interface Parameter extends Parameterizable permits MissingImpl, ValueImpl, CompoundImpl {
     /**
      * The name of the system property that overrides {@link #MAX_DEPTH}.
      */
@@ -122,6 +123,15 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
      */
     @Contract(pure = true)
     default boolean isMap() {
+        return false;
+    }
+
+    /**
+     * Returns whether this is a plain value, i.e. neither a list, a map, nor {@link #missing()}.
+     * @return {@code true} if this is a plain value
+     */
+    @Contract(pure = true)
+    default boolean isPlain() {
         return false;
     }
 
@@ -373,6 +383,15 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
 
     /**
      * Parses this parameter's {@link #textValue()} as an {@code int}.
+     * @return the parsed value, or empty if the value is absent or malformed
+     * @see NumberUtils#parseInt(String)
+     */
+    default @NotNull OptionalInt asInt() {
+        return NumberUtils.parseInt(textValue());
+    }
+
+    /**
+     * Parses this parameter's {@link #textValue()} as an {@code int}.
      * @param def the fallback, used if the value is absent or malformed
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseInt(String, int)
@@ -398,6 +417,15 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
      */
     default int asInt(@NotNull ToIntFunction<@NotNull String> mapper) {
         return mapper.applyAsInt(textValue());
+    }
+
+    /**
+     * Parses this parameter's {@link #textValue()} as a {@code long}.
+     * @return the parsed value, or empty if the value is absent or malformed
+     * @see NumberUtils#parseLong(String)
+     */
+    default @NotNull OptionalLong asLong() {
+        return NumberUtils.parseLong(textValue());
     }
 
     /**
@@ -431,6 +459,15 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code double}.
+     * @return the parsed value, or empty if the value is absent or malformed
+     * @see NumberUtils#parseDouble(String)
+     */
+    default @NotNull OptionalDouble asDouble() {
+        return NumberUtils.parseDouble(textValue());
+    }
+
+    /**
+     * Parses this parameter's {@link #textValue()} as a {@code double}.
      * @param def the fallback, used if the value is absent or malformed
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseDouble(String, double)
@@ -459,24 +496,46 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
     }
 
     /**
-     * Parses this parameter's {@link #textValue()} as a {@code boolean}: case-insensitive,
+     * Parses this parameter's {@link #textValue()} as a {@link TriState}: case-insensitive,
      * with synonyms like {@code yes}/{@code no} or {@code enabled}/{@code disabled}.
-     * @param def the fallback, used if the value is absent or not recognized
-     * @return the parsed value, or the fallback
+     * @return the parsed state, {@link TriState#UNSET} if the value is absent or not recognized
      * @see TriState#of(String)
      */
+    default @NotNull TriState asTriState() {
+        return TriState.of(textValue());
+    }
+
+    /**
+     * Parses this parameter's {@link #textValue()} as a {@code boolean}: {@code true} or {@code false},
+     * ignoring case. Same as {@code asBoolean(false)}.
+     * @return the parsed value, or {@code false} if the value is absent or not recognized
+     * @see #asTriState()
+     */
+    default boolean asBoolean() {
+        return asBoolean(false);
+    }
+
+    /**
+     * Parses this parameter's {@link #textValue()} as a {@code boolean}: {@code true} or {@code false},
+     * ignoring case.
+     * @param def the fallback, used if the value is absent or not recognized
+     * @return the parsed value, or the fallback
+     * @see #asTriState()
+     */
     default boolean asBoolean(boolean def) {
-        return TriState.of(textValue()).asBoolean(def);
+        Boolean parsed = parseBoolean(textValue());
+        return parsed != null ? parsed : def;
     }
 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code boolean}, with a lazily computed fallback.
      * @param def the supplier of the fallback, called only if the value is absent or not recognized
      * @return the parsed value, or the fallback
-     * @see TriState#asBoolean(BooleanSupplier)
+     * @see #asBoolean(boolean)
      */
     default boolean asBoolean(@NotNull BooleanSupplier def) {
-        return TriState.of(textValue()).asBoolean(def);
+        Boolean parsed = parseBoolean(textValue());
+        return parsed != null ? parsed : def.getAsBoolean();
     }
 
     /**
@@ -486,6 +545,17 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
      */
     default boolean asBoolean(@NotNull Predicate<@NotNull String> mapper) {
         return mapper.test(textValue());
+    }
+
+    /**
+     * Parses this parameter's {@link #textValue()} as a constant of the enum, ignoring case.
+     * @param <$Enum> the type of the enum
+     * @param type the enum class
+     * @return the matching constant, or empty if the value is absent or matches no constant
+     * @see EnumUtils#asEnum(String, Class)
+     */
+    default <$Enum extends Enum<$Enum>> @NotNull Optional<$Enum> asEnum(@NotNull Class<$Enum> type) {
+        return EnumUtils.asEnum(textValue(), type);
     }
 
     /**
@@ -518,7 +588,7 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue() {
-        return ValueImpl.EMPTY;
+        return StringImpl.EMPTY;
     }
 
     /**
@@ -529,8 +599,71 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue(@Nullable String value) {
         return value == null || value.isEmpty()
-                ? ValueImpl.EMPTY
-                : new ValueImpl(value, ParameterImpl.SERIALIZED_RAW);
+                ? StringImpl.EMPTY
+                : new StringImpl(value);
+    }
+
+    /**
+     * Returns a plain value parameter of the given number, which {@code asInt()} returns without parsing.
+     * @param value the number
+     * @return the resulting parameter
+     */
+    @Contract(pure = true)
+    static @NotNull @Unmodifiable Parameter ofValue(int value) {
+        return new IntImpl(value);
+    }
+
+    /**
+     * Returns a plain value parameter of the given number, which {@code asLong()} returns without parsing.
+     * @param value the number
+     * @return the resulting parameter
+     */
+    @Contract(pure = true)
+    static @NotNull @Unmodifiable Parameter ofValue(long value) {
+        return new LongImpl(value);
+    }
+
+    /**
+     * Returns a plain value parameter of the given number, which {@code asDouble()} returns without parsing.
+     * @param value the number
+     * @return the resulting parameter
+     */
+    @Contract(pure = true)
+    static @NotNull @Unmodifiable Parameter ofValue(double value) {
+        return new DoubleImpl(value);
+    }
+
+    /**
+     * Returns a plain value parameter of the given boolean, written as {@code true} or {@code false}.
+     * @param value the boolean
+     * @return the resulting parameter
+     * @see #asTriState()
+     */
+    @Contract(pure = true)
+    static @NotNull @Unmodifiable Parameter ofValue(boolean value) {
+        return BooleanImpl.of(TriState.of(value));
+    }
+
+    /**
+     * Returns a plain value parameter of the given state, written as {@code true}, {@code false} or {@code unset}.
+     * @param value the state, {@code null} counts as empty
+     * @return the resulting parameter
+     * @see #asTriState()
+     */
+    @Contract(pure = true)
+    static @NotNull @Unmodifiable Parameter ofValue(@Nullable TriState value) {
+        return value == null ? StringImpl.EMPTY : BooleanImpl.of(value);
+    }
+
+    /**
+     * Returns a plain value parameter of the given enum constant, written as its name.
+     * @param value the constant, {@code null} counts as empty
+     * @return the resulting parameter
+     * @see #asEnum(Class)
+     */
+    @Contract(pure = true)
+    static @NotNull @Unmodifiable Parameter ofValue(@Nullable Enum<?> value) {
+        return value == null ? StringImpl.EMPTY : new EnumImpl(value);
     }
 
     /**
@@ -555,10 +688,10 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
 
         ArrayList<Parameter> copy = new ArrayList<>(value.size());
         for (Parameter parameter : value) {
-            if (isExists(parameter)) copy.add(parameter);
+            if (!isAbsent(parameter)) copy.add(parameter);
         }
         copy.trimToSize();
-        return new ListedImpl(ParameterImpl.SERIALIZED_RAW, copy);
+        return new ListedImpl(copy);
     }
 
     /**
@@ -584,9 +717,9 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
         var copy = CaseInsensitive.<Parameter>newLinkedMap(value.size());
         for (Map.Entry<String, Parameter> entry : value.entrySet()) {
             String key = entry.getKey();
-            if (key != null && isExists(entry.getValue())) copy.put(key, entry.getValue());
+            if (key != null && !isAbsent(entry.getValue())) copy.put(key, entry.getValue());
         }
-        return new MappedImpl(ParameterImpl.SERIALIZED_RAW, copy);
+        return new MappedImpl(copy);
     }
 
     /**
@@ -621,8 +754,10 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
         );
     }
 
-    private static boolean isExists(@Nullable Parameter parameter) {
-        return parameter != null && !parameter.isMissing();
+    private static @Nullable Boolean parseBoolean(@NotNull String text) {
+        if (text.equalsIgnoreCase("true")) return Boolean.TRUE;
+        if (text.equalsIgnoreCase("false")) return Boolean.FALSE;
+        return null;
     }
 
     /**

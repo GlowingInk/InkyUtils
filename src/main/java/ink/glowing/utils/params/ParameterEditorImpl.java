@@ -1,9 +1,6 @@
 package ink.glowing.utils.params;
 
 import ink.glowing.utils.ComposerBase;
-import ink.glowing.utils.params.ParameterImpl.ListedImpl;
-import ink.glowing.utils.params.ParameterImpl.MappedImpl;
-import ink.glowing.utils.params.ParameterImpl.MissingImpl;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -11,6 +8,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static ink.glowing.utils.params.ParameterHelper.isAbsent;
+import static ink.glowing.utils.params.ParameterHelper.orMissing;
 
 final class ParameterEditorImpl {
     private ParameterEditorImpl() { }
@@ -39,27 +39,27 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull ParameterEditorImpl.OfListImpl set(int index, @Nullable Parameter value) {
+        public @NotNull OfListImpl set(int index, @Nullable Parameter value) {
             checkBuilt();
-            if (index < 0 || index >= size() && ParameterImpl.isAbsent(value)) return this;
+            if (index < 0 || index >= size() && isAbsent(value)) return this;
 
             ArrayList<Parameter> target = working();
             fillTo(target, index + 1);
-            target.set(index, ParameterImpl.orMissing(value));
+            target.set(index, orMissing(value));
             return this;
         }
 
         @Override
-        public @NotNull ParameterEditorImpl.OfListImpl add(@Nullable Parameter value) {
+        public @NotNull OfListImpl add(@Nullable Parameter value) {
             checkBuilt();
-            if (!ParameterImpl.isAbsent(value)) working().add(value);
+            if (!isAbsent(value)) working().add(value);
             return this;
         }
 
         @Override
-        public @NotNull ParameterEditorImpl.OfListImpl insert(int index, @Nullable Parameter value) {
+        public @NotNull OfListImpl insert(int index, @Nullable Parameter value) {
             checkBuilt();
-            if (index < 0 || ParameterImpl.isAbsent(value)) return this;
+            if (index < 0 || isAbsent(value)) return this;
 
             ArrayList<Parameter> target = working();
             fillTo(target, index);
@@ -68,13 +68,13 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull ParameterEditorImpl.OfListImpl insert(int index, @NotNull List<Parameter> values) {
+        public @NotNull OfListImpl insert(int index, @NotNull List<Parameter> values) {
             checkBuilt();
             if (index < 0) return this;
 
             ArrayList<Parameter> present = new ArrayList<>(values.size());
             for (Parameter value : values) {
-                if (!ParameterImpl.isAbsent(value)) present.add(value);
+                if (!isAbsent(value)) present.add(value);
             }
             if (present.isEmpty()) return this;
 
@@ -85,7 +85,7 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull ParameterEditorImpl.OfListImpl remove(int index) {
+        public @NotNull OfListImpl remove(int index) {
             checkBuilt();
             if (index >= 0 && index < size()) working().remove(index);
             return this;
@@ -96,7 +96,7 @@ final class ParameterEditorImpl {
             if (list == null) return source;
 
             list.trimToSize();
-            return new ListedImpl(ParameterImpl.SERIALIZED_RAW, list);
+            return new ListedImpl(list);
         }
     }
 
@@ -114,16 +114,16 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull ParameterEditorImpl.OfMapImpl put(@NotNull String key, @Nullable Parameter value) {
+        public @NotNull OfMapImpl put(@NotNull String key, @Nullable Parameter value) {
             checkBuilt();
-            if (ParameterImpl.isAbsent(value)) return remove(key);
+            if (isAbsent(value)) return remove(key);
 
             working().put(key, value);
             return this;
         }
 
         @Override
-        public @NotNull ParameterEditorImpl.OfMapImpl putAll(@NotNull Map<String, Parameter> entries) {
+        public @NotNull OfMapImpl putAll(@NotNull Map<String, Parameter> entries) {
             checkBuilt();
             for (Map.Entry<String, Parameter> entry : entries.entrySet()) {
                 if (entry.getKey() != null) put(entry.getKey(), entry.getValue());
@@ -132,7 +132,7 @@ final class ParameterEditorImpl {
         }
 
         @Override
-        public @NotNull ParameterEditorImpl.OfMapImpl remove(@NotNull String key) {
+        public @NotNull OfMapImpl remove(@NotNull String key) {
             checkBuilt();
             if ((map == null ? source.internalValue : map).containsKey(key)) working().remove(key);
             return this;
@@ -140,7 +140,7 @@ final class ParameterEditorImpl {
 
         @Override
         protected @NotNull Parameter doFinish() {
-            return map == null ? source : new MappedImpl(ParameterImpl.SERIALIZED_RAW, map);
+            return map == null ? source : new MappedImpl(map);
         }
     }
 

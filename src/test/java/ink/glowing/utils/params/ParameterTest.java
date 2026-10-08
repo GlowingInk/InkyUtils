@@ -1,5 +1,6 @@
 package ink.glowing.utils.params;
 
+import ink.glowing.utils.primitive.TriState;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -9,11 +10,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static ink.glowing.utils.params.Parameter.parseMap;
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class ParameterTest {
     public static Stream<Arguments> parseData() {
         return Stream.of(
@@ -110,12 +113,21 @@ public class ParameterTest {
 
     @Test
     public void plainTextValueTest() {
-        Parameter params = parseMap("q:'quoted' s:esc\\'d b:bare e:''");
+        Parameter params = parseMap("q:'quoted' s:esc\\'d b:bare e:'' i:007 d:0.00000 y:True n:'42' x:1-2");
 
         assertEquals("quoted", params.get("q").textValue());
         assertEquals("esc'd", params.get("s").textValue());
         assertEquals("bare", params.get("b").textValue());
         assertEquals("", params.get("e").textValue());
+
+        // Typed values keep the original text
+        assertEquals("007", params.get("i").textValue());
+        assertEquals(7, params.get("i").asInt().getAsInt());
+        assertEquals("0.00000", params.get("d").textValue());
+        assertEquals(0.0, params.get("d").asDouble().getAsDouble());
+        assertEquals("True", params.get("y").textValue());
+        assertEquals(TriState.TRUE, params.get("y").asTriState());
+        assertEquals("n:42 x:1-2", parseMap("n:'42' x:1-2").serialize(true));
     }
 
     @Test
@@ -145,6 +157,14 @@ public class ParameterTest {
     public void rawOfBuiltParameterTest() {
         assertEquals("'a b'", Parameter.ofValue("a b").raw());
         assertEquals("a", Parameter.ofValue("a").raw());
+
+        Parameter number = Parameter.ofValue(5);
+        assertEquals("5", number.raw());
+        assertEquals(parseMap("k:5").get("k"), number);
+        assertEquals(5, number.asInt().getAsInt());
+        assertTrue(parseMap("k:x").get("k").asInt().isEmpty());
+        assertEquals(TriState.TRUE, Parameter.ofValue(true).asTriState());
+        assertEquals(Optional.of(TimeUnit.DAYS), Parameter.ofValue(TimeUnit.DAYS).asEnum(TimeUnit.class));
     }
 
     @Test
@@ -186,6 +206,7 @@ public class ParameterTest {
         assertTrue(params.isMap() && !params.isList());
         assertEquals(List.of("k", "e"), List.copyOf(params.keys()));
         assertTrue(params.get("k").isList() && !params.get("k").isMap());
+        assertTrue(params.get("e").isPlain() && !params.isPlain() && !params.get("k").isPlain() && !params.get("nope").isPlain());
         assertEquals("a", params.find("k").orElseThrow().get(0).textValue());
         assertEquals("", params.find("e").orElseThrow().textValue(), "Empty plain is present");
         assertTrue(params.find("nope").isEmpty());

@@ -2,9 +2,7 @@ package ink.glowing.utils.params;
 
 import ink.glowing.utils.TextUtils;
 import ink.glowing.utils.hash.CaseInsensitive;
-import ink.glowing.utils.params.ParameterImpl.ListedImpl;
-import ink.glowing.utils.params.ParameterImpl.MappedImpl;
-import ink.glowing.utils.params.ParameterImpl.ValueImpl;
+import ink.glowing.utils.primitive.TriState;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,10 +28,6 @@ final class ParserImpl {
         this.length = input.length;
     }
 
-    private void advance() {
-        ++pos;
-    }
-
     private boolean advanceOn(char ch) {
         if (hasMore() && input[pos] == ch) {
             ++pos;
@@ -57,18 +51,18 @@ final class ParserImpl {
     }
 
     private @NotNull Function<Parameter, String> slice(int start, int end) {
-        return new ParameterImpl.LazyValue(input, start, end);
+        return new LazyValue(input, start, end);
     }
 
-    private boolean skipWhitespaces() {
+    private boolean skipNonWhitespaces() {
         while (hasMore()) {
             if (isWhitespace(current())) {
-                advance();
+                pos++;
             } else {
-                return true;
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     private int skipEscape(int index) {
@@ -161,7 +155,7 @@ final class ParserImpl {
         boolean global = start == 0;
         int endCh = global ? NONE : ']';
         while (hasMore()) {
-            if (!skipWhitespaces()) {
+            if (skipNonWhitespaces()) {
                 break;
             }
             if (advanceOn(']')) {
@@ -191,9 +185,9 @@ final class ParserImpl {
 
     private @NotNull Parameter parseSingleValueUnchecked(int parentEnd) {
         int entry = pos;
-        if (!skipWhitespaces() || current() == parentEnd) {
+        if (skipNonWhitespaces() || current() == parentEnd) {
             valueEnd = entry;
-            return ValueImpl.EMPTY;
+            return StringImpl.EMPTY;
         }
 
         int tokenStart = pos;
@@ -212,7 +206,7 @@ final class ParserImpl {
                 return parseSingleton(string, tokenStart, parentEnd);
             }
             valueEnd = quotedEnd;
-            return new ValueImpl(string, slice(tokenStart, quotedEnd));
+            return new StringImpl(string, slice(tokenStart, quotedEnd));
         }
 
         int end = scanBare(tokenStart, parentEnd);
@@ -225,8 +219,49 @@ final class ParserImpl {
 
         valueEnd = end;
         pos = end < length && isWhitespace(input[end]) ? end + 1 : end; // the parent handles its closing
-        // Without quotes and escapes, the raw string is the value itself
-        return new ValueImpl(string, escaped ? slice(tokenStart, end) : ParameterImpl.VALUE_RAW);
+        return escaped
+                ? new StringImpl(string, slice(tokenStart, end))
+                : parseBare(string);
+    }
+
+    private @NotNull Parameter parseBare(@NotNull String text) {
+        int length = text.length();
+        int digitsFrom = length > 1 && (text.charAt(0) == '+' || text.charAt(0) == '-') ? 1 : 0;
+        boolean integer = true;
+        boolean number = true; // only digits and the symbols of a double
+        boolean hasDigit = false;
+        for (int i = 0; i < length && number; i++) {
+            char ch = text.charAt(i);
+            if (ch >= '0' && ch <= '9') {
+                hasDigit = true;
+            } else if (ch == '.' || ch == 'e' || ch == 'E' || ch == '+' || ch == '-') {
+                if (i >= digitsFrom) integer = false;
+            } else {
+                number = false;
+                integer = false;
+            }
+        }
+
+        if (number && hasDigit) {
+            if (integer) {
+                try {
+                    return new IntImpl(Integer.parseInt(text), text);
+                } catch (NumberFormatException _) { // too large, try the next type
+                }
+                try {
+                    return new LongImpl(Long.parseLong(text), text);
+                } catch (NumberFormatException _) { // too large, try the next type
+                }
+            }
+            try {
+                return new DoubleImpl(Double.parseDouble(text), text);
+            } catch (NumberFormatException _) { // like 1-2
+                return new StringImpl(text, ParameterHelper.VALUE_RAW);
+            }
+        }
+        if (text.equalsIgnoreCase("true")) return new BooleanImpl(TriState.TRUE, text);
+        if (text.equalsIgnoreCase("false")) return new BooleanImpl(TriState.FALSE, text);
+        return new StringImpl(text, ParameterHelper.VALUE_RAW);
     }
 
     private @NotNull String parseQuotedString() {

@@ -22,21 +22,24 @@ config.get("servers").get(1).get("ports").isMissing(); // true
 config.get("servers").get(7).get("host").get(0).isMissing(); // true, because there's no index 7 element
 ```
 Lookups never return `null` or throw: anything absent is `Parameter.missing()`, which can be chained further.
+Unquoted values that look like an `int`, `long`, `double` or `true`/`false` are parsed into their type, and still keep the exact text they were written with: `0.00000` has `textValue()` of `"0.00000"` and `asDouble(...)` of `0.0`.
 Map keys are case-insensitive.
 
-There is a single `Parameter` type: `isList()` and `isMap()` tell the kinds apart, and a parameter that is neither is a plain value.
+There is a single `Parameter` type: `isList()`, `isMap()` and `isPlain()` tell the kinds apart, and `isMissing()` tells an absent one.
 `keys()` gives the keys to look up by: a map's keys, a list's indexes, or just `"0"` for a plain value.
 `find(...)` returns an `Optional` instead of `missing()`, and `getMapped(...)` applies a function to the looked-up parameter.
 
 The text of a parameter can be read with `getText(...)`, or converted with a fallback for absent and malformed values:
 ```java
-Parameter config = Parameter.parseMap("name:Main port:25565 ratio:0.5 debug:yes mode:fast");
+Parameter config = Parameter.parseMap("name:Main port:25565 ratio:0.5 debug:true mode:fast");
 
 config.getText("name"); // "Main"
+config.get("port").asInt(); // OptionalInt[25565], empty if absent or malformed
 config.get("port").asInt(0); // 25565
 config.get("timeout").asInt(30); // 30, it's absent
 config.get("ratio").asDouble(1.0); // 0.5
-config.get("debug").asBoolean(false); // true, see TriState for the accepted words
+config.get("debug").asBoolean(); // true, only true/false are recognized; asBoolean(false) is the same
+config.get("verbose").asTriState(); // TriState.UNSET, it's absent; accepts words like yes/on, see TriState
 config.get("mode").asEnum(Mode.SLOW); // Mode.FAST, ignoring case; asEnum(Mode.class, def) works too
 config.get("port").asInt(Integer::parseInt); // own parsing, receives "" if absent
 config.get("id").as(UUID::fromString); // same for any type
@@ -45,6 +48,23 @@ config.get("id").as(UUID::fromString); // same for any type
 A parameter can be turned back into a string with `serialize(...)`, which produces a normalized form that parses back to the same thing,
 and compared with `matches(...)`, which ignores quoting, spacing and map entry order.
 Parameters can also be built in code with `Parameter.ofValue(...)`, `Parameter.ofList(...)` and `Parameter.ofMap(...)`, or their no-arg forms for an empty one. `null` and missing entries are skipped.
+`ofValue(...)` also takes an `int`, `long`, `double`, `boolean`, `TriState` or enum constant, which the matching `asX()` returns without parsing.
+```java
+Parameter config = Parameter.ofMap(Map.of(
+        "title", Parameter.ofValue("Main servers"),
+        "servers", Parameter.ofList(List.of(
+                Parameter.ofMap(Map.of(
+                        "host", Parameter.ofValue("eu.example.com"),
+                        "ports", Parameter.ofList(List.of(Parameter.ofValue(25565), Parameter.ofValue(25566)))
+                )),
+                Parameter.ofMap(Map.of("host", Parameter.ofValue("us.example.com")))
+        ))
+));
+
+config.get("title").textValue(); // "Main servers"
+config.get("servers").get(0).get("ports").get(1).asInt(0); // 25566, without parsing
+```
+Entries keep the iteration order of the map given, which `Map.of` doesn't define: use a `LinkedHashMap` when the order matters.
 Classes can implement `Parameterizable` to provide their own parameter representation.
 
 Parameters are immutable. `with(...)` returns a modified copy: it sets a key on a map or an index on a list, and returns the parameter as is for any other kind.
