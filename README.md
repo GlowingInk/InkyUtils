@@ -105,7 +105,7 @@ NumberUtils.parseInt("42", 0); // 42
 NumberUtils.parseInt("many", 0); // 0, the fallback
 NumberUtils.parseDouble(null, 1.5); // 1.5
 ```
-There are `parseInt`, `parseLong`, `parseFloat` and `parseDouble`. Without a fallback they return an `OptionalInt`, `OptionalLong`, `OptionalFloat` or `OptionalDouble`.
+There are `parseInt`, `parseLong` and `parseDouble`. Without a fallback they return an `OptionalInt`, `OptionalLong` or `OptionalDouble`.
 
 ### `hash`
 `HashList` is an unmodifiable `List` with O(1) `contains`, `indexOf` and `lastIndexOf`, for when a list needs both order and fast lookups.

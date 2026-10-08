@@ -15,6 +15,8 @@ import java.util.function.Supplier;
 public final class FluentUtils {
     private FluentUtils() { }
 
+    private static final Supplier<?> NULL_SUPPLIER = () -> null;
+
     /**
      * Runs the action on the value and returns the value itself.
      * @param <$Type> the type of the value
@@ -105,5 +107,19 @@ public final class FluentUtils {
      */
     public static <$Type> $Type attemptOrElseGet(@NotNull Supplier<? extends $Type> supplier, @NotNull Supplier<? extends $Type> def) {
         return FluentUtils.<$Type>attempt(supplier).orElseGet(def);
+    }
+
+    /**
+     * Returns a supplier that always supplies the value.
+     * @param <$Type> the type of the value
+     * @param value the value to supply, may be {@code null}
+     * @return the supplier of the value
+     */
+    @Contract(pure = true)
+    @SuppressWarnings("unchecked")
+    public static <$Type> @NotNull Supplier<$Type> supplied(@Nullable $Type value) {
+        return value == null
+                ? (Supplier<$Type>) NULL_SUPPLIER
+                : () -> value;
     }
 }

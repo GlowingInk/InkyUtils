@@ -118,55 +118,6 @@ public final class NumberUtils {
     }
 
     /**
-     * Parses a {@code float}.
-     * @param str the string to parse, may be {@code null}
-     * @return the parsed value, or empty if the string is not a number
-     * @see Float#parseFloat(String)
-     */
-    @Contract(pure = true)
-    public static @NotNull OptionalFloat parseFloat(@Nullable String str) {
-        if (str == null || str.isEmpty()) return OptionalFloat.empty();
-        try {
-            return OptionalFloat.of(Float.parseFloat(str));
-        } catch (NumberFormatException _) {
-            return OptionalFloat.empty();
-        }
-    }
-
-    /**
-     * Parses a {@code float}.
-     * @param str the string to parse, may be {@code null}
-     * @param def the fallback
-     * @return the parsed value, or the fallback if the string is not a number
-     * @see Float#parseFloat(String)
-     */
-    @Contract(value = "null, _ -> param2", pure = true)
-    public static float parseFloat(@Nullable String str, float def) {
-        if (str == null || str.isEmpty()) return def;
-        try {
-            return Float.parseFloat(str);
-        } catch (NumberFormatException _) {
-            return def;
-        }
-    }
-
-    /**
-     * Parses a {@code float}, with a lazily computed fallback.
-     * @param str the string to parse, may be {@code null}
-     * @param def the supplier of the fallback, called only if the string is not a number
-     * @return the parsed value, or the fallback if the string is not a number
-     * @see #parseFloat(String, float)
-     */
-    public static float parseFloat(@Nullable String str, @NotNull FloatSupplier def) {
-        if (str == null || str.isEmpty()) return def.getAsFloat();
-        try {
-            return Float.parseFloat(str);
-        } catch (NumberFormatException _) {
-            return def.getAsFloat();
-        }
-    }
-
-    /**
      * Parses a {@code double}.
      * @param str the string to parse, may be {@code null}
      * @return the parsed value, or empty if the string is not a number

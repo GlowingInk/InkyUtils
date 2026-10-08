@@ -5,9 +5,7 @@ import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.params.ParameterEditorImpl.NoopEditor;
 import ink.glowing.utils.params.ParameterImpl.*;
 import ink.glowing.utils.primitive.TriState;
-import ink.glowing.utils.primitive.num.FloatSupplier;
 import ink.glowing.utils.primitive.num.NumberUtils;
-import ink.glowing.utils.primitive.num.ToFloatFunction;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -429,35 +427,6 @@ public sealed interface Parameter extends Parameterizable permits ParameterImpl.
      */
     default long asLong(@NotNull ToLongFunction<@NotNull String> mapper) {
         return mapper.applyAsLong(textValue());
-    }
-
-    /**
-     * Parses this parameter's {@link #textValue()} as a {@code float}.
-     * @param def the fallback, used if the value is absent or malformed
-     * @return the parsed value, or the fallback
-     * @see NumberUtils#parseFloat(String, float)
-     */
-    default float asFloat(float def) {
-        return NumberUtils.parseFloat(textValue(), def);
-    }
-
-    /**
-     * Parses this parameter's {@link #textValue()} as a {@code float}, with a lazily computed fallback.
-     * @param def the supplier of the fallback, called only if the value is absent or malformed
-     * @return the parsed value, or the fallback
-     * @see NumberUtils#parseFloat(String, FloatSupplier)
-     */
-    default float asFloat(@NotNull FloatSupplier def) {
-        return NumberUtils.parseFloat(textValue(), def);
-    }
-
-    /**
-     * Maps this parameter's {@link #textValue()} to a {@code float}.
-     * @param mapper the mapper, receiving an empty string for {@link #missing()}
-     * @return the mapped result
-     */
-    default float asFloat(@NotNull ToFloatFunction<@NotNull String> mapper) {
-        return mapper.applyAsFloat(textValue());
     }
 
     /**
