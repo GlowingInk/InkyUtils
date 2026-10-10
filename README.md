@@ -18,70 +18,49 @@ Parameter config = Parameter.parseMap(
 config.get("title").textValue(); // "Main servers"
 config.get("servers").count(); // 2
 config.get("servers").get(0).get("ports").get(1).textValue(); // "25566"
-config.get("servers").get(1).get("ports").isMissing(); // true
-config.get("servers").get(7).get("host").get(0).isMissing(); // true, because there's no index 7 element
+config.get("servers").get(7).get("host").isMissing(); // true, there's no index 7
+config.find("title"); // Optional of the title, empty if absent
+config.getMapped("servers", Parameter::count); // 2, the function receives missing() if absent
+config.keys(); // ["title", "servers"], a list would have its indexes
 ```
-Lookups never return `null` or throw: anything absent is `Parameter.missing()`, which can be chained further.
-Unquoted values that look like an `int`, `long`, `double` or `true`/`false` are parsed into their type, and still keep the exact text they were written with: `0.00000` has `textValue()` of `"0.00000"` and `asDouble(...)` of `0.0`.
-Map keys are case-insensitive.
+Lookups never return `null` or throw: anything absent is `Parameter.missing()`, which can be chained further. Map keys are case-insensitive.
+There is a single `Parameter` type: `isList()`, `isMap()` and `isPlain()` tell the kinds apart, `isMissing()` an absent one.
 
-There is a single `Parameter` type: `isList()`, `isMap()` and `isPlain()` tell the kinds apart, and `isMissing()` tells an absent one.
-`keys()` gives the keys to look up by: a map's keys, a list's indexes, or just `"0"` for a plain value.
-`find(...)` returns an `Optional` instead of `missing()`, and `getMapped(...)` applies a function to the looked-up parameter.
-
-The text of a parameter can be read with `getText(...)`, or converted with a fallback for absent and malformed values:
+Unquoted values that look like an `int`, `long`, `double` or `true`/`false` are parsed into their type, and keep the exact text they were written with.
+Values are read with a fallback for absent and malformed ones:
 ```java
 Parameter config = Parameter.parseMap("name:Main port:25565 ratio:0.5 debug:true mode:fast");
 
 config.getText("name"); // "Main"
 config.get("port").asInt(); // OptionalInt[25565], empty if absent or malformed
-config.get("port").asInt(0); // 25565
 config.get("timeout").asInt(30); // 30, it's absent
 config.get("ratio").asDouble(1.0); // 0.5
-config.get("debug").asBoolean(); // true, only true/false are recognized; asBoolean(false) is the same
-config.get("verbose").asTriState(); // TriState.UNSET, it's absent; accepts words like yes/on, see TriState
-config.get("mode").asEnum(Mode.SLOW); // Mode.FAST, ignoring case; asEnum(Mode.class, def) works too
-config.get("port").asInt(Integer::parseInt); // own parsing, receives "" if absent
-config.get("id").as(UUID::fromString); // same for any type
+config.get("debug").asBoolean(); // true, only true/false are recognized
+config.get("verbose").asTriState(); // TriState.UNSET, it's absent; accepts words like yes/on
+config.get("mode").asEnum(Mode.SLOW); // Mode.FAST, ignoring case
+config.get("id").as(UUID::fromString); // own parsing for any type
 ```
 
-A parameter can be turned back into a string with `serialize(...)`, which produces a normalized form that parses back to the same thing,
-and compared with `matches(...)`, which ignores quoting, spacing and map entry order.
-Parameters can also be built in code with `Parameter.ofValue(...)`, `Parameter.ofList(...)` and `Parameter.ofMap(...)`, or their no-arg forms for an empty one. `null` and missing entries are skipped.
+Parameters can be built in code with `ofValue(...)`, `ofList(...)` and `ofMap(...)` (`null` and missing entries are skipped, map entries keep their iteration order).
 `ofValue(...)` also takes an `int`, `long`, `double`, `boolean`, `TriState` or enum constant, which the matching `asX()` returns without parsing.
 ```java
-Parameter config = Parameter.ofMap(Map.of(
-        "title", Parameter.ofValue("Main servers"),
-        "servers", Parameter.ofList(List.of(
-                Parameter.ofMap(Map.of(
-                        "host", Parameter.ofValue("eu.example.com"),
-                        "ports", Parameter.ofList(List.of(Parameter.ofValue(25565), Parameter.ofValue(25566)))
-                )),
-                Parameter.ofMap(Map.of("host", Parameter.ofValue("us.example.com")))
-        ))
+Parameter server = Parameter.ofMap(Map.of(
+        "host", Parameter.ofValue("eu.example.com"),
+        "ports", Parameter.ofList(List.of(Parameter.ofValue(25565), Parameter.ofValue(25566)))
 ));
-
-config.get("title").textValue(); // "Main servers"
-config.get("servers").get(0).get("ports").get(1).asInt(0); // 25566, without parsing
 ```
-Entries keep the iteration order of the map given (which `Map.of` doesn't define; use sorted variant of `Map` when the order matters).
-Classes can implement `Parameterizable` to provide their own parameter representation.
+`serialize(...)` turns a parameter back into a normalized string that parses to the same thing, and `matches(...)` compares two ignoring quoting, spacing and map entry order.
 
-Parameters are immutable. `with(...)` returns a modified copy: it sets a key on a map or an index on a list, and returns the parameter as is for any other kind.
-For several edits or removals, `editList()` and `editMap()` apply them in order with a single copy:
+Parameters are immutable. `with(...)` returns a modified copy, setting a key on a map or an index on a list. For several edits, `editList()` and `editMap()` apply them with a single copy:
 ```java
 Parameter list = Parameter.parseList("a b c");
 
 list.with(1, Parameter.ofValue("B")); // [a B c]
 list.with(4, Parameter.ofValue("e")); // [a b c '' e], the gap is filled with missing
-Parameter.parseMap("mode:fast").with("MODE", Parameter.ofValue("slow")); // {mode:slow}, an absent value removes the key
-
-list.editList()
-        .insert(1, Parameter.ofValue("x"))
-        .remove(0)
-        .finish(); // [x b c]
+list.editList().insert(1, Parameter.ofValue("x")).remove(0).finish(); // [x b c]
 ```
 
+`parseMapStrict` and `parseListStrict` throw `IllegalArgumentException` on malformed input: an unterminated list, map or quote, a key without a colon, a stray closing bracket or a value nested too deep.
 Nesting depth is limited to 512, configurable via the `ink.glowing.utils.params.maxDepth` system property.
 
 ### `primitive.TriState`

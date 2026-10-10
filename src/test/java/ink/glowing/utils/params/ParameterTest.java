@@ -85,7 +85,14 @@ public class ParameterTest {
     @ParameterizedTest
     @ValueSource(strings = {"k:\\", "k:'unterminated", "k:[a", "k:'x'y", "k", "a :b", "'a' :b", "k:a :b", "k:'a' :b"})
     public void malformedTest(String input) {
-        assertThrows(IllegalArgumentException.class, () -> parseMap(input));
+        assertThrows(IllegalArgumentException.class, () -> Parameter.parseMapStrict(input));
+        assertDoesNotThrow(() -> parseMap(input).serialize(true));
+        assertEquals("a", parseMap("k:[a").get("k").get(0).textValue());
+        assertEquals("unterminated", parseMap("k:'unterminated").get("k").textValue());
+        assertTrue(parseMap("k:x y").get("y").isPlain());
+        assertEquals("b", parseMap("}a:b ]c}").get("a").textValue());
+        assertEquals(2, Parameter.parseList("a ] b").count());
+        assertEquals("a\\", Parameter.parseList("a\\").get(0).raw());
     }
 
     @Test
@@ -171,9 +178,12 @@ public class ParameterTest {
     public void nestingLimitTest() {
         int limit = Parameter.MAX_DEPTH;
         assertEquals(1, Parameter.parseList("[".repeat(limit - 1) + "]".repeat(limit - 1)).count());
-        assertThrows(IllegalArgumentException.class, () -> Parameter.parseList("[".repeat(limit + 1) + "]".repeat(limit + 1)));
-        assertThrows(IllegalArgumentException.class, () -> Parameter.parseList("[".repeat(100_000)));
-        assertThrows(IllegalArgumentException.class, () -> parseMap("a:".repeat(limit + 1) + "b"));
+        assertThrows(IllegalArgumentException.class, () -> Parameter.parseListStrict("[".repeat(limit + 1) + "]".repeat(limit + 1)));
+        assertThrows(IllegalArgumentException.class, () -> Parameter.parseListStrict("[".repeat(100_000)));
+        assertThrows(IllegalArgumentException.class, () -> Parameter.parseMapStrict("a:".repeat(limit + 1) + "b"));
+        assertEquals(2, Parameter.parseList("[".repeat(limit + 1) + "]".repeat(limit + 1) + " x").count());
+        assertEquals(1, Parameter.parseList("[".repeat(100_000)).count());
+        assertTrue(Parameter.parseMap("a:".repeat(limit + 1) + "b").isMap());
     }
 
     @Test

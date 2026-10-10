@@ -46,7 +46,7 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
     /**
      * The maximum nesting depth of a parsed parameter: {@code 512} by default, or the value of the
      * {@link #MAX_DEPTH_PROPERTY} system property if set (clamped to {@code >=1}), read once when this
-     * interface is initialized. Deeper input fails to parse with an {@link IllegalArgumentException}.
+     * interface is initialized. Deeper input is malformed, see {@link #parseListStrict(String)}.
      */
     int MAX_DEPTH = Math.max(1, Integer.getInteger(MAX_DEPTH_PROPERTY, 512));
 
@@ -723,34 +723,68 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
     }
 
     /**
-     * Parses a list parameter from its top-level form, e.g. {@code value1 value2}.
+     * Parses a list parameter from its top-level form, e.g. {@code value1 value2}. The result for
+     * malformed input is unspecified, use {@link #parseListStrict(String)} to reject it.
      * @param inputStr the string to parse
      * @return the parsed parameter
-     * @throws IllegalArgumentException if the string is malformed
+     * @see #parseListStrict(String)
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter parseList(@NotNull String inputStr) {
+        return _parseList(inputStr, false);
+    }
+
+    /**
+     * Parses a list parameter like {@link #parseList(String)}, but rejects malformed input.
+     * @param inputStr the string to parse
+     * @return the parsed parameter
+     * @throws IllegalArgumentException if the string is malformed: it has an unterminated list, map or quoted string,
+     * a stray closing bracket, a dangling backslash, or a value nested deeper than {@link #MAX_DEPTH}
+     */
+    @Contract(pure = true)
+    static @NotNull @Unmodifiable Parameter parseListStrict(@NotNull String inputStr) {
+        return _parseList(inputStr, true);
+    }
+
+    private static @NotNull Parameter _parseList(@NotNull String inputStr, boolean strict) {
         if (inputStr.isEmpty()) return ListedImpl.EMPTY;
         char[] input = inputStr.toCharArray();
         return new ListedImpl(
                 new LazyValue(input, 0, input.length),
-                new ParserImpl(input).parseList(0)
+                new ParserImpl(input, strict).parseList(0)
         );
     }
 
     /**
-     * Parses a map parameter from its top-level form, e.g. {@code key1:value1 key2:value2}.
+     * Parses a map parameter from its top-level form, e.g. {@code key1:value1 key2:value2}. The result for
+     * malformed input is unspecified, use {@link #parseMapStrict(String)} to reject it.
      * @param inputStr the string to parse
      * @return the parsed parameter
-     * @throws IllegalArgumentException if the string is malformed
+     * @see #parseMapStrict(String)
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter parseMap(@NotNull String inputStr) {
+        return _parseMap(inputStr, false);
+    }
+
+    /**
+     * Parses a map parameter like {@link #parseMap(String)}, but rejects malformed input.
+     * @param inputStr the string to parse
+     * @return the parsed parameter
+     * @throws IllegalArgumentException if the string is malformed: a key has no colon, or see
+     * {@link #parseListStrict(String)} for the rest
+     */
+    @Contract(pure = true)
+    static @NotNull @Unmodifiable Parameter parseMapStrict(@NotNull String inputStr) {
+        return _parseMap(inputStr, true);
+    }
+
+    private static @NotNull Parameter _parseMap(@NotNull String inputStr, boolean strict) {
         if (inputStr.isEmpty()) return MappedImpl.EMPTY;
         char[] input = inputStr.toCharArray();
         return new MappedImpl(
                 new LazyValue(input, 0, input.length),
-                new ParserImpl(input).parseMap(0)
+                new ParserImpl(input, strict).parseMap(0)
         );
     }
 

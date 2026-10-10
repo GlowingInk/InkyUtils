@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 
 import static java.lang.Character.isWhitespace;
@@ -18,14 +19,20 @@ final class ParserImpl {
 
     private final char[] input;
     private final int length;
+    private final boolean strict;
     private int pos;
     private int depth;
     private int valueEnd; // where the value last parsed by parseSingleValue ended, exclusive
     private boolean scanEscaped; // whether the range last scanned by scanBare has escapes
 
-    ParserImpl(char[] input) {
+    ParserImpl(char[] input, boolean strict) {
         this.input = input;
         this.length = input.length;
+        this.strict = strict;
+    }
+
+    private void fail(@NotNull String format, Object... args) { // lenient parsing recovers instead
+        if (strict) throw new IllegalArgumentException(String.format(Locale.ROOT, format, args));
     }
 
     private boolean advanceOn(char ch) {
@@ -67,7 +74,8 @@ final class ParserImpl {
 
     private int skipEscape(int index) {
         if (index + 1 >= length) {
-            throw new IllegalArgumentException("Found escaping '\\' at the end of a string");
+            fail("Found escaping '\\' at the end of a string");
+            return length;
         }
         return index + 2;
     }
@@ -78,7 +86,7 @@ final class ParserImpl {
         StringBuilder stringBuilder = new StringBuilder(end - start);
         for (int i = start; i < end; i++) {
             char ch = input[i];
-            if (ch == '\\') ch = input[++i]; // guaranteed safe by skipEscape
+            if (ch == '\\' && i + 1 < end) ch = input[++i]; // only a dangling backslash has nothing to escape
             stringBuilder.append(ch);
         }
         return stringBuilder.toString();
@@ -122,10 +130,9 @@ final class ParserImpl {
         while (hasMore()) {
             char ch = pop();
             if (ch == '}') {
-                if (global) {
-                    throw new IllegalArgumentException("Found trailing '}' while parsing global map at pos " + (pos - 1));
-                }
-                return map;
+                if (!global) return map;
+                fail("Found trailing '}' while parsing global map at pos %d", pos - 1);
+                continue;
             } else if (isWhitespace(ch)) {
                 continue;
             }
@@ -139,14 +146,14 @@ final class ParserImpl {
                 key = unescape(keyStart, keyEnd, scanEscaped);
                 pos = keyEnd;
             }
-            if (!advanceOn(':')) {
-                throw new IllegalArgumentException("Couldn't find colon for the map value at pos " + pos);
+            if (advanceOn(':')) {
+                map.put(key, parseSingleValue(endCh));
+            } else {
+                fail("Couldn't find colon for the map value at pos %d", pos);
+                map.put(key, StringImpl.EMPTY);
             }
-            map.put(key, parseSingleValue(endCh));
         }
-        if (!global) {
-            throw new IllegalArgumentException("Couldn't find the end of a map started at " + start);
-        }
+        if (!global) fail("Couldn't find the end of a map started at %d", start);
         return map;
     }
 
@@ -159,24 +166,42 @@ final class ParserImpl {
                 break;
             }
             if (advanceOn(']')) {
-                if (global) {
-                    throw new IllegalArgumentException("Found trailing ']' while parsing global list at pos " + (pos - 1));
-                }
-                return list;
+                if (!global) return list;
+                fail("Found trailing ']' while parsing global list at pos %d", pos - 1);
+                continue;
             }
             list.add(parseSingleValue(endCh));
         }
-        if (!global) {
-            throw new IllegalArgumentException("Couldn't find the end of a list started at " + start);
-        }
+        if (!global) fail("Couldn't find the end of a list started at %d", start);
         return list;
     }
 
     private @NotNull Parameter parseSingleValue(int parentEnd) {
-        if (++depth > Parameter.MAX_DEPTH) {
-            throw new IllegalArgumentException("Nesting is deeper than " + Parameter.MAX_DEPTH + " levels at pos " + pos);
-        }
         try {
+            if (++depth > Parameter.MAX_DEPTH) {
+                fail("Nesting is deeper than %d levels at pos %d", Parameter.MAX_DEPTH, pos);
+                int level = 0;
+                skipNonWhitespaces();
+                while (hasMore()) {
+                    char ch = pop();
+                    if (level == 0 && ch == parentEnd) {
+                        pos--;
+                        break;
+                    } else if (ch == '\\') {
+                        pos = skipEscape(pos - 1);
+                    } else if (ch == '\'') {
+                        parseQuotedString();
+                    } else if (ch == '[' || ch == '{') {
+                        level++;
+                    } else if ((ch == ']' || ch == '}') && level > 0) {
+                        if (--level == 0) break;
+                    } else if (level == 0 && isWhitespace(ch)) {
+                        break;
+                    }
+                }
+                valueEnd = pos;
+                return StringImpl.EMPTY;
+            }
             return parseSingleValueUnchecked(parentEnd);
         } finally {
             --depth;
@@ -228,39 +253,35 @@ final class ParserImpl {
         int length = text.length();
         int digitsFrom = length > 1 && (text.charAt(0) == '+' || text.charAt(0) == '-') ? 1 : 0;
         boolean integer = true;
-        boolean number = true; // only digits and the symbols of a double
         boolean hasDigit = false;
-        for (int i = 0; i < length && number; i++) {
+        int i = 0;
+        for (; i < length; i++) {
             char ch = text.charAt(i);
-            if (ch >= '0' && ch <= '9') {
+            if (Character.isDigit(ch)) {
                 hasDigit = true;
             } else if (ch == '.' || ch == 'e' || ch == 'E' || ch == '+' || ch == '-') {
                 if (i >= digitsFrom) integer = false;
             } else {
-                number = false;
-                integer = false;
+                break;
             }
         }
 
-        if (number && hasDigit) {
+        if (i == length && hasDigit) {
             if (integer) {
                 try {
                     return new IntImpl(Integer.parseInt(text), text);
-                } catch (NumberFormatException _) { // too large, try the next type
-                }
+                } catch (NumberFormatException _) { /* too large, try the next type */ }
                 try {
                     return new LongImpl(Long.parseLong(text), text);
-                } catch (NumberFormatException _) { // too large, try the next type
-                }
+                } catch (NumberFormatException _) { /* too large, try the next type */ }
             }
             try {
                 return new DoubleImpl(Double.parseDouble(text), text);
-            } catch (NumberFormatException _) { // like 1-2
-                return new StringImpl(text, ParameterHelper.VALUE_RAW);
-            }
+            } catch (NumberFormatException _) { /* like "1-2", a plain string */ }
+        } else {
+            if (text.equalsIgnoreCase("true")) return new BooleanImpl(TriState.TRUE, text);
+            if (text.equalsIgnoreCase("false")) return new BooleanImpl(TriState.FALSE, text);
         }
-        if (text.equalsIgnoreCase("true")) return new BooleanImpl(TriState.TRUE, text);
-        if (text.equalsIgnoreCase("false")) return new BooleanImpl(TriState.FALSE, text);
         return new StringImpl(text, ParameterHelper.VALUE_RAW);
     }
 
@@ -280,6 +301,8 @@ final class ParserImpl {
                 i++;
             }
         }
-        throw new IllegalArgumentException("Couldn't find the end of a quoted string started at " + start);
+        fail("Couldn't find the end of a quoted string started at %d", start);
+        pos = length;
+        return unescape(start, length, escaped);
     }
 }
