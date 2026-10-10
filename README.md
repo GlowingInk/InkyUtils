@@ -64,7 +64,7 @@ Parameter config = Parameter.ofMap(Map.of(
 config.get("title").textValue(); // "Main servers"
 config.get("servers").get(0).get("ports").get(1).asInt(0); // 25566, without parsing
 ```
-Entries keep the iteration order of the map given, which `Map.of` doesn't define: use a `LinkedHashMap` when the order matters.
+Entries keep the iteration order of the map given (which `Map.of` doesn't define; use sorted variant of `Map` when the order matters).
 Classes can implement `Parameterizable` to provide their own parameter representation.
 
 Parameters are immutable. `with(...)` returns a modified copy: it sets a key on a map or an index on a list, and returns the parameter as is for any other kind.
