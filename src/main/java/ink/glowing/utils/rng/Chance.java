@@ -26,9 +26,10 @@ public interface Chance extends Predicate<RandomGenerator> {
     boolean test(@NotNull RandomGenerator rng);
 
     /**
-     * Tests this chance using {@link RngUtils#threadRandom()}.
+     * Tests this chance using thread's local random.
      * @return {@code true} with the probability of {@link #chance()}
      * @see #test(RandomGenerator)
+     * @see RngUtils#threadRandom()
      */
     default boolean test() {
         return test(RngUtils.threadRandom());
