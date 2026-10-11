@@ -145,6 +145,11 @@ DurationUtils.parseDuration("2min", Map.of("min", ChronoUnit.MINUTES)); // custo
 ```
 Default units: `ns`, `ms`, `s`, `m`, `h`, `d`, case-insensitive.
 
+It also checks whether enough time has passed between two points in time.
+```java
+boolean ready = DurationUtils.hasElapsed(lastUse, Instant.now(), Duration.ofSeconds(5)); // true once 5 seconds have passed
+```
+
 ### `Comparison`
 The result of a comparison as a constant: `BELOW`, `EQUAL` or `ABOVE`, instead of the sign of an `int`.
 ```java

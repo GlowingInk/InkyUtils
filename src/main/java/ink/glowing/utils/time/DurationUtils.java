@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Unmodifiable;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
 import java.time.temporal.TemporalUnit;
 import java.util.Collections;
 import java.util.Map;
@@ -63,6 +64,22 @@ public final class DurationUtils {
     @Contract(pure = true)
     public static @Unmodifiable @NotNull Map<String, TemporalUnit> defaultUnitsMap() {
         return DEFAULT_UNITS_MAP;
+    }
+
+    /**
+     * Checks whether at least the required duration has passed between two points in time.
+     * <p>
+     * For example, {@code hasElapsed(lastUse, Instant.now(), cooldown)} tells whether a cooldown is over.
+     * @param past the earlier point in time
+     * @param now the later point in time
+     * @param required the minimal duration that must pass
+     * @return {@code true} if the duration between {@code past} and {@code now} is at least {@code required}
+     * @throws java.time.DateTimeException if the duration between the temporals cannot be obtained
+     * @throws ArithmeticException if the calculation overflows
+     * @see Duration#between(Temporal, Temporal)
+     */
+    public static boolean hasElapsed(@NotNull Temporal past, @NotNull Temporal now, @NotNull Duration required) {
+        return !Duration.between(past, now).minus(required).isNegative();
     }
 
     /**
