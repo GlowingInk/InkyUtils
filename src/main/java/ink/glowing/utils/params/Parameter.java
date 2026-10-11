@@ -5,6 +5,7 @@ import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.params.ParameterEditorImpl.NoopEditor;
 import ink.glowing.utils.primitive.TriState;
 import ink.glowing.utils.primitive.num.NumberUtils;
+import it.unimi.dsi.fastutil.ints.IntObjectBiConsumer;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -183,6 +184,16 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
     @NotNull @Unmodifiable Parameter get(int index);
 
     /**
+     * Looks up a nested parameter by following the path from this parameter.
+     * @param path the path to follow
+     * @return the nested parameter, {@link #missing()} if any step is absent
+     */
+    @Contract(pure = true)
+    default @NotNull @Unmodifiable Parameter get(@NotNull Path path) {
+        return path.traverse(this);
+    }
+
+    /**
      * Returns this parameter as an {@link Optional}.
      * @return this parameter, or empty if it is {@link #missing()}
      */
@@ -209,6 +220,16 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
     @Contract(pure = true)
     default @NotNull Optional<Parameter> find(int index) {
         return get(index).toOptional();
+    }
+
+    /**
+     * Looks up a nested parameter by path, as an {@link Optional}.
+     * @param path the path to follow
+     * @return the nested parameter, or empty if it is {@link #missing()}
+     */
+    @Contract(pure = true)
+    default @NotNull Optional<Parameter> find(@NotNull Path path) {
+        return get(path).toOptional();
     }
 
     /**
@@ -332,25 +353,20 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
     }
 
     /**
-     * Looks up a nested parameter by key and maps it.
-     * @param <$Result> the type of the result
-     * @param key the key to look up
-     * @param mapper the mapper, receiving {@link #missing()} if the parameter is absent
-     * @return the mapped result
+     * Calls the action with each of the {@link #keys()} and the parameter found by it.
+     * @param action the action to call
      */
-    default <$Result> $Result getMapped(@NotNull String key, @NotNull Function<@NotNull Parameter, ? extends $Result> mapper) {
-        return mapper.apply(get(key));
+    default void forKeyed(@NotNull BiConsumer<@NotNull String, @NotNull Parameter> action) {
+        for (String key : keys()) action.accept(key, get(key));
     }
 
     /**
-     * Looks up a nested parameter by index and maps it.
-     * @param <$Result> the type of the result
-     * @param index the index to look up
-     * @param mapper the mapper, receiving {@link #missing()} if the parameter is absent
-     * @return the mapped result
+     * Calls the action with each index from {@code 0} to {@link #count()} exclusive and the parameter found by it.
+     * @param action the action to call
+     * @see #get(int)
      */
-    default <$Result> $Result getMapped(int index, @NotNull Function<@NotNull Parameter, ? extends $Result> mapper) {
-        return mapper.apply(get(index));
+    default void forIndexed(@NotNull IntObjectBiConsumer<@NotNull Parameter> action) {
+        for (int i = 0, count = count(); i < count; i++) action.accept(i, get(i));
     }
 
     /**
@@ -369,6 +385,15 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
      */
     default @NotNull String getText(int index) {
         return get(index).textValue();
+    }
+
+    /**
+     * Looks up a nested parameter by path and returns its {@link #textValue()}.
+     * @param path the path to follow
+     * @return the text value, an empty string if the parameter is absent
+     */
+    default @NotNull String getText(@NotNull Path path) {
+        return get(path).textValue();
     }
 
     /**
@@ -846,5 +871,74 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
             sb.append(ch);
         }
         return sb.toString();
+    }
+
+    /**
+     * A way to a nested {@link Parameter}, like {@code servers.0.ports.1}. Each step is either a key for
+     * {@link Parameter#get(String)} or an index for {@link Parameter#get(int)}.
+     */
+    @FunctionalInterface
+    interface Path {
+        /**
+         * The character that separates the steps by default.
+         */
+        char DEFAULT_SPLIT = '.';
+
+        /**
+         * The path of one empty key, which is what an empty string parses to.
+         */
+        Path EMPTY = new PathImpl.Key("");
+
+        /**
+         * The path without steps, which leads to the parameter itself.
+         */
+        Path THIS = from -> from;
+
+        /**
+         * Follows this path from the given parameter.
+         * @param from the parameter to start from
+         * @return the nested parameter, or {@link #missing()} if any step is absent
+         */
+        @Contract(pure = true)
+        @NotNull Parameter traverse(@NotNull Parameter from);
+
+        /**
+         * Parses a path split by {@code '.'}, see {@link #of(String, char)}.
+         * @param input the path string
+         * @return the parsed path
+         */
+        @Contract(pure = true)
+        static @NotNull Path of(@NotNull String input) {
+            return of(input, DEFAULT_SPLIT);
+        }
+
+        /**
+         * Parses a path from steps divided by the {@code split} character. A backslash escapes the
+         * character after it, so a step can have the {@code split} character inside. A step that is a
+         * non-negative {@code int} without leading zeros becomes an index, any other one a key.
+         * Empty input is {@link #EMPTY}, not {@link #THIS}.
+         * @param input the path string
+         * @param split the character between the steps, other than a backslash
+         * @return the parsed path
+         */
+        @Contract(pure = true)
+        static @NotNull Path of(@NotNull String input, char split) {
+            if (input.isEmpty()) return EMPTY;
+            if (input.indexOf(split) < 0) return PathImpl.segment(unescape(input));
+
+            List<Path> steps = new ArrayList<>();
+            int start = 0;
+            for (int i = 0; i < input.length(); i++) {
+                char ch = input.charAt(i);
+                if (ch == split) {
+                    steps.add(PathImpl.segment(unescape(input.substring(start, i))));
+                    start = i + 1;
+                } else if (ch == '\\') {
+                    i++;
+                }
+            }
+            steps.add(PathImpl.segment(unescape(input.substring(start))));
+            return steps.size() == 1 ? steps.getFirst() : new PathImpl.Chain(steps);
+        }
     }
 }

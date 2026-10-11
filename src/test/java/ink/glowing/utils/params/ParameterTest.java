@@ -197,7 +197,6 @@ public class ParameterTest {
         assertSame(missing, params.get("p").get(1));
         assertSame(missing, missing.get("deeper").get(0));
         assertFalse(params.get("e").isMissing(), "Empty plain is not missing");
-        assertTrue(params.getMapped("nope", Parameter::isMissing));
         assertEquals(7, params.get("nope").asInt(7));
         assertEquals(8, params.get("nope").asInt(() -> 8));
 
@@ -215,6 +214,13 @@ public class ParameterTest {
 
         assertTrue(params.isMap() && !params.isList());
         assertEquals(List.of("k", "e"), List.copyOf(params.keys()));
+        Map<String, Parameter> keyed = new LinkedHashMap<>();
+        params.forKeyed(keyed::put);
+        assertEquals(List.of("k", "e"), List.copyOf(keyed.keySet()));
+        assertSame(params.get("k"), keyed.get("k"));
+        List<String> indexed = new ArrayList<>();
+        params.get("k").forIndexed((index, value) -> indexed.add(index + value.textValue()));
+        assertEquals(List.of("0a", "1b"), indexed);
         assertTrue(params.get("k").isList() && !params.get("k").isMap());
         assertTrue(params.get("e").isPlain() && !params.isPlain() && !params.get("k").isPlain() && !params.get("nope").isPlain());
         assertEquals("a", params.find("k").orElseThrow().get(0).textValue());
@@ -222,6 +228,20 @@ public class ParameterTest {
         assertTrue(params.find("nope").isEmpty());
         assertEquals("b", params.get("k").find(1).orElseThrow().textValue());
         assertTrue(params.get("k").find(2).isEmpty());
+        assertEquals("b", params.getText(Parameter.Path.of("k.1")));
+        assertEquals("a", params.getText(Parameter.Path.of("k/0", '/')));
+        assertTrue(params.find(Parameter.Path.of("k.2")).isEmpty());
+        assertSame(params, params.get(Parameter.Path.THIS));
+        assertSame(Parameter.Path.EMPTY, Parameter.Path.of(""));
+        assertTrue(params.get(Parameter.Path.EMPTY).isMissing());
+        assertEquals("v", parseMap("'':v").getText(Parameter.Path.of("")));
+        assertEquals(
+                new PathImpl.Chain(List.of(new PathImpl.Key("a"), new PathImpl.Index(0), new PathImpl.Key("007"), new PathImpl.Key("e'f"), new PathImpl.Key("g.h"), new PathImpl.Key("it's"), Parameter.Path.EMPTY)),
+                Parameter.Path.of("a.0.007.e\\'f.g\\.h.it's.")
+        );
+        assertEquals(new PathImpl.Index(12), Parameter.Path.of("12"));
+        assertEquals(new PathImpl.Key("-1"), Parameter.Path.of("-1"));
+        assertEquals(new PathImpl.Key("1234567890"), Parameter.Path.of("1234567890"));
     }
 
     @Test

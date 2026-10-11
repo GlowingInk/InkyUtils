@@ -20,7 +20,10 @@ config.get("servers").count(); // 2
 config.get("servers").get(0).get("ports").get(1).textValue(); // "25566"
 config.get("servers").get(7).get("host").isMissing(); // true, there's no index 7
 config.find("title"); // Optional of the title, empty if absent
-config.getMapped("servers", Parameter::count); // 2, the function receives missing() if absent
+config.get(Path.of("servers.0.ports.1")).textValue(); // "25566", find(...) and getText(...) take a Path too
+Path.of("a\\.b.c"); // steps "a.b" and "c", the backslash escapes the dot; Path.of("a/b", '/') splits by another char. A number is a list index
+config.forKeyed((key, value) -> System.out.println(key)); // title, servers
+config.get("servers").forIndexed((index, server) -> System.out.println(index + " " + server.getText("host"))); // 0 eu.example.com, 1 us.example.com
 config.keys(); // ["title", "servers"], a list would have its indexes
 ```
 Lookups never return `null` or throw: anything absent is `Parameter.missing()`, which can be chained further. Map keys are case-insensitive.
