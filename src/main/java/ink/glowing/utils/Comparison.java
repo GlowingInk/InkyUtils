@@ -9,8 +9,17 @@ import java.util.Comparator;
  * The result of a comparison as a constant, instead of the sign of an {@code int}.
  */
 public enum Comparison {
+    /**
+     * The tested value is less than the other one.
+     */
     BELOW,
+    /**
+     * The values are equal.
+     */
     EQUAL,
+    /**
+     * The tested value is greater than the other one.
+     */
     ABOVE;
 
     private static final Comparison[] VALUES = values();
