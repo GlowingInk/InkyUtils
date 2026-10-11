@@ -14,5 +14,6 @@ public class ChanceTest {
         assertEquals(Chance.Constant.ALWAYS, Chance.of(1));
         assertEquals(Chance.Constant.ALWAYS, Chance.of(2));
         assertEquals(new Chance.Straight(0.25), Chance.of(0.25));
+        assertEquals(new Chance.Straight(0.25), Chance.ofPercent(25));
     }
 }

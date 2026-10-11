@@ -54,6 +54,17 @@ public interface Chance extends Predicate<RandomGenerator> {
     }
 
     /**
+     * Returns a chance with the specified percent probability.
+     * @param percent the probability of {@code true}, in percent
+     * @return the chance
+     * @see #of(double)
+     */
+    @Contract(pure = true)
+    static @NotNull Chance ofPercent(double percent) {
+        return of(percent / 100.0);
+    }
+
+    /**
      * A chance that compares its probability to {@link RandomGenerator#nextDouble()}.
      * @param chance the probability of {@code true}
      */

@@ -136,6 +136,13 @@ String drop = loot.next(RngUtils.threadRandom()); // "common" 90% of the time
 Pickers can also be created from a map of weights, or from a collection with a function that computes each element's weight.
 Elements with zero or negative weight are never picked. If any element has an infinite weight, only such elements are picked.
 
+`Chance` is a reusable probability that can be tested against any `RandomGenerator`, or `ThreadLocalRandom` by default.
+```java
+Chance crit = Chance.of(0.2);
+boolean critical = crit.test(); // true 20% of the time
+Chance.of(1); // Chance.Constant.ALWAYS; 0 or less gives NEVER, 0.5 gives COIN_FLIP
+```
+
 ### `time.DurationUtils`
 Parses human-written durations like `1h 30m` into `java.time.Duration`, and formats them back.
 ```java
