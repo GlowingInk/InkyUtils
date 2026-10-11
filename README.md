@@ -137,13 +137,19 @@ Pickers can also be created from a map of weights, or from a collection with a f
 Elements with zero or negative weight are never picked. If any element has an infinite weight, only such elements are picked.
 
 ### `time.DurationUtils`
-Parses human-written durations like `1h 30m` into `java.time.Duration`.
+Parses human-written durations like `1h 30m` into `java.time.Duration`, and formats them back.
 ```java
 DurationUtils.parseDuration("1h 30m");
 DurationUtils.parseDuration("90"); // no unit means seconds by default
+DurationUtils.parseDuration("1h -15m"); // each part can be negative, 45 minutes
 DurationUtils.parseDuration("2min", Map.of("min", ChronoUnit.MINUTES)); // custom units
 ```
 Default units: `ns`, `ms`, `s`, `m`, `h`, `d`, case-insensitive.
+
+```java
+DurationUtils.serializeDuration(Duration.ofMinutes(90)); // "1h 30m"
+DurationUtils.serializeDuration(Duration.ofMillis(-1500)); // "-1s -500ms"
+```
 
 It also checks whether enough time has passed between two points in time.
 ```java

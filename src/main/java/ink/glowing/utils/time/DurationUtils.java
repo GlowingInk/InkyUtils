@@ -113,11 +113,12 @@ public final class DurationUtils {
     }
 
     /**
-     * Parses a duration from whitespace-separated parts, each a non-negative integer followed by
+     * Parses a duration from whitespace-separated parts, each an integer followed by
      * an optional unit suffix, and sums them. Blank input gives {@link Duration#ZERO}.
+     * A part with a leading {@code -} is negative.
      * <p>
      * For example, with the default units {@code "1h 30m"} and {@code "90m"} parse to the same
-     * duration.
+     * duration, {@code "-1h -30m"} parses to its negation, and {@code "1h -30m"} parses to 30 minutes.
      * <p>
      * Units with an estimated duration, such as {@link ChronoUnit#MONTHS}, count as their
      * {@linkplain TemporalUnit#getDuration() estimated duration}, e.g. a month is 1/12 of 365.2425 days.
@@ -139,16 +140,46 @@ public final class DurationUtils {
         return result;
     }
 
+    /**
+     * Formats a duration as space-separated parts in days, hours, minutes, seconds, milliseconds and
+     * nanoseconds, skipping zero parts, e.g. {@code "1h 30m"}. Negative durations get a {@code -} on every part,
+     * e.g. {@code "-1h -30m"}. The result can be parsed back by {@link #parseDuration(String)}.
+     * @param duration the duration to format
+     * @return the formatted duration, {@code "0"} for {@link Duration#ZERO}, or {@code null} if the duration is {@code null}
+     * @throws ArithmeticException if the duration is {@code Long.MIN_VALUE} seconds, which cannot be negated
+     */
+    @Contract(pure = true)
+    public static @NotNull String serializeDuration(@NotNull Duration duration) {
+        if (duration.isZero()) return "0";
+        if (duration.isNegative()) return "-" + serializeDuration(duration.negated()).replace(" ", " -"); // otherwise -1ms would be "-1s 999ms"
+
+        StringBuilder durationStr = new StringBuilder();
+
+        appendTime(duration.toDaysPart(), "d", durationStr);
+        appendTime(duration.toHoursPart(), "h", durationStr);
+        appendTime(duration.toMinutesPart(), "m", durationStr);
+        appendTime(duration.toSecondsPart(), "s", durationStr);
+        appendTime(duration.toMillisPart(), "ms", durationStr);
+        appendTime(duration.toNanosPart() % 1_000_000, "ns", durationStr);
+
+        return durationStr.substring(0, durationStr.length() - 1);
+    }
+
+    private static void appendTime(long value, @NotNull String unit, @NotNull StringBuilder durationStr) {
+        if (value != 0) durationStr.append(value).append(unit).append(' ');
+    }
+
     private static @NotNull Duration addPart(
             @NotNull Duration result,
             @NotNull String part,
             @NotNull Function<String, ? extends @Nullable TemporalUnit> units
     ) {
-        int digitsEnd = 0;
+        int digitsStart = part.startsWith("-") ? 1 : 0;
+        int digitsEnd = digitsStart;
         while (digitsEnd < part.length() && Character.isDigit(part.charAt(digitsEnd))) {
             digitsEnd++;
         }
-        if (digitsEnd == 0) {
+        if (digitsEnd == digitsStart) {
             throw new IllegalArgumentException("Invalid duration: " + part);
         }
         long value = Long.parseLong(part.substring(0, digitsEnd));
