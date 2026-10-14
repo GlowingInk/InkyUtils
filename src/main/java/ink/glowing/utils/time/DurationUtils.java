@@ -1,6 +1,5 @@
 package ink.glowing.utils.time;
 
-import ink.glowing.utils.FluentUtils;
 import ink.glowing.utils.hash.CaseInsensitive;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -22,9 +21,16 @@ import java.util.function.Function;
 public final class DurationUtils {
     private DurationUtils() { }
 
-    private static final Duration MAX_DURATION = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
+    /**
+     * The longest possible {@link Duration}: {@link Long#MAX_VALUE} seconds and
+     * 999,999,999 nanoseconds. Same as the duration of {@link ChronoUnit#FOREVER}.
+     */
+    public static final Duration MAX_DURATION = Duration.ofSeconds(Long.MAX_VALUE, 999_999_999);
 
-    private static final Map<String, TemporalUnit> DEFAULT_UNITS_MAP = FluentUtils.map(Map.of(
+    /**
+     * {@link #DEFAULT_UNITS} as a map.
+     */
+    public static final @Unmodifiable Map<String, TemporalUnit> DEFAULT_UNITS_MAP = Collections.unmodifiableSortedMap(CaseInsensitive.newLinkedMap(Map.of(
             "ns", ChronoUnit.NANOS,
             "ms", ChronoUnit.MILLIS,
             "s", ChronoUnit.SECONDS,
@@ -32,39 +38,13 @@ public final class DurationUtils {
             "h", ChronoUnit.HOURS,
             "d", ChronoUnit.DAYS,
             "", ChronoUnit.SECONDS
-    ), map -> Collections.unmodifiableMap(CaseInsensitive.newLinkedMap(map)));
-
-    private static final Function<String, @Nullable TemporalUnit> DEFAULT_UNITS = DEFAULT_UNITS_MAP::get;
+    )));
 
     /**
-     * Returns the longest possible {@link Duration}: {@link Long#MAX_VALUE} seconds and
-     * 999,999,999 nanoseconds. Same as the duration of {@link ChronoUnit#FOREVER}.
-     * @return the maximal duration
-     */
-    @Contract(pure = true)
-    public static @NotNull Duration maxDuration() {
-        return MAX_DURATION;
-    }
-
-    /**
-     * Returns the units used by {@link #parseDuration(String)}: {@code ns}, {@code ms}, {@code s},
+     * The units used by {@link #parseDuration(String)}: {@code ns}, {@code ms}, {@code s},
      * {@code m}, {@code h} and {@code d}, and an empty suffix counts as seconds. Case-insensitive.
-     * @return a function that resolves a suffix to its unit, or {@code null} if the suffix is unknown
-     * @see #defaultUnitsMap()
      */
-    @Contract(pure = true)
-    public static @NotNull Function<String, @Nullable TemporalUnit> defaultUnits() {
-        return DEFAULT_UNITS;
-    }
-
-    /**
-     * Returns {@link #defaultUnits()} as a map, to pass to {@link #parseDuration(String, Map)} or to extend.
-     * @return an immutable map of unit suffixes to units
-     */
-    @Contract(pure = true)
-    public static @Unmodifiable @NotNull Map<String, TemporalUnit> defaultUnitsMap() {
-        return DEFAULT_UNITS_MAP;
-    }
+    public static final Function<String, @Nullable TemporalUnit> DEFAULT_UNITS = DEFAULT_UNITS_MAP::get;
 
     /**
      * Checks whether at least the required duration has passed between two points in time.
@@ -83,14 +63,14 @@ public final class DurationUtils {
     }
 
     /**
-     * Parses a duration using {@link #defaultUnits()}.
+     * Parses a duration using {@link #DEFAULT_UNITS}.
      * @param input the string to parse
      * @return the sum of all parts
      * @throws IllegalArgumentException if the input is invalid
      * @throws NumberFormatException if a part's number does not fit in a {@code long}
      * @throws ArithmeticException if the total duration overflows
      * @see #parseDuration(String, Function)
-     * @see #defaultUnits()
+     * @see #DEFAULT_UNITS
      */
     @Contract(pure = true)
     public static @NotNull Duration parseDuration(@NotNull String input) {
