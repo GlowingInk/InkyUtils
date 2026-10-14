@@ -12,22 +12,22 @@ import java.util.random.RandomGenerator;
 public interface Chance extends Predicate<RandomGenerator> {
     /**
      * Returns the probability of {@link #test(RandomGenerator)} returning {@code true}.
-     * @return the probability, in {@code [0, 1]}
+     * @return the probability
      */
     @Contract(pure = true)
-    double chance();
+    double probability();
 
     /**
      * Tests this chance using the specified random generator.
      * @param rng the random generator
-     * @return {@code true} with the probability of {@link #chance()}
+     * @return {@code true} with the probability of {@link #probability()}
      */
     @Override
     boolean test(@NotNull RandomGenerator rng);
 
     /**
      * Tests this chance using thread's local random.
-     * @return {@code true} with the probability of {@link #chance()}
+     * @return {@code true} with the probability of {@link #probability()}
      * @see #test(RandomGenerator)
      * @see RngUtils#threadRandom()
      */
@@ -38,19 +38,19 @@ public interface Chance extends Predicate<RandomGenerator> {
     /**
      * Returns a chance with the specified probability. Probabilities of {@code 0} or below, {@code NaN},
      * {@code 0.5} and {@code 1} or above return a {@link Constant}.
-     * @param chance the probability of {@code true}
+     * @param probability the probability of {@code true}
      * @return the chance
      */
     @Contract(pure = true)
-    static @NotNull Chance of(double chance) {
-        if (chance <= 0 || Double.isNaN(chance)) {
+    static @NotNull Chance of(double probability) {
+        if (probability <= 0 || Double.isNaN(probability)) {
             return Constant.NEVER;
-        } else if (chance == 0.5) {
+        } else if (probability == 0.5) {
             return Constant.COIN_FLIP;
-        } else if (chance >= 1) {
+        } else if (probability >= 1) {
             return Constant.ALWAYS;
         } else {
-            return new Straight(chance);
+            return new Straight(probability);
         }
     }
 
@@ -67,12 +67,12 @@ public interface Chance extends Predicate<RandomGenerator> {
 
     /**
      * A chance that compares its probability to {@link RandomGenerator#nextDouble()}.
-     * @param chance the probability of {@code true}
+     * @param probability the probability of {@code true}
      */
-    record Straight(double chance) implements Chance {
+    record Straight(double probability) implements Chance {
         @Override
         public boolean test(@NotNull RandomGenerator rng) {
-            return chance > rng.nextDouble();
+            return probability > rng.nextDouble();
         }
     }
 
@@ -90,7 +90,7 @@ public interface Chance extends Predicate<RandomGenerator> {
             }
 
             @Override
-            public double chance() {
+            public double probability() {
                 return 1;
             }
         },
@@ -104,7 +104,7 @@ public interface Chance extends Predicate<RandomGenerator> {
             }
 
             @Override
-            public double chance() {
+            public double probability() {
                 return 0.5;
             }
         },
@@ -118,7 +118,7 @@ public interface Chance extends Predicate<RandomGenerator> {
             }
 
             @Override
-            public double chance() {
+            public double probability() {
                 return 0;
             }
         }
