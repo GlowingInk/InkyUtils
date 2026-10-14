@@ -29,9 +29,10 @@ import java.util.stream.Stream;
  */
 public interface WeightedPicker<$Type> {
     /**
-     * Returns an empty {@code WeightedPicker}. Always the same instance.
+     * Returns an empty {@code WeightedPicker}.
      * @param <$Type> the type of elements
      * @return an empty picker
+     * @see Empty#INSTANCE
      */
     @SuppressWarnings("unchecked")
     @Contract(pure = true)
@@ -44,6 +45,7 @@ public interface WeightedPicker<$Type> {
      * @param <$Type> the type of elements
      * @param element the only element
      * @return a picker of the single element
+     * @see Uniform
      */
     @Contract(value = "_ -> new", pure = true)
     static <$Type> @NotNull WeightedPicker<$Type> of($Type element) {
@@ -62,8 +64,7 @@ public interface WeightedPicker<$Type> {
     }
 
     /**
-     * Returns a {@code WeightedPicker} of the keys of the specified fastutil map, weighted by
-     * their primitive values.
+     * Returns a {@code WeightedPicker} of the keys of the specified map, weighted by their values.
      * @param <$Type> the type of elements
      * @param elements the map of elements to their weights
      * @return a picker of the map's keys
@@ -74,15 +75,29 @@ public interface WeightedPicker<$Type> {
     }
 
     /**
-     * Returns a {@code WeightedPicker} of the elements of the specified collection, weighted by
-     * {@link Weightable#weight()}. {@code null} elements are never picked.
+     * Returns a {@code WeightedPicker} of the elements of the specified collection,
+     * weighted by {@link Weightable#weight()}. {@code null} elements' weight fallbacks to 0.
      * @param <$WeightableType> the type of elements
      * @param collection the elements to pick from
      * @return a picker of the collection's elements
+     * @see #ofCollection(Collection, double)
      */
     @Contract(pure = true)
     static <$WeightableType extends Weightable> @NotNull WeightedPicker<$WeightableType> ofCollection(@NotNull Collection<? extends $WeightableType> collection) {
-        return ofCollection(collection, (t, _) -> t == null ? 0 : t.weight());
+        return ofCollection(collection, 0);
+    }
+
+    /**
+     * Returns a {@code WeightedPicker} of the elements of the specified collection,
+     * weighted by {@link Weightable#weight()}.
+     * @param <$WeightableType> the type of elements
+     * @param collection the elements to pick from
+     * @param defWeight the fallback weight for {@code null} values
+     * @return a picker of the collection's elements
+     */
+    @Contract(pure = true)
+    static <$WeightableType extends Weightable> @NotNull WeightedPicker<$WeightableType> ofCollection(@NotNull Collection<? extends $WeightableType> collection, double defWeight) {
+        return ofCollection(collection, (t, _) -> t == null ? defWeight : t.weight());
     }
 
     /**
