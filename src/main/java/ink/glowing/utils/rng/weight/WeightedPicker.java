@@ -267,7 +267,7 @@ public interface WeightedPicker<$Type> {
 
         @Override
         public $Type next(@NotNull RandomGenerator rng) {
-            return this.elements[rng.nextInt(this.elements.length)];
+            return RngUtils.randomElement(rng, this.elements);
         }
     }
 
