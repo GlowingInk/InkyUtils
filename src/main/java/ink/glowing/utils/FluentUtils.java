@@ -87,11 +87,11 @@ public final class FluentUtils {
      * Errors are not caught.
      * @param <$Type> the type of the result
      * @param supplier the supplier to call
-     * @param def the fallback, may also be {@code null}
+     * @param def the fallback
      * @return the supplied value, or the fallback
      * @see #attempt(Supplier)
      */
-    public static <$Type> $Type attemptOrElse(@NotNull Supplier<? extends $Type> supplier, @Nullable $Type def) {
+    public static <$Type> $Type attemptOrElse(@NotNull Supplier<? extends $Type> supplier, $Type def) {
         return FluentUtils.<$Type>attempt(supplier).orElse(def);
     }
 
@@ -112,12 +112,12 @@ public final class FluentUtils {
     /**
      * Returns a supplier that always supplies the value.
      * @param <$Type> the type of the value
-     * @param value the value to supply, may be {@code null}
+     * @param value the value to supply
      * @return the supplier of the value
      */
     @Contract(pure = true)
     @SuppressWarnings("unchecked")
-    public static <$Type> @NotNull Supplier<$Type> supplied(@Nullable $Type value) {
+    public static <$Type> @NotNull Supplier<$Type> supplied($Type value) {
         return value == null
                 ? (Supplier<$Type>) NULL_SUPPLIER
                 : () -> value;
