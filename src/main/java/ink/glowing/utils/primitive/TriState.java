@@ -40,7 +40,7 @@ public enum TriState {
 
     /**
      * Returns {@link #TRUE} or {@link #FALSE} for the given value, or {@link #UNSET} for {@code null}.
-     * @param bool the value, may be {@code null}
+     * @param bool the value
      * @return the matching state
      */
     @Contract(pure = true)
@@ -52,7 +52,7 @@ public enum TriState {
      * Parses a string using {@link Mapper#DEFAULT}: case-insensitive, with common synonyms like
      * {@code yes}/{@code no} or {@code enabled}/{@code disabled}.
      * Unrecognized strings and {@code null} give {@link #UNSET}.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @return the parsed state
      * @see Mapper
      */
@@ -195,7 +195,7 @@ public enum TriState {
     /**
      * {@link #UNSET} is a wildcard: it is valid for any value, including {@code null}.
      * {@link #TRUE} and {@link #FALSE} are never valid for {@code null}.
-     * @param bool the value to check, may be {@code null}
+     * @param bool the value to check
      * @return {@code true} if this is {@link #UNSET} or equals the value
      * @see #isExactly(Boolean)
      */
@@ -216,7 +216,7 @@ public enum TriState {
 
     /**
      * Like {@link #isValidFor(Boolean)}, but {@link #UNSET} is valid only for {@code null}.
-     * @param bool the value to check, may be {@code null}
+     * @param bool the value to check
      * @return {@code true} if this is the state {@link #of(Boolean)} returns for the value
      */
     @Contract(pure = true)
@@ -277,7 +277,7 @@ public enum TriState {
         /**
          * Maps a string to a state, ignoring case.
          * Returns the fallback for {@code null} and unknown strings.
-         * @param str the string to map, may be {@code null}
+         * @param str the string to map
          * @return the matching state, or the fallback
          */
         @Contract(pure = true)

@@ -21,7 +21,7 @@ public final class NumberUtils {
 
     /**
      * Parses an {@code int}.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @return the parsed value, or empty if the string is not a number
      * @see Integer#parseInt(String)
      */
@@ -37,7 +37,7 @@ public final class NumberUtils {
 
     /**
      * Parses an {@code int}.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @param def the fallback
      * @return the parsed value, or the fallback if the string is not a number
      * @see Integer#parseInt(String)
@@ -54,7 +54,7 @@ public final class NumberUtils {
 
     /**
      * Parses an {@code int}, with a lazily computed fallback.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @param def the supplier of the fallback, called only if the string is not a number
      * @return the parsed value, or the fallback if the string is not a number
      * @see #parseInt(String, int)
@@ -70,7 +70,7 @@ public final class NumberUtils {
 
     /**
      * Parses a {@code long}.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @return the parsed value, or empty if the string is not a number
      * @see Long#parseLong(String)
      */
@@ -86,7 +86,7 @@ public final class NumberUtils {
 
     /**
      * Parses a {@code long}.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @param def the fallback
      * @return the parsed value, or the fallback if the string is not a number
      * @see Long#parseLong(String)
@@ -103,7 +103,7 @@ public final class NumberUtils {
 
     /**
      * Parses a {@code long}, with a lazily computed fallback.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @param def the supplier of the fallback, called only if the string is not a number
      * @return the parsed value, or the fallback if the string is not a number
      * @see #parseLong(String, long)
@@ -119,7 +119,7 @@ public final class NumberUtils {
 
     /**
      * Parses a {@code double}.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @return the parsed value, or empty if the string is not a number
      * @see Double#parseDouble(String)
      */
@@ -135,7 +135,7 @@ public final class NumberUtils {
 
     /**
      * Parses a {@code double}.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @param def the fallback
      * @return the parsed value, or the fallback if the string is not a number
      * @see Double#parseDouble(String)
@@ -152,7 +152,7 @@ public final class NumberUtils {
 
     /**
      * Parses a {@code double}, with a lazily computed fallback.
-     * @param str the string to parse, may be {@code null}
+     * @param str the string to parse
      * @param def the supplier of the fallback, called only if the string is not a number
      * @return the parsed value, or the fallback if the string is not a number
      * @see #parseDouble(String, double)

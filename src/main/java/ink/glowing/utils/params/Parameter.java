@@ -587,7 +587,7 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
      * Parses this parameter's {@link #textValue()} as a constant of the enum, ignoring case.
      * @param <$Enum> the type of the enum
      * @param type the enum class
-     * @param def the fallback, may be {@code null}, used if the value is absent or matches no constant
+     * @param def the fallback, used if the value is absent or matches no constant
      * @return the matching constant, or the fallback
      * @see EnumUtils#asEnum(String, Class, Enum)
      */
