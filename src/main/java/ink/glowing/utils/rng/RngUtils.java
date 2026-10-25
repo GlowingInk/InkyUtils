@@ -3,14 +3,19 @@ package ink.glowing.utils.rng;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.random.RandomGenerator;
 
 /**
  * Static helpers for picking random values.
  */
 public final class RngUtils {
+    private static final long MAX_NANO_SECONDS = Long.MAX_VALUE / 1_000_000_000L;
+
     private RngUtils() { }
 
     /**
@@ -72,6 +77,74 @@ public final class RngUtils {
      */
     public static <$Type> $Type randomElement(@NotNull RandomGenerator rng, @NotNull List<$Type> list) {
         return list.get(rng.nextInt(list.size()));
+    }
+
+    /**
+     * Adds distinct random elements of the specified collection to another one, like
+     * {@link #forRandomElements(Collection, int, Consumer)}.
+     * @param <$Type> the type of elements in the collection
+     * @param <$Collection> the type of the collection to add to
+     * @param from the collection to pick from
+     * @param count how many elements to pick
+     * @param into the collection to add the picked elements to
+     * @return {@code into}
+     * @see #threadRandom()
+     * @see #randomElements(RandomGenerator, Collection, int, Collection)
+     */
+    public static <$Type, $Collection extends Collection<? super $Type>> @NotNull $Collection randomElements(@NotNull Collection<? extends $Type> from, int count, @NotNull $Collection into) {
+        return randomElements(threadRandom(), from, count, into);
+    }
+
+    /**
+     * Adds distinct random elements of the specified collection to another one, like
+     * {@link #forRandomElements(RandomGenerator, Collection, int, Consumer)}.
+     * @param <$Type> the type of elements in the collection
+     * @param <$Collection> the type of the collection to add to
+     * @param rng the source of randomness
+     * @param from the collection to pick from
+     * @param count how many elements to pick
+     * @param into the collection to add the picked elements to
+     * @return {@code into}
+     */
+    public static <$Type, $Collection extends Collection<? super $Type>> @NotNull $Collection randomElements(@NotNull RandomGenerator rng, @NotNull Collection<? extends $Type> from, int count, @NotNull $Collection into) {
+        forRandomElements(rng, from, count, into::add);
+        return into;
+    }
+
+    /**
+     * Passes distinct random elements of the specified collection to the action, each chosen with
+     * equal probability. They are passed in the iteration order of the collection. If the collection
+     * has no more than {@code count} elements, all of them are passed.
+     * @param <$Type> the type of elements in the collection
+     * @param from the collection to pick from
+     * @param count how many elements to pick
+     * @param action the action to pass the picked elements to
+     * @see #threadRandom()
+     * @see #forRandomElements(RandomGenerator, Collection, int, Consumer)
+     */
+    public static <$Type> void forRandomElements(@NotNull Collection<? extends $Type> from, int count, @NotNull Consumer<? super $Type> action) {
+        forRandomElements(threadRandom(), from, count, action);
+    }
+
+    /**
+     * Passes distinct random elements of the specified collection to the action, each chosen with
+     * equal probability. They are passed in the iteration order of the collection. If the collection
+     * has no more than {@code count} elements, all of them are passed.
+     * @param <$Type> the type of elements in the collection
+     * @param rng the source of randomness
+     * @param from the collection to pick from
+     * @param count how many elements to pick
+     * @param action the action to pass the picked elements to
+     */
+    public static <$Type> void forRandomElements(@NotNull RandomGenerator rng, @NotNull Collection<? extends $Type> from, int count, @NotNull Consumer<? super $Type> action) {
+        int left = from.size();
+        for (var iterator = from.iterator(); count > 0 && iterator.hasNext(); left--) {
+            $Type element = iterator.next();
+            if (rng.nextInt(left) < count) {
+                action.accept(element);
+                count--;
+            }
+        }
     }
 
     /**
@@ -159,6 +232,39 @@ public final class RngUtils {
         return (b > a)
                 ? rng.nextInt(a, b)
                 : rng.nextInt(b, a);
+    }
+
+    /**
+     * Returns a random duration between the two bounds, in any order. The lower bound is
+     * inclusive and the upper bound is exclusive.
+     * @param a one of the bounds
+     * @param b the other bound
+     * @return a random duration in {@code [min(a, b), max(a, b))}
+     * @throws ArithmeticException if the bounds are too far apart for their difference to fit in a {@link Duration}
+     * @see #threadRandom()
+     * @see #inRange(RandomGenerator, Duration, Duration)
+     */
+    public static @NotNull Duration inRange(@NotNull Duration a, @NotNull Duration b) {
+        return inRange(threadRandom(), a, b);
+    }
+
+    /**
+     * Returns a random duration between the two bounds, in any order. The lower bound is
+     * inclusive and the upper bound is exclusive.
+     * @param rng the source of randomness
+     * @param a one of the bounds
+     * @param b the other bound
+     * @return a random duration in {@code [min(a, b), max(a, b))}
+     * @throws ArithmeticException if the bounds are too far apart for their difference to fit in a {@link Duration}
+     */
+    public static @NotNull Duration inRange(@NotNull RandomGenerator rng, @NotNull Duration a, @NotNull Duration b) {
+        int order = a.compareTo(b);
+        if (order == 0) return a;
+        Duration min = order < 0 ? a : b;
+        Duration span = (order < 0 ? b : a).minus(min);
+        if (span.getSeconds() < MAX_NANO_SECONDS) return min.plusNanos(rng.nextLong(span.toNanos()));
+        // The span's leftover nanos past its last whole second are never picked... but whatever
+        return min.plusSeconds(rng.nextLong(span.getSeconds())).plusNanos(rng.nextLong(1_000_000_000L));
     }
 
     /**

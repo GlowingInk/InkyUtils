@@ -4,6 +4,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.time.Duration;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RngUtilsTest {
@@ -27,6 +29,8 @@ public class RngUtilsTest {
             assertInRange(RngUtils.inRange(a, b), min, max);
             assertInRange(RngUtils.inRange((long) a, b), min, max);
             assertInRange(RngUtils.inRange((double) a, b), min, max);
+            assertInRange(RngUtils.inRange(Duration.ofSeconds(a), Duration.ofSeconds(b)).toNanos() / 1e9, min, max);
+            assertInRange(RngUtils.inRange(Duration.ofSeconds(a * 1_000_000_000_000L), Duration.ofSeconds(b * 1_000_000_000_000L)).getSeconds() / 1e12, min, max);
         }
     }
 
@@ -36,6 +40,7 @@ public class RngUtilsTest {
         assertEquals(bound, RngUtils.inRange(bound, bound));
         assertEquals(bound, RngUtils.inRange((long) bound, bound));
         assertEquals(bound, RngUtils.inRange((double) bound, bound));
+        assertEquals(Duration.ofSeconds(bound), RngUtils.inRange(Duration.ofSeconds(bound), Duration.ofSeconds(bound)));
     }
 
     @ParameterizedTest

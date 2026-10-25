@@ -121,11 +121,14 @@ ci.contains("ALPHA"); // true
 `CaseInsensitive` provides fastutil maps and sets with case-insensitive `String` keys that keep the original casing.
 
 ### `rng`
-`RngUtils` has shortcuts for common random picks: a random element of an array or list, and a random number in a range
-where bounds can be given in any order. All methods use `ThreadLocalRandom` by default or accept any `RandomGenerator`.
+`RngUtils` has shortcuts for picking random elements of arrays and collections, and random values in ranges.
+All methods use `ThreadLocalRandom` by default or accept any `RandomGenerator`.
 ```java
 String color = RngUtils.randomElement(List.of("red", "green", "blue"));
 int roll = RngUtils.inRange(1, 7); // 1..6
+Duration delay = RngUtils.inRange(Duration.ofSeconds(1), Duration.ofSeconds(5));
+List<String> winners = RngUtils.randomElements(players, 3, new ArrayList<>()); // up to 3 distinct, in their original order
+RngUtils.forRandomElements(players, 3, System.out::println);
 ```
 `WeightedPicker` picks elements with probability proportional to their weight. It is immutable, so one picker can be reused.
 ```java
