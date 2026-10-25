@@ -52,50 +52,50 @@ public enum Comparison {
 
     /**
      * Compares a value to another one by its natural order.
-     * @param <T> the type of the values
+     * @param <$Type> the type of the values
      * @param tested the value to test
      * @param against the value to compare with
      * @return how {@code tested} compares to {@code against}
      */
-    public static <T> @NotNull Comparison of(@NotNull Comparable<? super T> tested, @NotNull T against) {
+    public static <$Type> @NotNull Comparison of(@NotNull Comparable<? super $Type> tested, @NotNull $Type against) {
         return ofSignum(tested.compareTo(against));
     }
 
     /**
      * Compares a value to another one with a comparator.
-     * @param <T> the type of the values
+     * @param <$Type> the type of the values
      * @param comparator the comparator
      * @param tested the value to test
      * @param against the value to compare with
      * @return how {@code tested} compares to {@code against}
      */
-    public static <T> @NotNull Comparison of(@NotNull Comparator<? super T> comparator, @NotNull T tested, @NotNull T against) {
+    public static <$Type> @NotNull Comparison of(@NotNull Comparator<? super $Type> comparator, @NotNull $Type tested, @NotNull $Type against) {
         return ofSignum(comparator.compare(tested, against));
     }
 
     /**
      * Checks how a value compares to another one by its natural order, reading as "{@code tested} is
      * {@code expected} {@code against}".
-     * @param <T> the type of the values
+     * @param <$Type> the type of the values
      * @param tested the value to test
      * @param expected the expected comparison
      * @param against the value to compare with
      * @return {@code true} if {@code tested} compares to {@code against} as expected
      */
-    public static <T> boolean is(@NotNull Comparable<? super T> tested, @NotNull Comparison expected, @NotNull T against) {
+    public static <$Type> boolean is(@NotNull Comparable<? super $Type> tested, @NotNull Comparison expected, @NotNull $Type against) {
         return of(tested, against) == expected;
     }
 
     /**
      * Checks how a value compares to another one with a comparator.
-     * @param <T> the type of the values
+     * @param <$Type> the type of the values
      * @param comparator the comparator
      * @param tested the value to test
      * @param expected the expected comparison
      * @param against the value to compare with
      * @return {@code true} if {@code tested} compares to {@code against} as expected
      */
-    public static <T> boolean is(@NotNull Comparator<? super T> comparator, @NotNull T tested, @NotNull Comparison expected, @NotNull T against) {
+    public static <$Type> boolean is(@NotNull Comparator<? super $Type> comparator, @NotNull $Type tested, @NotNull Comparison expected, @NotNull $Type against) {
         return of(comparator, tested, against) == expected;
     }
 }
