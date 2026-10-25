@@ -7,6 +7,8 @@ Small Java 25 utility library built on top of [fastutil](https://github.com/vign
 Parses compact, human-written parameter strings (commands, config values, tags) into a tree of values, lists and maps.
 
 - Values are separated by whitespace. `key:value` makes a map entry, `[...]` a list, `{...}` a nested map.
+- `<?>` is a missing value.
+- `<! any text>` is a comment, skipped entirely.
 - Values containing whitespace, colons or brackets are quoted with `'...'`; `\` and `'` are escaped with `\`.
 - The top level can be parsed as either a map or a list, without the wrapping brackets.
 
@@ -59,7 +61,7 @@ Parameters are immutable. `with(...)` returns a modified copy, setting a key on 
 Parameter list = Parameter.parseList("a b c");
 
 list.with(1, Parameter.ofValue("B")); // [a B c]
-list.with(4, Parameter.ofValue("e")); // [a b c '' e], the gap is filled with missing
+list.with(4, Parameter.ofValue("e")); // [a b c <?> e], the gap is filled with missing
 list.editList().insert(1, Parameter.ofValue("x")).remove(0).finish(); // [x b c]
 ```
 

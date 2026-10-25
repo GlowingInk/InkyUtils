@@ -821,7 +821,8 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
 
     /**
      * Escapes a string for use as a plain value or a key. Backslashes and quotes are escaped,
-     * and the string is quoted if it is empty or has whitespace, colons or any of {@code {}[]}.
+     * and the string is quoted if it is empty, starts like {@code <?...>} or a {@code <!...>} comment,
+     * or has whitespace, colons or any of {@code {}[]}.
      * @param value the string to escape
      * @return the escaped string, {@code value} itself if nothing had to change
      */
@@ -830,7 +831,7 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
         int length = value.length();
         if (length == 0) return "''";
 
-        boolean quote = false;
+        boolean quote = value.startsWith("<?") || value.startsWith("<!");
         int escapes = 0;
         for (int i = 0; i < length; i++) {
             char ch = value.charAt(i);

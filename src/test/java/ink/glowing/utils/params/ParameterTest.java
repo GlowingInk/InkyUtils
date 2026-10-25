@@ -63,6 +63,10 @@ public class ParameterTest {
                 Arguments.of(
                         "nul:a\0b",
                         "nul:a\0b"
+                ),
+                Arguments.of(
+                        "<!lead> gap:[a <? not set> b <!c ] \\> d>] drop:<?> one:{x:<?>} lit:'<?>' no:<> k:<!c> v",
+                        "gap:[a <?> b] one:{} lit:'<?>' no:<> k:v"
                 )
         );
     }
@@ -202,7 +206,9 @@ public class ParameterTest {
 
         assertEquals(0, missing.count());
         assertEquals("", missing.raw());
-        assertEquals("", missing.serialize(true));
+        assertEquals("<?>", missing.serialize(true));
+        assertSame(missing, Parameter.parseList("a <?>").get(1));
+        assertEquals("<?>", Parameter.parseList("'<?>'").get(0).textValue());
         assertTrue(missing.matches(missing));
         assertFalse(missing.matches(Parameter.ofValue("")));
         assertFalse(Parameter.ofValue("").matches(missing));
@@ -289,11 +295,11 @@ public class ParameterTest {
         Parameter x = Parameter.ofValue("x");
 
         assertEquals("[a x c]", list.with(1, x).serialize(false));
-        assertEquals("[a b c '' x]", list.with(4, x).serialize(false));
+        assertEquals("[a b c <?> x]", list.with(4, x).serialize(false));
         assertEquals("[x b c x]", list.with(List.of(IntObjectPair.of(0, x), IntObjectPair.of(3, x))).serialize(false));
         assertEquals("[a x b c x]", list.withInsert(List.of(IntObjectPair.of(0, x), IntObjectPair.of(2, x))).serialize(false));
         assertEquals("[a x b c]", list.withInsert(1, x).serialize(false));
-        assertEquals("[a b c '' x]", list.withInsert(4, x).serialize(false));
+        assertEquals("[a b c <?> x]", list.withInsert(4, x).serialize(false));
 
         assertEquals("{A:x b:2}", map.with("a", x).serialize(false));
         assertEquals("{A:1}", map.with("B", null).serialize(false));
@@ -313,7 +319,7 @@ public class ParameterTest {
         Parameter x = Parameter.ofValue("x");
 
         assertEquals("[x b c]", list.editList().insert(1, x).remove(0).finish().serialize(false));
-        assertEquals("[a '' c]", list.editList().set(1, Parameter.missing()).finish().serialize(false));
+        assertEquals("[a <?> c]", list.editList().set(1, Parameter.missing()).finish().serialize(false));
         assertEquals("{A:x}", map.editMap().put("a", x).remove("B").finish().serialize(false));
 
         assertSame(list, list.editList().finish());

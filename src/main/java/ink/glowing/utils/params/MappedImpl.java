@@ -47,7 +47,7 @@ final class MappedImpl extends CompoundImpl {
         for (var entry : internalValue.entrySet()) {
             sb.append(Parameter.escape(entry.getKey()))
                     .append(':')
-                    .append(serializeEntry(entry.getValue()))
+                    .append(entry.getValue().serialize(false))
                     .append(' ');
         }
     }

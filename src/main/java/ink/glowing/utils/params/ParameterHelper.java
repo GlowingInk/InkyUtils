@@ -36,8 +36,4 @@ final class ParameterHelper {
     static @NotNull Parameter orMissing(@Nullable Parameter parameter) {
         return parameter == null ? MissingImpl.INSTANCE : parameter;
     }
-
-    static @NotNull String serializeEntry(@NotNull Parameter entry) {
-        return entry == MissingImpl.INSTANCE ? "''" : entry.serialize(false);
-    }
 }

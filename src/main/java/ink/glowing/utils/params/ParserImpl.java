@@ -117,9 +117,33 @@ final class ParserImpl {
         return i;
     }
 
+    private boolean isAngleBlock(int at, char kind) {
+        return at + 1 < length && input[at] == '<' && input[at + 1] == kind;
+    }
+
+    private int scanAngleBlock(int start) {
+        int i = start + 2;
+        while (i < length) {
+            char ch = input[i];
+            if (ch == '>') return i + 1;
+            i = ch == '\\' ? skipEscape(i) : i + 1;
+        }
+        fail("Couldn't find the end of '<%c' started at %d", input[start + 1], start);
+        return length;
+    }
+
+    private boolean skipWhitespacesAndComments() {
+        while (!skipNonWhitespaces()) {
+            if (!isAngleBlock(pos, '!')) return false;
+            pos = scanAngleBlock(pos);
+        }
+        return true;
+    }
+
     private @NotNull Parameter parseSingleton(@NotNull String key, int tokenStart, int parentEnd) {
         Object2ObjectLinkedOpenCustomHashMap<String, Parameter> map = CaseInsensitive.newLinkedMap(1);
-        map.put(key, parseSingleValue(parentEnd));
+        Parameter value = parseSingleValue(parentEnd);
+        if (value != MissingImpl.INSTANCE) map.put(key, value);
         return new MappedImpl(slice(tokenStart, valueEnd), map);
     }
 
@@ -127,13 +151,11 @@ final class ParserImpl {
         Object2ObjectLinkedOpenCustomHashMap<String, Parameter> map = CaseInsensitive.newLinkedMap();
         boolean global = start == 0;
         int endCh = global ? NONE : '}';
-        while (hasMore()) {
+        while (!skipWhitespacesAndComments()) {
             char ch = pop();
             if (ch == '}') {
                 if (!global) return map;
                 fail("Found trailing '}' while parsing global map at pos %d", pos - 1);
-                continue;
-            } else if (isWhitespace(ch)) {
                 continue;
             }
 
@@ -147,7 +169,8 @@ final class ParserImpl {
                 pos = keyEnd;
             }
             if (advanceOn(':')) {
-                map.put(key, parseSingleValue(endCh));
+                Parameter value = parseSingleValue(endCh);
+                if (value != MissingImpl.INSTANCE) map.put(key, value);
             } else {
                 fail("Couldn't find colon for the map value at pos %d", pos);
                 map.put(key, StringImpl.EMPTY);
@@ -161,10 +184,7 @@ final class ParserImpl {
         List<Parameter> list = new ArrayList<>();
         boolean global = start == 0;
         int endCh = global ? NONE : ']';
-        while (hasMore()) {
-            if (skipNonWhitespaces()) {
-                break;
-            }
+        while (!skipWhitespacesAndComments()) {
             if (advanceOn(']')) {
                 if (!global) return list;
                 fail("Found trailing ']' while parsing global list at pos %d", pos - 1);
@@ -191,6 +211,8 @@ final class ParserImpl {
                         pos = skipEscape(pos - 1);
                     } else if (ch == '\'') {
                         parseQuotedString();
+                    } else if (isAngleBlock(pos - 1, '?') || isAngleBlock(pos - 1, '!')) {
+                        pos = scanAngleBlock(pos - 1);
                     } else if (ch == '[' || ch == '{') {
                         level++;
                     } else if ((ch == ']' || ch == '}') && level > 0) {
@@ -210,7 +232,7 @@ final class ParserImpl {
 
     private @NotNull Parameter parseSingleValueUnchecked(int parentEnd) {
         int entry = pos;
-        if (skipNonWhitespaces() || current() == parentEnd) {
+        if (skipWhitespacesAndComments() || current() == parentEnd) {
             valueEnd = entry;
             return StringImpl.EMPTY;
         }
@@ -232,6 +254,9 @@ final class ParserImpl {
             }
             valueEnd = quotedEnd;
             return new StringImpl(string, slice(tokenStart, quotedEnd));
+        } else if (isAngleBlock(tokenStart, '?')) {
+            pos = valueEnd = scanAngleBlock(tokenStart);
+            return MissingImpl.INSTANCE;
         }
 
         int end = scanBare(tokenStart, parentEnd);

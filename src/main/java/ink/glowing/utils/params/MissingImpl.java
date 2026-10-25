@@ -37,7 +37,7 @@ enum MissingImpl implements Parameter {
 
     @Override
     public @NotNull String serialize(boolean topLevel) {
-        return "";
+        return "<?>";
     }
 
     @Override

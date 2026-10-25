@@ -43,7 +43,7 @@ final class ListedImpl extends CompoundImpl {
     @Override
     void appendEntries(@NotNull StringBuilder sb) {
         for (Parameter entry : internalValue) {
-            sb.append(serializeEntry(entry)).append(' ');
+            sb.append(entry.serialize(false)).append(' ');
         }
     }
 
