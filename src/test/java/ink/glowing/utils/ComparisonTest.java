@@ -9,17 +9,18 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public final class ComparisonTest {
     private static Stream<Arguments> dataOfSignum() {
         return Stream.of(
-                Arguments.of(-1, Comparison.BELOW),
-                Arguments.of(-100, Comparison.BELOW),
-                Arguments.of(0, Comparison.EQUAL),
-                Arguments.of(1, Comparison.ABOVE),
-                Arguments.of(100, Comparison.ABOVE),
-                Arguments.of(Integer.MIN_VALUE, Comparison.BELOW),
-                Arguments.of(Integer.MAX_VALUE, Comparison.ABOVE)
+                arguments(-1, Comparison.BELOW),
+                arguments(-100, Comparison.BELOW),
+                arguments(0, Comparison.EQUAL),
+                arguments(1, Comparison.ABOVE),
+                arguments(100, Comparison.ABOVE),
+                arguments(Integer.MIN_VALUE, Comparison.BELOW),
+                arguments(Integer.MAX_VALUE, Comparison.ABOVE)
         );
     }
 
@@ -31,9 +32,9 @@ public final class ComparisonTest {
 
     private static Stream<Arguments> dataOfComparable() {
         return Stream.of(
-                Arguments.of(5, 10, Comparison.BELOW),
-                Arguments.of(10, 5, Comparison.ABOVE),
-                Arguments.of(7, 7, Comparison.EQUAL)
+                arguments(5, 10, Comparison.BELOW),
+                arguments(10, 5, Comparison.ABOVE),
+                arguments(7, 7, Comparison.EQUAL)
         );
     }
 
@@ -48,9 +49,9 @@ public final class ComparisonTest {
 
     private static Stream<Arguments> dataOfComparator() {
         return Stream.of(
-                Arguments.of("hey", "hello", Comparison.BELOW),
-                Arguments.of("hello", "hey", Comparison.ABOVE),
-                Arguments.of("test", "code", Comparison.EQUAL)
+                arguments("hey", "hello", Comparison.BELOW),
+                arguments("hello", "hey", Comparison.ABOVE),
+                arguments("test", "code", Comparison.EQUAL)
         );
     }
 

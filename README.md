@@ -68,41 +68,7 @@ list.editList().insert(1, Parameter.ofValue("x")).remove(0).finish(); // [x b c]
 `parseMapStrict` and `parseListStrict` throw `IllegalArgumentException` on malformed input: an unterminated list, map or quote, a key without a colon, a stray closing bracket or a value nested too deep.
 Nesting depth is limited to 512, configurable via the `ink.glowing.utils.params.maxDepth` system property.
 
-### `primitive.TriState`
-A boolean with a third `UNSET` state, for things like "not configured" or "doesn't matter".
-Mirrors the `Optional` API: presence checks, fallbacks, `ifPresent`, `orElseThrow`.
-```java
-TriState flag = TriState.of("yes"); // TRUE
-flag.asBoolean(false); // true
-TriState.UNSET.asBoolean(false); // false, the fallback
-
-// UNSET works as a wildcard filter
-TriState requireOp = TriState.UNSET;
-requireOp.isValidFor(player.isOp()); // true for any player
-```
-`TriState.of(String)` uses `TriState.Mapper.DEFAULT`, which understands `true/on/yes/allow/enable` and their negatives. Anything else is `UNSET`.
-
-`TriState.Mapper` converts between states and strings with custom words.
-Each state has a main name, used when converting back to a string. `TRUE` and `FALSE` can also have extra variants that are accepted when parsing.
-Matching ignores case, and unknown strings or `null` give the fallback state (`UNSET` unless changed with `fallback(...)`).
-```java
-TriState.Mapper mapper = TriState.Mapper.builder()
-        .name(TriState.TRUE, "allow")
-        .name(TriState.FALSE, "deny")
-        .name(TriState.UNSET, "default")
-        .addVariants(true, "yes", "+")
-        .addVariants(false, "no", "-")
-        .build();
-
-mapper.parse("YES"); // TRUE
-mapper.parse("maybe"); // UNSET, the fallback
-mapper.name(TriState.FALSE); // "deny"
-mapper.strings(TriState.TRUE); // [allow, yes, +]
-```
-An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Mapper.DEFAULT`.
-`build()` throws if the same word is assigned to different states.
-
-### `primitive.num.NumberUtils`
+### `num.NumberUtils`
 Helpers for working with numbers. Parsing returns a fallback instead of throwing on a malformed string.
 ```java
 NumberUtils.parseInt("42", 0); // 42
@@ -110,6 +76,18 @@ NumberUtils.parseInt("many", 0); // 0, the fallback
 NumberUtils.parseDouble(null, 1.5); // 1.5
 ```
 There are `parseInt`, `parseLong` and `parseDouble`. Without a fallback they return an `OptionalInt`, `OptionalLong` or `OptionalDouble`.
+`parseNumber` returns the narrowest of `Integer`, `Long` and `Double` that holds a plain decimal number, like `12`, `9999999999` or `6.5`.
+
+### `num.Range`
+A range of numbers.
+```java
+Range dice = Range.of(Bound.inclusive(1), Bound.exclusive(7)); // [1, 7), Bound.infinite() leaves a side unbounded
+dice.contains(7); // false
+dice.max().inclusive(); // false, the upper bound is Bound.OfLong 7; effectiveInt(true) gives 6, the largest int below it
+RngUtils.inRange(dice, 0); // 1..6, the fallback is for a range without such values
+Range ratio = Range.parse("(0, 2.5]"); // an empty bound like in [1, ) is unbounded
+Range.parse("[1, x]"); // Range.EMPTY, like any range without numbers between its bounds, such as [7, 1]; see isEmpty()
+```
 
 ### `hash`
 `HashList` is an unmodifiable `List` with O(1) `contains`, `indexOf` and `lastIndexOf`, for when a list needs both order and fast lookups.
@@ -199,6 +177,14 @@ Optional<Duration> timeout = FluentUtils.attempt(() -> DurationUtils.parseDurati
 Duration limit = FluentUtils.attemptOrElse(() -> DurationUtils.parseDuration(input), Duration.ofMinutes(1)); // the fallback if parsing throws
 ```
 
+### `Matchable`
+Compares objects by the values they hold. This is looser than `equals`: values written or typed differently can still match.
+```java
+Parameter.parseMap("a:1 b:'x'").matches(Parameter.parseMap("b:x  a:1")); // true, quoting, spacing and entry order are ignored
+Range.parse("[1, 2]").matches(Range.parse("[1.0, 2.0]")); // true, but equals(...) is false
+Range.parse("[1, 2]").matches(Range.parse("[1, 2)")); // false, the upper bounds differ
+```
+
 ### `TextUtils`
 Index-aware search and replace, plus `char` array counterparts of common `String` methods.
 ```java
@@ -211,6 +197,40 @@ TextUtils.substring(chars, 0, colonAt); // "key"
 TextUtils.subarray(chars, colonAt + 1); // ['v', 'a', 'l', 'u', 'e']
 ```
 An empty search string matches nothing.
+
+### `TriState`
+A boolean with a third `UNSET` state, for things like "not configured" or "doesn't matter".
+Mirrors the `Optional` API: presence checks, fallbacks, `ifPresent`, `orElseThrow`.
+```java
+TriState flag = TriState.of("yes"); // TRUE
+flag.asBoolean(false); // true
+TriState.UNSET.asBoolean(false); // false, the fallback
+
+// UNSET works as a wildcard filter
+TriState requireOp = TriState.UNSET;
+requireOp.isValidFor(player.isOp()); // true for any player
+```
+`TriState.of(String)` uses `TriState.Mapper.DEFAULT`, which understands `true/on/yes/allow/enable` and their negatives. Anything else is `UNSET`.
+
+`TriState.Mapper` converts between states and strings with custom words.
+Each state has a main name, used when converting back to a string. `TRUE` and `FALSE` can also have extra variants that are accepted when parsing.
+Matching ignores case, and unknown strings or `null` give the fallback state (`UNSET` unless changed with `fallback(...)`).
+```java
+TriState.Mapper mapper = TriState.Mapper.builder()
+        .name(TriState.TRUE, "allow")
+        .name(TriState.FALSE, "deny")
+        .name(TriState.UNSET, "default")
+        .addVariants(true, "yes", "+")
+        .addVariants(false, "no", "-")
+        .build();
+
+mapper.parse("YES"); // TRUE
+mapper.parse("maybe"); // UNSET, the fallback
+mapper.name(TriState.FALSE); // "deny"
+mapper.strings(TriState.TRUE); // [allow, yes, +]
+```
+An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Mapper.DEFAULT`.
+`build()` throws if the same word is assigned to different states.
 
 ## Get it ![Version](https://img.shields.io/github/v/tag/GlowingInk/InkyUtils?sort=semver&style=flat&label=release)
 Versions in dependency sections may be outdated. Check the badge above for the latest one.

@@ -1,6 +1,6 @@
 package ink.glowing.utils.params;
 
-import ink.glowing.utils.primitive.TriState;
+import ink.glowing.utils.TriState;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,56 +15,57 @@ import java.util.stream.Stream;
 
 import static ink.glowing.utils.params.Parameter.parseMap;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class ParameterTest {
     public static Stream<Arguments> parseData() {
         return Stream.of(
-                Arguments.of(
+                arguments(
                         "simple:value",
                         "simple:value"
                 ),
-                Arguments.of(
+                arguments(
                         "first:value second:value",
                         "first:value second:value"
                 ),
-                Arguments.of(
+                arguments(
                         "escaping:\\'\\ space!",
                         "escaping:'\\' space!'"
                 ),
-                Arguments.of(
+                arguments(
                         "list:['of' 'values']",
                         "list:[of values]"
                 ),
-                Arguments.of(
+                arguments(
                         "brackets:'a{b}[c]'",
                         "brackets:'a{b}[c]'"
                 ),
-                Arguments.of(
+                arguments(
                         "mixed:'it\\'s [x]'",
                         "mixed:'it\\'s [x]'"
                 ),
-                Arguments.of(
+                arguments(
                         "tab:'a\tb'",
                         "tab:'a\tb'"
                 ),
-                Arguments.of(
+                arguments(
                         "empty:''",
                         "empty:''"
                 ),
-                Arguments.of(
+                arguments(
                         "colon:'a:b'",
                         "colon:'a:b'"
                 ),
-                Arguments.of(
+                arguments(
                         "'a:b':value",
                         "'a:b':value"
                 ),
-                Arguments.of(
+                arguments(
                         "nul:a\0b",
                         "nul:a\0b"
                 ),
-                Arguments.of(
+                arguments(
                         "<!lead> gap:[a <? not set> b <!c ] \\> d>] drop:<?> one:{x:<?>} lit:'<?>' no:<> k:<!c> v",
                         "gap:[a <?> b] one:{} lit:'<?>' no:<> k:v"
                 )

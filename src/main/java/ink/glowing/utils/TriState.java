@@ -1,4 +1,4 @@
-package ink.glowing.utils.primitive;
+package ink.glowing.utils;
 
 import ink.glowing.utils.hash.CaseInsensitive;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;

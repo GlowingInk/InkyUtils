@@ -1,10 +1,11 @@
 package ink.glowing.utils.params;
 
 import ink.glowing.utils.EnumUtils;
+import ink.glowing.utils.Matchable;
+import ink.glowing.utils.TriState;
 import ink.glowing.utils.hash.CaseInsensitive;
+import ink.glowing.utils.num.NumberUtils;
 import ink.glowing.utils.params.ParameterEditorImpl.NoopEditor;
-import ink.glowing.utils.primitive.TriState;
-import ink.glowing.utils.primitive.num.NumberUtils;
 import it.unimi.dsi.fastutil.ints.IntObjectBiConsumer;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import org.jetbrains.annotations.Contract;
@@ -38,7 +39,7 @@ import static ink.glowing.utils.params.ParameterHelper.isAbsent;
  * }</pre>
  * Nesting is limited to {@link #MAX_DEPTH} levels.
  */
-public sealed interface Parameter extends Parameterizable permits MissingImpl, ValueImpl, CompoundImpl {
+public sealed interface Parameter extends Parameterizable, Matchable<Parameter> permits MissingImpl, ValueImpl, CompoundImpl {
     /**
      * The name of the system property that overrides {@link #MAX_DEPTH}.
      */
@@ -93,6 +94,7 @@ public sealed interface Parameter extends Parameterizable permits MissingImpl, V
      * @param other the parameter to compare with
      * @return {@code true} if both hold the same values
      */
+    @Override
     @Contract(pure = true)
     boolean matches(@NotNull Parameter other);
 

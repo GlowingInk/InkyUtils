@@ -1,9 +1,10 @@
-package ink.glowing.utils.primitive.num;
+package ink.glowing.utils.num;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -16,8 +17,6 @@ import java.util.function.LongSupplier;
  */
 public final class NumberUtils {
     private NumberUtils() { }
-
-    // TODO There are also bytes... But I don't care for now
 
     /**
      * Parses an {@code int}.
@@ -164,5 +163,63 @@ public final class NumberUtils {
         } catch (NumberFormatException _) {
             return def.getAsDouble();
         }
+    }
+
+    /**
+     * Parses a number into the narrowest of {@code Integer}, {@code Long} and {@code Double} that holds it.
+     * Only plain decimal numbers are accepted, like {@code -12}, {@code 6.5} or {@code 1e3}: no whitespace,
+     * {@code NaN}, {@code Infinity}, hexadecimal or type suffixes.
+     * @param str the string to parse
+     * @return the parsed number, or empty if the string is not a number
+     */
+    @Contract(pure = true)
+    public static @NotNull Optional<Number> parseNumber(@Nullable String str) {
+        if (str == null) return Optional.empty();
+        int length = str.length();
+        int digitsFrom = length > 1 && (str.charAt(0) == '+' || str.charAt(0) == '-') ? 1 : 0;
+        boolean integer = true;
+        boolean hasDigit = false;
+        for (int i = 0; i < length; i++) {
+            char ch = str.charAt(i);
+            if (Character.isDigit(ch)) {
+                hasDigit = true;
+            } else if (ch == '.' || ch == 'e' || ch == 'E' || ch == '+' || ch == '-') {
+                if (i >= digitsFrom) integer = false;
+            } else {
+                return Optional.empty();
+            }
+        }
+        if (!hasDigit) return Optional.empty();
+
+        if (integer) {
+            try {
+                return Optional.of(Integer.parseInt(str));
+            } catch (NumberFormatException _) { /* too large, try the next type */ }
+            try {
+                return Optional.of(Long.parseLong(str));
+            } catch (NumberFormatException _) { /* too large, try the next type */ }
+        }
+        try {
+            return Optional.of(Double.parseDouble(str));
+        } catch (NumberFormatException _) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Compares a {@code long} with a {@code double} exactly, without rounding the {@code long} to a {@code double}
+     * as {@code a < b} does: {@code 2^53 + 1} is greater than {@code 2^53} as a {@code double}.
+     * Zeros of both signs are equal to {@code 0}, and {@code NaN} is greater than any {@code long},
+     * like in {@link Double#compare(double, double)}.
+     * @param tested the {@code long} to compare
+     * @param against the {@code double} to compare
+     * @return a negative number if {@code a < b}, zero if they are equal, and a positive number if {@code a > b}
+     */
+    @Contract(pure = true)
+    public static int compare(long tested, double against) {
+        if (Double.isNaN(against) || against >= -(double) Long.MIN_VALUE) return -1;
+        if (against < Long.MIN_VALUE) return 1;
+        long whole = (long) against;
+        return tested != whole ? Long.compare(tested, whole) : against > whole ? -1 : against < whole ? 1 : 0;
     }
 }

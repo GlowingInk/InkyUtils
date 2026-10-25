@@ -14,23 +14,24 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class DurationUtilsTest {
     static Stream<Arguments> parseData() {
         return Stream.of(
-                Arguments.of("5",Duration.ofSeconds(5)),
-                Arguments.of("5s", Duration.ofSeconds(5)),
-                Arguments.of("5ms", Duration.ofMillis(5)),
-                Arguments.of("1m", Duration.ofMinutes(1)),
-                Arguments.of("2h", Duration.ofHours(2)),
-                Arguments.of("1d", Duration.ofDays(1)),
-                Arguments.of("1h 30m", Duration.ofMinutes(90)),
-                Arguments.of("  1m   30s ", Duration.ofSeconds(90)),
-                Arguments.of("-1s", Duration.ofSeconds(-1)),
-                Arguments.of("-1h -30m", Duration.ofMinutes(-90)),
-                Arguments.of("1h -30m", Duration.ofMinutes(30)),
+                arguments("5",Duration.ofSeconds(5)),
+                arguments("5s", Duration.ofSeconds(5)),
+                arguments("5ms", Duration.ofMillis(5)),
+                arguments("1m", Duration.ofMinutes(1)),
+                arguments("2h", Duration.ofHours(2)),
+                arguments("1d", Duration.ofDays(1)),
+                arguments("1h 30m", Duration.ofMinutes(90)),
+                arguments("  1m   30s ", Duration.ofSeconds(90)),
+                arguments("-1s", Duration.ofSeconds(-1)),
+                arguments("-1h -30m", Duration.ofMinutes(-90)),
+                arguments("1h -30m", Duration.ofMinutes(30)),
                 // Arabic 7d, Devanagari 5h, Gurmukhi 3m, Thai 5s
-                Arguments.of("٧d ५h ੩m ๕s", Duration.ofDays(7).plusHours(5).plusMinutes(3).plusSeconds(5))
+                arguments("٧d ५h ੩m ๕s", Duration.ofDays(7).plusHours(5).plusMinutes(3).plusSeconds(5))
         );
     }
 
@@ -58,10 +59,10 @@ public class DurationUtilsTest {
 
     static Stream<Arguments> serializeData() {
         return Stream.of(
-                Arguments.of(Duration.ZERO, "0"),
-                Arguments.of(Duration.ofMinutes(90), "1h 30m"),
-                Arguments.of(Duration.ofDays(1).plusSeconds(5).plusNanos(7), "1d 5s 7ns"),
-                Arguments.of(Duration.ofMillis(-1500), "-1s -500ms")
+                arguments(Duration.ZERO, "0"),
+                arguments(Duration.ofMinutes(90), "1h 30m"),
+                arguments(Duration.ofDays(1).plusSeconds(5).plusNanos(7), "1d 5s 7ns"),
+                arguments(Duration.ofMillis(-1500), "-1s -500ms")
         );
     }
 

@@ -12,6 +12,7 @@ import java.util.random.RandomGenerator;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class WeightedPickerTest {
     private static final int SAMPLES = 100_000;
@@ -62,10 +63,10 @@ public class WeightedPickerTest {
 
     public static Stream<Arguments> emptyData() {
         return Stream.of(
-                Arguments.of(doubleArr()),
-                Arguments.of(doubleArr(0)),
-                Arguments.of(doubleArr(-1, Double.NaN)),
-                Arguments.of(doubleArr(0, 0, -1))
+                arguments(doubleArr()),
+                arguments(doubleArr(0)),
+                arguments(doubleArr(-1, Double.NaN)),
+                arguments(doubleArr(0, 0, -1))
         );
     }
 
@@ -80,17 +81,17 @@ public class WeightedPickerTest {
     public static Stream<Arguments> distributionData() {
         double inf = Double.POSITIVE_INFINITY;
         return Stream.of(
-                Arguments.of(doubleArr(1, 1), doubleArr(0.5, 0.5)),
-                Arguments.of(doubleArr(1, 3), doubleArr(0.25, 0.75)),
-                Arguments.of(doubleArr(1, 2, 3, 4), doubleArr(0.1, 0.2, 0.3, 0.4)),
-                Arguments.of(doubleArr(0.001, 0.002, 0.003), doubleArr(1d / 6, 2d / 6, 3d / 6)),
+                arguments(doubleArr(1, 1), doubleArr(0.5, 0.5)),
+                arguments(doubleArr(1, 3), doubleArr(0.25, 0.75)),
+                arguments(doubleArr(1, 2, 3, 4), doubleArr(0.1, 0.2, 0.3, 0.4)),
+                arguments(doubleArr(0.001, 0.002, 0.003), doubleArr(1d / 6, 2d / 6, 3d / 6)),
                 // Non-positive weights are never picked
-                Arguments.of(doubleArr(1, 0, Double.NaN, -1, 1), doubleArr(0.5, 0, 0, 0, 0.5)),
+                arguments(doubleArr(1, 0, Double.NaN, -1, 1), doubleArr(0.5, 0, 0, 0, 0.5)),
                 // Infinite weights discard finite ones
-                Arguments.of(doubleArr(inf, 1), doubleArr(1, 0)),
-                Arguments.of(doubleArr(1, inf, 5, inf, 0), doubleArr(0, 0.5, 0, 0.5, 0)),
+                arguments(doubleArr(inf, 1), doubleArr(1, 0)),
+                arguments(doubleArr(1, inf, 5, inf, 0), doubleArr(0, 0.5, 0, 0.5, 0)),
                 // Weights that overflow their sum
-                Arguments.of(doubleArr(Double.MAX_VALUE, Double.MAX_VALUE, 1), doubleArr(0.5, 0.5, 0))
+                arguments(doubleArr(Double.MAX_VALUE, Double.MAX_VALUE, 1), doubleArr(0.5, 0.5, 0))
         );
     }
 

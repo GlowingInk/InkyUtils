@@ -1,5 +1,6 @@
 package ink.glowing.utils.rng;
 
+import ink.glowing.utils.num.Range;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -265,6 +266,91 @@ public final class RngUtils {
         if (span.getSeconds() < MAX_NANO_SECONDS) return min.plusNanos(rng.nextLong(span.toNanos()));
         // The span's leftover nanos past its last whole second are never picked... but whatever
         return min.plusSeconds(rng.nextLong(span.getSeconds())).plusNanos(rng.nextLong(1_000_000_000L));
+    }
+
+    /**
+     * Returns a uniformly random {@code int} in the range.
+     * @param range the range to pick from
+     * @param def the value to return if the range has no {@code int} values
+     * @return a random value in the range, or {@code def}
+     * @see #threadRandom()
+     * @see #inRange(RandomGenerator, Range, int)
+     */
+    public static int inRange(@NotNull Range range, int def) {
+        return inRange(threadRandom(), range, def);
+    }
+
+    /**
+     * Returns a uniformly random {@code int} in the range.
+     * @param rng the source of randomness
+     * @param range the range to pick from
+     * @param def the value to return if the range has no {@code int} values
+     * @return a random value in the range, or {@code def}
+     */
+    public static int inRange(@NotNull RandomGenerator rng, @NotNull Range range, int def) {
+        if (!range.min().hasInt(false) || !range.max().hasInt(true)) return def;
+        int min = range.min().effectiveInt(false);
+        int max = range.max().effectiveInt(true);
+        if (min > max) return def;
+        return (int) rng.nextLong(min, max + 1L);
+    }
+
+    /**
+     * Returns a uniformly random {@code long} in the range.
+     * @param range the range to pick from
+     * @param def the value to return if the range has no {@code long} values
+     * @return a random value in the range, or {@code def}
+     * @see #threadRandom()
+     * @see #inRange(RandomGenerator, Range, long)
+     */
+    public static long inRange(@NotNull Range range, long def) {
+        return inRange(threadRandom(), range, def);
+    }
+
+    /**
+     * Returns a uniformly random {@code long} in the range.
+     * @param rng the source of randomness
+     * @param range the range to pick from
+     * @param def the value to return if the range has no {@code long} values
+     * @return a random value in the range, or {@code def}
+     */
+    public static long inRange(@NotNull RandomGenerator rng, @NotNull Range range, long def) {
+        if (!range.min().hasLong(false) || !range.max().hasLong(true)) return def;
+        long min = range.min().effectiveLong(false);
+        long max = range.max().effectiveLong(true);
+        if (min > max) return def;
+        if (max < Long.MAX_VALUE) return rng.nextLong(min, max + 1);
+        if (min > Long.MIN_VALUE) return rng.nextLong(min - 1, max) + 1;
+        return rng.nextLong();
+    }
+
+    /**
+     * Returns a uniformly random {@code double} in the range. The largest value is
+     * practically never returned, unless it's the only value in the range.
+     * @param range the range to pick from
+     * @param def the value to return if the range has no values or is infinitely wide
+     * @return a random value in the range, or {@code def}
+     * @see #threadRandom()
+     * @see #inRange(RandomGenerator, Range, double)
+     */
+    public static double inRange(@NotNull Range range, double def) {
+        return inRange(threadRandom(), range, def);
+    }
+
+    /**
+     * Returns a uniformly random {@code double} in the range. The largest value is
+     * practically never returned, unless it's the only value in the range.
+     * @param rng the source of randomness
+     * @param range the range to pick from
+     * @param def the value to return if the range has no values or is infinitely wide
+     * @return a random value in the range, or {@code def}
+     */
+    public static double inRange(@NotNull RandomGenerator rng, @NotNull Range range, double def) {
+        double min = range.min().effectiveDouble(false);
+        double max = range.max().effectiveDouble(true);
+        if (min == max) return min;
+        if (!(min < max) || !Double.isFinite(max - min)) return def;
+        return rng.nextDouble(min, max);
     }
 
     /**

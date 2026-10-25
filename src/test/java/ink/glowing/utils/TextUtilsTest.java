@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import static ink.glowing.utils.TextUtils.*;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class TextUtilsTest {
     @ParameterizedTest
@@ -25,7 +26,7 @@ public class TextUtilsTest {
 
     static Stream<Arguments> findEachData() {
         return Stream.of(
-                Arguments.of("1a 2a 3a 4a 5a", "a", new int[]{1, 4, 7, 10, 13})
+                arguments("1a 2a 3a 4a 5a", "a", new int[]{1, 4, 7, 10, 13})
         );
     }
 

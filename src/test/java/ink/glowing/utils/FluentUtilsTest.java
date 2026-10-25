@@ -9,13 +9,14 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class FluentUtilsTest {
     static Stream<Arguments> attemptData() {
         return Stream.of(
-                Arguments.of((Supplier<Integer>) () -> Integer.parseInt("5"), Optional.of(5)),
-                Arguments.of((Supplier<Integer>) () -> Integer.parseInt("five"), Optional.empty()),
-                Arguments.of((Supplier<Integer>) () -> null, Optional.empty())
+                arguments((Supplier<Integer>) () -> Integer.parseInt("5"), Optional.of(5)),
+                arguments((Supplier<Integer>) () -> Integer.parseInt("five"), Optional.empty()),
+                arguments((Supplier<Integer>) () -> null, Optional.empty())
         );
     }
 

@@ -1,4 +1,4 @@
-package ink.glowing.utils.primitive;
+package ink.glowing.utils;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -6,7 +6,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.NoSuchElementException;
 
-import static ink.glowing.utils.primitive.TriState.*;
+import static ink.glowing.utils.TriState.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TriStateTest {

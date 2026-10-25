@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class HashListTest {
     private static String[] stringArr(String... arr) {
@@ -17,10 +18,10 @@ public class HashListTest {
     
     public static Stream<Arguments> hashListData() {
         return Stream.of(
-                Arguments.of(stringArr(), 0),
-                Arguments.of(stringArr("a"), 1),
-                Arguments.of(stringArr("a", "b", "c"), 3),
-                Arguments.of(stringArr("a", "b", "a"), 3)
+                arguments(stringArr(), 0),
+                arguments(stringArr("a"), 1),
+                arguments(stringArr("a", "b", "c"), 3),
+                arguments(stringArr("a", "b", "a"), 3)
         );
     }
 
@@ -33,13 +34,13 @@ public class HashListTest {
 
     public static Stream<Arguments> containsData() {
         return Stream.of(
-                Arguments.of(stringArr(), "x", false),
-                Arguments.of(stringArr("a"), "a", true),
-                Arguments.of(stringArr("a"), "b", false),
-                Arguments.of(stringArr("a", "b", "c"), "b", true),
-                Arguments.of(stringArr("a", "b", "c"), "d", false),
-                Arguments.of(stringArr("a", "b", "a"), "a", true),
-                Arguments.of(stringArr("a", "b", "a"), "c", false)
+                arguments(stringArr(), "x", false),
+                arguments(stringArr("a"), "a", true),
+                arguments(stringArr("a"), "b", false),
+                arguments(stringArr("a", "b", "c"), "b", true),
+                arguments(stringArr("a", "b", "c"), "d", false),
+                arguments(stringArr("a", "b", "a"), "a", true),
+                arguments(stringArr("a", "b", "a"), "c", false)
         );
     }
 
@@ -53,12 +54,12 @@ public class HashListTest {
 
     public static Stream<Arguments> indexOfData() {
         return Stream.of(
-                Arguments.of(stringArr(), "x", -1, -1),
-                Arguments.of(stringArr("a"), "a", 0, 0),
-                Arguments.of(stringArr("a"), "b", -1, -1),
-                Arguments.of(stringArr("a", "b", "c"), "c", 2, 2),
-                Arguments.of(stringArr("a", "b", "a"), "a", 0, 2),
-                Arguments.of(stringArr("a", "b", "a"), "b", 1, 1)
+                arguments(stringArr(), "x", -1, -1),
+                arguments(stringArr("a"), "a", 0, 0),
+                arguments(stringArr("a"), "b", -1, -1),
+                arguments(stringArr("a", "b", "c"), "c", 2, 2),
+                arguments(stringArr("a", "b", "a"), "a", 0, 2),
+                arguments(stringArr("a", "b", "a"), "b", 1, 1)
         );
     }
 
@@ -72,11 +73,11 @@ public class HashListTest {
 
     public static Stream<Arguments> getAndToArrayData() {
         return Stream.of(
-                Arguments.of(stringArr(), stringArr()),
-                Arguments.of(stringArr("a"), stringArr("a")),
-                Arguments.of(stringArr("a", "b"), stringArr("a", "b")),
-                Arguments.of(stringArr("a", "b", "c"), stringArr("a", "b", "c")),
-                Arguments.of(stringArr("a", "b", "a"), stringArr("a", "b", "a"))
+                arguments(stringArr(), stringArr()),
+                arguments(stringArr("a"), stringArr("a")),
+                arguments(stringArr("a", "b"), stringArr("a", "b")),
+                arguments(stringArr("a", "b", "c"), stringArr("a", "b", "c")),
+                arguments(stringArr("a", "b", "a"), stringArr("a", "b", "a"))
         );
     }
 
@@ -93,9 +94,9 @@ public class HashListTest {
 
     public static Stream<Arguments> nullBehaviorData() {
         return Stream.of(
-                Arguments.of(stringArr("a", "b"), -1, -1),
-                Arguments.of(stringArr(), -1, -1),
-                Arguments.of(stringArr("a", null, "b"), 1, 1)
+                arguments(stringArr("a", "b"), -1, -1),
+                arguments(stringArr(), -1, -1),
+                arguments(stringArr("a", null, "b"), 1, 1)
         );
     }
 

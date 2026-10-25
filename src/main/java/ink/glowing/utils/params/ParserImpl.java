@@ -1,8 +1,9 @@
 package ink.glowing.utils.params;
 
 import ink.glowing.utils.TextUtils;
+import ink.glowing.utils.TriState;
 import ink.glowing.utils.hash.CaseInsensitive;
-import ink.glowing.utils.primitive.TriState;
+import ink.glowing.utils.num.NumberUtils;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import org.jetbrains.annotations.NotNull;
 
@@ -275,39 +276,16 @@ final class ParserImpl {
     }
 
     private @NotNull Parameter parseBare(@NotNull String text) {
-        int length = text.length();
-        int digitsFrom = length > 1 && (text.charAt(0) == '+' || text.charAt(0) == '-') ? 1 : 0;
-        boolean integer = true;
-        boolean hasDigit = false;
-        int i = 0;
-        for (; i < length; i++) {
-            char ch = text.charAt(i);
-            if (Character.isDigit(ch)) {
-                hasDigit = true;
-            } else if (ch == '.' || ch == 'e' || ch == 'E' || ch == '+' || ch == '-') {
-                if (i >= digitsFrom) integer = false;
-            } else {
-                break;
+        return switch (NumberUtils.parseNumber(text).orElse(null)) {
+            case Integer value -> new IntImpl(value, text);
+            case Long value -> new LongImpl(value, text);
+            case Double value -> new DoubleImpl(value, text);
+            case null, default -> {
+                if (text.equalsIgnoreCase("true")) yield new BooleanImpl(TriState.TRUE, text);
+                if (text.equalsIgnoreCase("false")) yield new BooleanImpl(TriState.FALSE, text);
+                yield new StringImpl(text, ParameterHelper.VALUE_RAW);
             }
-        }
-
-        if (i == length && hasDigit) {
-            if (integer) {
-                try {
-                    return new IntImpl(Integer.parseInt(text), text);
-                } catch (NumberFormatException _) { /* too large, try the next type */ }
-                try {
-                    return new LongImpl(Long.parseLong(text), text);
-                } catch (NumberFormatException _) { /* too large, try the next type */ }
-            }
-            try {
-                return new DoubleImpl(Double.parseDouble(text), text);
-            } catch (NumberFormatException _) { /* like "1-2", a plain string */ }
-        } else {
-            if (text.equalsIgnoreCase("true")) return new BooleanImpl(TriState.TRUE, text);
-            if (text.equalsIgnoreCase("false")) return new BooleanImpl(TriState.FALSE, text);
-        }
-        return new StringImpl(text, ParameterHelper.VALUE_RAW);
+        };
     }
 
     private @NotNull String parseQuotedString() {
