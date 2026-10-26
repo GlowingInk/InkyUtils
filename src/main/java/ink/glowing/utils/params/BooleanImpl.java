@@ -36,12 +36,12 @@ final class BooleanImpl extends TypedImpl {
     }
 
     @Override
-    public boolean asBoolean(boolean def) {
-        return state.asBoolean(def);
+    public boolean asBoolean(boolean fallback) {
+        return state.asBoolean(fallback);
     }
 
     @Override
-    public boolean asBoolean(@NotNull BooleanSupplier def) {
-        return state.asBoolean(def);
+    public boolean asBoolean(@NotNull BooleanSupplier fallback) {
+        return state.asBoolean(fallback);
     }
 }

@@ -27,12 +27,12 @@ final class IntImpl extends TypedImpl {
     }
 
     @Override
-    public int asInt(int def) {
+    public int asInt(int fallback) {
         return number;
     }
 
     @Override
-    public int asInt(@NotNull IntSupplier def) {
+    public int asInt(@NotNull IntSupplier fallback) {
         return number;
     }
 
@@ -42,12 +42,12 @@ final class IntImpl extends TypedImpl {
     }
 
     @Override
-    public long asLong(long def) {
+    public long asLong(long fallback) {
         return number;
     }
 
     @Override
-    public long asLong(@NotNull LongSupplier def) {
+    public long asLong(@NotNull LongSupplier fallback) {
         return number;
     }
 
@@ -57,12 +57,12 @@ final class IntImpl extends TypedImpl {
     }
 
     @Override
-    public double asDouble(double def) {
+    public double asDouble(double fallback) {
         return number;
     }
 
     @Override
-    public double asDouble(@NotNull DoubleSupplier def) {
+    public double asDouble(@NotNull DoubleSupplier fallback) {
         return number;
     }
 }

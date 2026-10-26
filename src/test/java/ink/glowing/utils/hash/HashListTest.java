@@ -120,7 +120,7 @@ public class HashListTest {
 
     @Test
     public void testCustomStrategy() {
-        var composer = new HashList.Composer<String>().containsStrategy(CaseInsensitive.strategy());
+        var composer = new HashList.Composer<String>().strategy(CaseInsensitive.strategy());
         List.of("Alpha", "Beta", "Gamma").forEach(composer::add);
         HashList<String> list = composer.finish();
 

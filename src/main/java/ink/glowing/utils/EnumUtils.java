@@ -17,12 +17,12 @@ public final class EnumUtils {
      * Finds the constant of the fallback's enum by its name, ignoring case.
      * @param <$Enum> the type of the enum
      * @param name the name to look up
-     * @param def the fallback, which also gives the enum
+     * @param fallback the fallback, which also gives the enum
      * @return the matching constant, or the fallback if there is none
      */
     @Contract(pure = true)
-    public static <$Enum extends Enum<$Enum>> @NotNull $Enum asEnum(@NotNull String name, @NotNull $Enum def) {
-        return asEnum(name, def.getDeclaringClass(), def);
+    public static <$Enum extends Enum<$Enum>> @NotNull $Enum parseEnum(@NotNull String name, @NotNull $Enum fallback) {
+        return parseEnum(name, fallback.getDeclaringClass(), fallback);
     }
 
     /**
@@ -33,8 +33,8 @@ public final class EnumUtils {
      * @return the matching constant, or empty if there is none
      */
     @Contract(pure = true)
-    public static <$Enum extends Enum<$Enum>> @NotNull Optional<$Enum> asEnum(@NotNull String name, @NotNull Class<$Enum> type) {
-        return Optional.ofNullable(asEnum(name, type, null));
+    public static <$Enum extends Enum<$Enum>> @NotNull Optional<$Enum> parseEnum(@NotNull String name, @NotNull Class<$Enum> type) {
+        return Optional.ofNullable(parseEnum(name, type, null));
     }
 
     /**
@@ -42,19 +42,19 @@ public final class EnumUtils {
      * @param <$Enum> the type of the enum
      * @param name the name to look up
      * @param type the enum class
-     * @param def the fallback
+     * @param fallback the fallback
      * @return the matching constant, or the fallback if there is none
      * @see Enum#valueOf(Class, String)
      */
     @Contract(value = "_, _, !null -> !null", pure = true)
-    public static <$Enum extends Enum<$Enum>> @Nullable $Enum asEnum(@NotNull String name, @NotNull Class<$Enum> type, @Nullable $Enum def) {
+    public static <$Enum extends Enum<$Enum>> @Nullable $Enum parseEnum(@NotNull String name, @NotNull Class<$Enum> type, @Nullable $Enum fallback) {
         try {
             return Enum.valueOf(type, name.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException _) {
             for ($Enum constant : type.getEnumConstants()) {
                 if (constant.name().equalsIgnoreCase(name)) return constant;
             }
-            return def;
+            return fallback;
         }
     }
 }

@@ -12,6 +12,7 @@ import java.time.temporal.Temporal;
 import java.time.temporal.TemporalUnit;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.function.Function;
 
@@ -41,8 +42,8 @@ public final class DurationUtils {
     )));
 
     /**
-     * The units used by {@link #parseDuration(String)}: {@code ns}, {@code ms}, {@code s},
-     * {@code m}, {@code h} and {@code d}, and an empty suffix counts as seconds. Case-insensitive.
+     * The units used by {@link #parseDuration(String)} and {@link #parseDurationStrict(String)}: {@code ns}, {@code ms},
+     * {@code s}, {@code m}, {@code h} and {@code d}, and an empty suffix counts as seconds. Case-insensitive.
      */
     public static final Function<String, @Nullable TemporalUnit> DEFAULT_UNITS = DEFAULT_UNITS_MAP::get;
 
@@ -65,15 +66,11 @@ public final class DurationUtils {
     /**
      * Parses a duration using {@link #DEFAULT_UNITS}.
      * @param input the string to parse
-     * @return the sum of all parts
-     * @throws IllegalArgumentException if the input is invalid
-     * @throws NumberFormatException if a part's number does not fit in a {@code long}
-     * @throws ArithmeticException if the total duration overflows
-     * @see #parseDuration(String, Function)
-     * @see #DEFAULT_UNITS
+     * @return the sum of all parts, or empty if the input is invalid or the total duration overflows
+     * @see #parseDurationStrict(String)
      */
     @Contract(pure = true)
-    public static @NotNull Duration parseDuration(@NotNull String input) {
+    public static @NotNull Optional<Duration> parseDuration(@NotNull String input) {
         return parseDuration(input, DEFAULT_UNITS);
     }
 
@@ -81,15 +78,56 @@ public final class DurationUtils {
      * Parses a duration using the given unit suffixes.
      * @param input the string to parse
      * @param units the unit suffixes; lookup follows the map's own key comparison
+     * @return the sum of all parts, or empty if the input is invalid or the total duration overflows
+     * @see #parseDurationStrict(String, Map)
+     */
+    @Contract(pure = true)
+    public static @NotNull Optional<Duration> parseDuration(@NotNull String input, @NotNull Map<String, ? extends TemporalUnit> units) {
+        return parseDuration(input, units::get);
+    }
+
+    /**
+     * Parses a duration like {@link #parseDurationStrict(String, Function)}, but returns empty instead of throwing.
+     * @param input the string to parse
+     * @param units resolves a suffix to its unit, or {@code null} if the suffix is unknown
+     * @return the sum of all parts, or empty if the input is invalid or the total duration overflows
+     */
+    public static @NotNull Optional<Duration> parseDuration(@NotNull String input, @NotNull Function<String, ? extends @Nullable TemporalUnit> units) {
+        try {
+            return Optional.of(parseDurationStrict(input, units));
+        } catch (IllegalArgumentException | ArithmeticException _) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Parses a duration using {@link #DEFAULT_UNITS}, rejecting invalid input.
+     * @param input the string to parse
      * @return the sum of all parts
      * @throws IllegalArgumentException if the input is invalid
      * @throws NumberFormatException if a part's number does not fit in a {@code long}
      * @throws ArithmeticException if the total duration overflows
-     * @see #parseDuration(String, Function)
+     * @see #parseDurationStrict(String, Function)
+     * @see #DEFAULT_UNITS
      */
     @Contract(pure = true)
-    public static @NotNull Duration parseDuration(@NotNull String input, @NotNull Map<String, ? extends TemporalUnit> units) {
-        return parseDuration(input, units::get);
+    public static @NotNull Duration parseDurationStrict(@NotNull String input) {
+        return parseDurationStrict(input, DEFAULT_UNITS);
+    }
+
+    /**
+     * Parses a duration using the given unit suffixes, rejecting invalid input.
+     * @param input the string to parse
+     * @param units the unit suffixes; lookup follows the map's own key comparison
+     * @return the sum of all parts
+     * @throws IllegalArgumentException if the input is invalid
+     * @throws NumberFormatException if a part's number does not fit in a {@code long}
+     * @throws ArithmeticException if the total duration overflows
+     * @see #parseDurationStrict(String, Function)
+     */
+    @Contract(pure = true)
+    public static @NotNull Duration parseDurationStrict(@NotNull String input, @NotNull Map<String, ? extends TemporalUnit> units) {
+        return parseDurationStrict(input, units::get);
     }
 
     /**
@@ -109,7 +147,7 @@ public final class DurationUtils {
      * @throws NumberFormatException if a part's number does not fit in a {@code long}
      * @throws ArithmeticException if the total duration overflows
      */
-    public static @NotNull Duration parseDuration(@NotNull String input, @NotNull Function<String, ? extends @Nullable TemporalUnit> units) {
+    public static @NotNull Duration parseDurationStrict(@NotNull String input, @NotNull Function<String, ? extends @Nullable TemporalUnit> units) {
         if (input.isBlank()) return Duration.ZERO;
 
         StringTokenizer parts = new StringTokenizer(input);
@@ -123,7 +161,7 @@ public final class DurationUtils {
     /**
      * Formats a duration as space-separated parts in days, hours, minutes, seconds, milliseconds and
      * nanoseconds, skipping zero parts, e.g. {@code "1h 30m"}. Negative durations get a {@code -} on every part,
-     * e.g. {@code "-1h -30m"}. The result can be parsed back by {@link #parseDuration(String)}.
+     * e.g. {@code "-1h -30m"}. The result can be parsed back by {@link #parseDurationStrict(String)}.
      * @param duration the duration to format
      * @return the formatted duration, {@code "0"} for {@link Duration#ZERO}, or {@code null} if the duration is {@code null}
      * @throws ArithmeticException if the duration is {@code Long.MIN_VALUE} seconds, which cannot be negated

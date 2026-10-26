@@ -46,12 +46,12 @@ public final class FluentUtils {
      * Returns the value, or the fallback if the value is {@code null}.
      * @param <$Type> the type of the value
      * @param value the value to return if not {@code null}
-     * @param def the fallback, may also be {@code null}
+     * @param fallback the fallback, may also be {@code null}
      * @return the value, or the fallback
      */
     @Contract(value = "!null, _ -> param1; null, _ -> param2", pure = true)
-    public static <$Type> $Type orElse(@Nullable $Type value, @Nullable $Type def) {
-        return value != null ? value : def;
+    public static <$Type> $Type orElse(@Nullable $Type value, @Nullable $Type fallback) {
+        return value != null ? value : fallback;
     }
 
     /**
@@ -59,12 +59,12 @@ public final class FluentUtils {
      * The supplier is called only when needed.
      * @param <$Type> the type of the value
      * @param value the value to return if not {@code null}
-     * @param def the supplier of the fallback
+     * @param fallback the supplier of the fallback
      * @return the value, or the supplied fallback
      */
     @Contract("!null, _ -> param1")
-    public static <$Type> $Type orElseGet(@Nullable $Type value, @NotNull Supplier<? extends $Type> def) {
-        return value != null ? value : def.get();
+    public static <$Type> $Type orElseGet(@Nullable $Type value, @NotNull Supplier<? extends $Type> fallback) {
+        return value != null ? value : fallback.get();
     }
 
     /**
@@ -87,12 +87,12 @@ public final class FluentUtils {
      * Errors are not caught.
      * @param <$Type> the type of the result
      * @param supplier the supplier to call
-     * @param def the fallback
+     * @param fallback the fallback
      * @return the supplied value, or the fallback
      * @see #attempt(Supplier)
      */
-    public static <$Type> $Type attemptOrElse(@NotNull Supplier<? extends $Type> supplier, $Type def) {
-        return FluentUtils.<$Type>attempt(supplier).orElse(def);
+    public static <$Type> $Type attemptOrElse(@NotNull Supplier<? extends $Type> supplier, $Type fallback) {
+        return FluentUtils.<$Type>attempt(supplier).orElse(fallback);
     }
 
     /**
@@ -101,12 +101,12 @@ public final class FluentUtils {
      * Errors are not caught.
      * @param <$Type> the type of the result
      * @param supplier the supplier to call
-     * @param def the supplier of the fallback
+     * @param fallback the supplier of the fallback
      * @return the supplied value, or the supplied fallback
      * @see #attempt(Supplier)
      */
-    public static <$Type> $Type attemptOrElseGet(@NotNull Supplier<? extends $Type> supplier, @NotNull Supplier<? extends $Type> def) {
-        return FluentUtils.<$Type>attempt(supplier).orElseGet(def);
+    public static <$Type> $Type attemptOrElseGet(@NotNull Supplier<? extends $Type> supplier, @NotNull Supplier<? extends $Type> fallback) {
+        return FluentUtils.<$Type>attempt(supplier).orElseGet(fallback);
     }
 
     /**

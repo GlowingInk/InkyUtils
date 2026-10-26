@@ -136,8 +136,8 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
      * @return the bound value
      */
     @Contract(pure = true)
-    default int asInt(boolean upper) {
-        return Math.clamp(asLong(upper), Integer.MIN_VALUE, Integer.MAX_VALUE);
+    default int toInt(boolean upper) {
+        return Math.clamp(toLong(upper), Integer.MIN_VALUE, Integer.MAX_VALUE);
     }
 
     /**
@@ -147,7 +147,7 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
      * @return the bound value
      */
     @Contract(pure = true)
-    long asLong(boolean upper);
+    long toLong(boolean upper);
 
     /**
      * Returns the bound as a {@code double}, which may be rounded for a large {@code long}. An infinite bound
@@ -156,7 +156,7 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
      * @return the bound value
      */
     @Contract(pure = true)
-    double asDouble(boolean upper);
+    double toDouble(boolean upper);
 
     /**
      * Returns whether any {@code int} is on the inner side of this bound.
@@ -226,12 +226,12 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
         }
 
         @Override
-        public long asLong(boolean upper) {
+        public long toLong(boolean upper) {
             return value;
         }
 
         @Override
-        public double asDouble(boolean upper) {
+        public double toDouble(boolean upper) {
             return value;
         }
 
@@ -296,12 +296,12 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
         }
 
         @Override
-        public long asLong(boolean upper) {
+        public long toLong(boolean upper) {
             return (long) value;
         }
 
         @Override
-        public double asDouble(boolean upper) {
+        public double toDouble(boolean upper) {
             return value;
         }
 
@@ -362,12 +362,12 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
         }
 
         @Override
-        public long asLong(boolean upper) {
+        public long toLong(boolean upper) {
             return upper ? Long.MAX_VALUE : Long.MIN_VALUE;
         }
 
         @Override
-        public double asDouble(boolean upper) {
+        public double toDouble(boolean upper) {
             return upper ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
         }
 
@@ -378,12 +378,12 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
 
         @Override
         public long effectiveLong(boolean upper) {
-            return asLong(upper);
+            return toLong(upper);
         }
 
         @Override
         public double effectiveDouble(boolean upper) {
-            return asDouble(upper);
+            return toDouble(upper);
         }
 
         @Override
@@ -423,12 +423,12 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
         }
 
         @Override
-        public long asLong(boolean upper) {
+        public long toLong(boolean upper) {
             return upper ? Long.MIN_VALUE : Long.MAX_VALUE;
         }
 
         @Override
-        public double asDouble(boolean upper) {
+        public double toDouble(boolean upper) {
             return Double.NaN;
         }
 
@@ -439,7 +439,7 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
 
         @Override
         public long effectiveLong(boolean upper) {
-            return asLong(upper);
+            return toLong(upper);
         }
 
         @Override

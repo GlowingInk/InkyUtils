@@ -235,20 +235,20 @@ public class ParameterTest {
         assertTrue(params.find("nope").isEmpty());
         assertEquals("b", params.get("k").find(1).orElseThrow().textValue());
         assertTrue(params.get("k").find(2).isEmpty());
-        assertEquals("b", params.getText(Parameter.Path.of("k.1")));
-        assertEquals("a", params.getText(Parameter.Path.of("k/0", '/')));
-        assertTrue(params.find(Parameter.Path.of("k.2")).isEmpty());
+        assertEquals("b", params.getText(Parameter.Path.parse("k.1")));
+        assertEquals("a", params.getText(Parameter.Path.parse("k/0", '/')));
+        assertTrue(params.find(Parameter.Path.parse("k.2")).isEmpty());
         assertSame(params, params.get(Parameter.Path.THIS));
-        assertSame(Parameter.Path.EMPTY, Parameter.Path.of(""));
+        assertSame(Parameter.Path.EMPTY, Parameter.Path.parse(""));
         assertTrue(params.get(Parameter.Path.EMPTY).isMissing());
-        assertEquals("v", parseMap("'':v").getText(Parameter.Path.of("")));
+        assertEquals("v", parseMap("'':v").getText(Parameter.Path.parse("")));
         assertEquals(
                 new PathImpl.Chain(List.of(new PathImpl.Key("a"), new PathImpl.Index(0), new PathImpl.Key("007"), new PathImpl.Key("e'f"), new PathImpl.Key("g.h"), new PathImpl.Key("it's"), Parameter.Path.EMPTY)),
-                Parameter.Path.of("a.0.007.e\\'f.g\\.h.it's.")
+                Parameter.Path.parse("a.0.007.e\\'f.g\\.h.it's.")
         );
-        assertEquals(new PathImpl.Index(12), Parameter.Path.of("12"));
-        assertEquals(new PathImpl.Key("-1"), Parameter.Path.of("-1"));
-        assertEquals(new PathImpl.Key("1234567890"), Parameter.Path.of("1234567890"));
+        assertEquals(new PathImpl.Index(12), Parameter.Path.parse("12"));
+        assertEquals(new PathImpl.Key("-1"), Parameter.Path.parse("-1"));
+        assertEquals(new PathImpl.Key("1234567890"), Parameter.Path.parse("1234567890"));
     }
 
     @Test
@@ -298,7 +298,7 @@ public class ParameterTest {
         assertEquals("[a x c]", list.with(1, x).serialize(false));
         assertEquals("[a b c <?> x]", list.with(4, x).serialize(false));
         assertEquals("[x b c x]", list.with(List.of(IntObjectPair.of(0, x), IntObjectPair.of(3, x))).serialize(false));
-        assertEquals("[a x b c x]", list.withInsert(List.of(IntObjectPair.of(0, x), IntObjectPair.of(2, x))).serialize(false));
+        assertEquals("[x a b x c <?> x]", list.withInsert(List.of(IntObjectPair.of(0, x), IntObjectPair.of(2, x), IntObjectPair.of(4, x))).serialize(false));
         assertEquals("[a x b c]", list.withInsert(1, x).serialize(false));
         assertEquals("[a b c <?> x]", list.withInsert(4, x).serialize(false));
 

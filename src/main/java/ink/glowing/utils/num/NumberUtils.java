@@ -37,33 +37,33 @@ public final class NumberUtils {
     /**
      * Parses an {@code int}.
      * @param str the string to parse
-     * @param def the fallback
+     * @param fallback the fallback
      * @return the parsed value, or the fallback if the string is not a number
      * @see Integer#parseInt(String)
      */
     @Contract(value = "null, _ -> param2", pure = true)
-    public static int parseInt(@Nullable String str, int def) {
-        if (str == null || str.isEmpty()) return def;
+    public static int parseInt(@Nullable String str, int fallback) {
+        if (str == null || str.isEmpty()) return fallback;
         try {
             return Integer.parseInt(str);
         } catch (NumberFormatException _) {
-            return def;
+            return fallback;
         }
     }
 
     /**
      * Parses an {@code int}, with a lazily computed fallback.
      * @param str the string to parse
-     * @param def the supplier of the fallback, called only if the string is not a number
+     * @param fallback the supplier of the fallback, called only if the string is not a number
      * @return the parsed value, or the fallback if the string is not a number
      * @see #parseInt(String, int)
      */
-    public static int parseInt(@Nullable String str, @NotNull IntSupplier def) {
-        if (str == null || str.isEmpty()) return def.getAsInt();
+    public static int parseInt(@Nullable String str, @NotNull IntSupplier fallback) {
+        if (str == null || str.isEmpty()) return fallback.getAsInt();
         try {
             return Integer.parseInt(str);
         } catch (NumberFormatException _) {
-            return def.getAsInt();
+            return fallback.getAsInt();
         }
     }
 
@@ -86,33 +86,33 @@ public final class NumberUtils {
     /**
      * Parses a {@code long}.
      * @param str the string to parse
-     * @param def the fallback
+     * @param fallback the fallback
      * @return the parsed value, or the fallback if the string is not a number
      * @see Long#parseLong(String)
      */
     @Contract(value = "null, _ -> param2", pure = true)
-    public static long parseLong(@Nullable String str, long def) {
-        if (str == null || str.isEmpty()) return def;
+    public static long parseLong(@Nullable String str, long fallback) {
+        if (str == null || str.isEmpty()) return fallback;
         try {
             return Long.parseLong(str);
         } catch (NumberFormatException _) {
-            return def;
+            return fallback;
         }
     }
 
     /**
      * Parses a {@code long}, with a lazily computed fallback.
      * @param str the string to parse
-     * @param def the supplier of the fallback, called only if the string is not a number
+     * @param fallback the supplier of the fallback, called only if the string is not a number
      * @return the parsed value, or the fallback if the string is not a number
      * @see #parseLong(String, long)
      */
-    public static long parseLong(@Nullable String str, @NotNull LongSupplier def) {
-        if (str == null || str.isEmpty()) return def.getAsLong();
+    public static long parseLong(@Nullable String str, @NotNull LongSupplier fallback) {
+        if (str == null || str.isEmpty()) return fallback.getAsLong();
         try {
             return Long.parseLong(str);
         } catch (NumberFormatException _) {
-            return def.getAsLong();
+            return fallback.getAsLong();
         }
     }
 
@@ -135,33 +135,33 @@ public final class NumberUtils {
     /**
      * Parses a {@code double}.
      * @param str the string to parse
-     * @param def the fallback
+     * @param fallback the fallback
      * @return the parsed value, or the fallback if the string is not a number
      * @see Double#parseDouble(String)
      */
     @Contract(value = "null, _ -> param2", pure = true)
-    public static double parseDouble(@Nullable String str, double def) {
-        if (str == null || str.isEmpty()) return def;
+    public static double parseDouble(@Nullable String str, double fallback) {
+        if (str == null || str.isEmpty()) return fallback;
         try {
             return Double.parseDouble(str);
         } catch (NumberFormatException _) {
-            return def;
+            return fallback;
         }
     }
 
     /**
      * Parses a {@code double}, with a lazily computed fallback.
      * @param str the string to parse
-     * @param def the supplier of the fallback, called only if the string is not a number
+     * @param fallback the supplier of the fallback, called only if the string is not a number
      * @return the parsed value, or the fallback if the string is not a number
      * @see #parseDouble(String, double)
      */
-    public static double parseDouble(@Nullable String str, @NotNull DoubleSupplier def) {
-        if (str == null || str.isEmpty()) return def.getAsDouble();
+    public static double parseDouble(@Nullable String str, @NotNull DoubleSupplier fallback) {
+        if (str == null || str.isEmpty()) return fallback.getAsDouble();
         try {
             return Double.parseDouble(str);
         } catch (NumberFormatException _) {
-            return def.getAsDouble();
+            return fallback.getAsDouble();
         }
     }
 

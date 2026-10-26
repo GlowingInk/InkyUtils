@@ -22,8 +22,8 @@ config.get("servers").count(); // 2
 config.get("servers").get(0).get("ports").get(1).textValue(); // "25566"
 config.get("servers").get(7).get("host").isMissing(); // true, there's no index 7
 config.find("title"); // Optional of the title, empty if absent
-config.get(Path.of("servers.0.ports.1")).textValue(); // "25566", find(...) and getText(...) take a Path too
-Path.of("a\\.b.c"); // steps "a.b" and "c", the backslash escapes the dot; Path.of("a/b", '/') splits by another char. A number is a list index
+config.get(Path.parse("servers.0.ports.1")).textValue(); // "25566", find(...) and getText(...) take a Path too
+Path.parse("a\\.b.c"); // steps "a.b" and "c", the backslash escapes the dot; Path.parse("a/b", '/') splits by another char. A number is a list index
 config.forKeyed((key, value) -> System.out.println(key)); // title, servers
 config.get("servers").forIndexed((index, server) -> System.out.println(index + " " + server.getText("host"))); // 0 eu.example.com, 1 us.example.com
 config.keys(); // ["title", "servers"], a list would have its indexes
@@ -129,10 +129,11 @@ Chance.of(1); // Chance.Constant.ALWAYS; 0 or less gives NEVER, 0.5 gives COIN_F
 ### `time.DurationUtils`
 Parses human-written durations like `1h 30m` into `java.time.Duration`, and formats them back.
 ```java
-DurationUtils.parseDuration("1h 30m");
+DurationUtils.parseDuration("1h 30m"); // Optional of 90 minutes, empty if malformed
 DurationUtils.parseDuration("90"); // no unit means seconds by default
 DurationUtils.parseDuration("1h -15m"); // each part can be negative, 45 minutes
 DurationUtils.parseDuration("2min", Map.of("min", ChronoUnit.MINUTES)); // custom units
+DurationUtils.parseDurationStrict("1h 30m"); // the Duration itself, throws IllegalArgumentException if malformed
 ```
 Default units: `ns`, `ms`, `s`, `m`, `h`, `d`, case-insensitive.
 
@@ -159,9 +160,9 @@ Comparison.ofSignum(-42); // BELOW, for the result of compareTo or compare
 ### `EnumUtils`
 Helpers for working with enums. Looking up a constant by name ignores case and returns a fallback when there is no match.
 ```java
-EnumUtils.asEnum("fast", Mode.SLOW); // Mode.FAST
-EnumUtils.asEnum("warp", Mode.SLOW); // Mode.SLOW, the fallback
-EnumUtils.asEnum("warp", Mode.class); // Optional.empty(), there is no fallback
+EnumUtils.parseEnum("fast", Mode.SLOW); // Mode.FAST
+EnumUtils.parseEnum("warp", Mode.SLOW); // Mode.SLOW, the fallback
+EnumUtils.parseEnum("warp", Mode.class); // Optional.empty(), there is no fallback
 ```
 
 ### `FluentUtils`
@@ -173,8 +174,8 @@ int length = FluentUtils.map(parameter.get("name").textValue(), String::length);
 String name = FluentUtils.orElse(System.getenv("USER_NAME"), "guest");
 Config config = FluentUtils.orElseGet(cachedConfig, Config::load); // load() is only called if cachedConfig is null
 
-Optional<Duration> timeout = FluentUtils.attempt(() -> DurationUtils.parseDuration(input)); // empty if parsing throws
-Duration limit = FluentUtils.attemptOrElse(() -> DurationUtils.parseDuration(input), Duration.ofMinutes(1)); // the fallback if parsing throws
+Optional<UUID> id = FluentUtils.attempt(() -> UUID.fromString(input)); // empty if parsing throws
+UUID owner = FluentUtils.attemptOrElse(() -> UUID.fromString(input), new UUID(0, 0)); // the fallback if parsing throws
 ```
 
 ### `Matchable`
@@ -202,7 +203,7 @@ An empty search string matches nothing.
 A boolean with a third `UNSET` state, for things like "not configured" or "doesn't matter".
 Mirrors the `Optional` API: presence checks, fallbacks, `ifPresent`, `orElseThrow`.
 ```java
-TriState flag = TriState.of("yes"); // TRUE
+TriState flag = TriState.parse("yes"); // TRUE
 flag.asBoolean(false); // true
 TriState.UNSET.asBoolean(false); // false, the fallback
 
@@ -210,7 +211,7 @@ TriState.UNSET.asBoolean(false); // false, the fallback
 TriState requireOp = TriState.UNSET;
 requireOp.isValidFor(player.isOp()); // true for any player
 ```
-`TriState.of(String)` uses `TriState.Mapper.DEFAULT`, which understands `true/on/yes/allow/enable` and their negatives. Anything else is `UNSET`.
+`TriState.parse(String)` uses `TriState.Mapper.DEFAULT`, which understands `true/on/yes/allow/enable` and their negatives. Anything else is `UNSET`.
 
 `TriState.Mapper` converts between states and strings with custom words.
 Each state has a main name, used when converting back to a string. `TRUE` and `FALSE` can also have extra variants that are accepted when parsing.

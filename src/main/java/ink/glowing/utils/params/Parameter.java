@@ -320,8 +320,8 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
     }
 
     /**
-     * Returns a copy of this list with each value inserted right after the entry at its index, shifting
-     * the later ones. The indexes refer to this list, and values with the same index keep their order.
+     * Returns a copy of this list with each value inserted at its index, as by {@link #withInsert(int, Parameter)},
+     * shifting the later entries. The indexes refer to this list, and values with the same index keep their order.
      * An index past the end first extends the list with {@link #missing()}. Any other kind of parameter
      * is returned as is.
      * <p>
@@ -419,22 +419,22 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
 
     /**
      * Parses this parameter's {@link #textValue()} as an {@code int}.
-     * @param def the fallback, used if the value is absent or malformed
+     * @param fallback the fallback, used if the value is absent or malformed
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseInt(String, int)
      */
-    default int asInt(int def) {
-        return NumberUtils.parseInt(textValue(), def);
+    default int asInt(int fallback) {
+        return NumberUtils.parseInt(textValue(), fallback);
     }
 
     /**
      * Parses this parameter's {@link #textValue()} as an {@code int}, with a lazily computed fallback.
-     * @param def the supplier of the fallback, called only if the value is absent or malformed
+     * @param fallback the supplier of the fallback, called only if the value is absent or malformed
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseInt(String, IntSupplier)
      */
-    default int asInt(@NotNull IntSupplier def) {
-        return NumberUtils.parseInt(textValue(), def);
+    default int asInt(@NotNull IntSupplier fallback) {
+        return NumberUtils.parseInt(textValue(), fallback);
     }
 
     /**
@@ -457,22 +457,22 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code long}.
-     * @param def the fallback, used if the value is absent or malformed
+     * @param fallback the fallback, used if the value is absent or malformed
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseLong(String, long)
      */
-    default long asLong(long def) {
-        return NumberUtils.parseLong(textValue(), def);
+    default long asLong(long fallback) {
+        return NumberUtils.parseLong(textValue(), fallback);
     }
 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code long}, with a lazily computed fallback.
-     * @param def the supplier of the fallback, called only if the value is absent or malformed
+     * @param fallback the supplier of the fallback, called only if the value is absent or malformed
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseLong(String, LongSupplier)
      */
-    default long asLong(@NotNull LongSupplier def) {
-        return NumberUtils.parseLong(textValue(), def);
+    default long asLong(@NotNull LongSupplier fallback) {
+        return NumberUtils.parseLong(textValue(), fallback);
     }
 
     /**
@@ -495,22 +495,22 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code double}.
-     * @param def the fallback, used if the value is absent or malformed
+     * @param fallback the fallback, used if the value is absent or malformed
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseDouble(String, double)
      */
-    default double asDouble(double def) {
-        return NumberUtils.parseDouble(textValue(), def);
+    default double asDouble(double fallback) {
+        return NumberUtils.parseDouble(textValue(), fallback);
     }
 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code double}, with a lazily computed fallback.
-     * @param def the supplier of the fallback, called only if the value is absent or malformed
+     * @param fallback the supplier of the fallback, called only if the value is absent or malformed
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseDouble(String, DoubleSupplier)
      */
-    default double asDouble(@NotNull DoubleSupplier def) {
-        return NumberUtils.parseDouble(textValue(), def);
+    default double asDouble(@NotNull DoubleSupplier fallback) {
+        return NumberUtils.parseDouble(textValue(), fallback);
     }
 
     /**
@@ -526,10 +526,10 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * Parses this parameter's {@link #textValue()} as a {@link TriState}: case-insensitive,
      * with synonyms like {@code yes}/{@code no} or {@code enabled}/{@code disabled}.
      * @return the parsed state, {@link TriState#UNSET} if the value is absent or not recognized
-     * @see TriState#of(String)
+     * @see TriState#parse(String)
      */
     default @NotNull TriState asTriState() {
-        return TriState.of(textValue());
+        return TriState.parse(textValue());
     }
 
     /**
@@ -545,24 +545,24 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code boolean}: {@code true} or {@code false},
      * ignoring case.
-     * @param def the fallback, used if the value is absent or not recognized
+     * @param fallback the fallback, used if the value is absent or not recognized
      * @return the parsed value, or the fallback
      * @see #asTriState()
      */
-    default boolean asBoolean(boolean def) {
+    default boolean asBoolean(boolean fallback) {
         Boolean parsed = parseBoolean(textValue());
-        return parsed != null ? parsed : def;
+        return parsed != null ? parsed : fallback;
     }
 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code boolean}, with a lazily computed fallback.
-     * @param def the supplier of the fallback, called only if the value is absent or not recognized
+     * @param fallback the supplier of the fallback, called only if the value is absent or not recognized
      * @return the parsed value, or the fallback
      * @see #asBoolean(boolean)
      */
-    default boolean asBoolean(@NotNull BooleanSupplier def) {
+    default boolean asBoolean(@NotNull BooleanSupplier fallback) {
         Boolean parsed = parseBoolean(textValue());
-        return parsed != null ? parsed : def.getAsBoolean();
+        return parsed != null ? parsed : fallback.getAsBoolean();
     }
 
     /**
@@ -579,34 +579,34 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @param <$Enum> the type of the enum
      * @param type the enum class
      * @return the matching constant, or empty if the value is absent or matches no constant
-     * @see EnumUtils#asEnum(String, Class)
+     * @see EnumUtils#parseEnum(String, Class)
      */
     default <$Enum extends Enum<$Enum>> @NotNull Optional<$Enum> asEnum(@NotNull Class<$Enum> type) {
-        return EnumUtils.asEnum(textValue(), type);
+        return EnumUtils.parseEnum(textValue(), type);
     }
 
     /**
      * Parses this parameter's {@link #textValue()} as a constant of the enum, ignoring case.
      * @param <$Enum> the type of the enum
      * @param type the enum class
-     * @param def the fallback, used if the value is absent or matches no constant
+     * @param fallback the fallback, used if the value is absent or matches no constant
      * @return the matching constant, or the fallback
-     * @see EnumUtils#asEnum(String, Class, Enum)
+     * @see EnumUtils#parseEnum(String, Class, Enum)
      */
     @Contract(value = "_, !null -> !null", pure = true)
-    default <$Enum extends Enum<$Enum>> @Nullable $Enum asEnum(@NotNull Class<$Enum> type, @Nullable $Enum def) {
-        return EnumUtils.asEnum(textValue(), type, def);
+    default <$Enum extends Enum<$Enum>> @Nullable $Enum asEnum(@NotNull Class<$Enum> type, @Nullable $Enum fallback) {
+        return EnumUtils.parseEnum(textValue(), type, fallback);
     }
 
     /**
      * Parses this parameter's {@link #textValue()} as a constant of the fallback's enum, ignoring case.
      * @param <$Enum> the type of the enum
-     * @param def the fallback, which also gives the enum, used if the value is absent or matches no constant
+     * @param fallback the fallback, which also gives the enum, used if the value is absent or matches no constant
      * @return the matching constant, or the fallback
-     * @see EnumUtils#asEnum(String, Enum)
+     * @see EnumUtils#parseEnum(String, Enum)
      */
-    default <$Enum extends Enum<$Enum>> @NotNull $Enum asEnum(@NotNull $Enum def) {
-        return EnumUtils.asEnum(textValue(), def);
+    default <$Enum extends Enum<$Enum>> @NotNull $Enum asEnum(@NotNull $Enum fallback) {
+        return EnumUtils.parseEnum(textValue(), fallback);
     }
 
     /**
@@ -906,13 +906,13 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
         @NotNull Parameter traverse(@NotNull Parameter from);
 
         /**
-         * Parses a path split by {@code '.'}, see {@link #of(String, char)}.
+         * Parses a path split by {@code '.'}, see {@link #parse(String, char)}.
          * @param input the path string
          * @return the parsed path
          */
         @Contract(pure = true)
-        static @NotNull Path of(@NotNull String input) {
-            return of(input, DEFAULT_SPLIT);
+        static @NotNull Path parse(@NotNull String input) {
+            return parse(input, DEFAULT_SPLIT);
         }
 
         /**
@@ -925,7 +925,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
          * @return the parsed path
          */
         @Contract(pure = true)
-        static @NotNull Path of(@NotNull String input, char split) {
+        static @NotNull Path parse(@NotNull String input, char split) {
             if (input.isEmpty()) return EMPTY;
             if (input.indexOf(split) < 0) return PathImpl.segment(unescape(input));
 

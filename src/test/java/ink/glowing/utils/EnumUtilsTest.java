@@ -12,7 +12,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 public class EnumUtilsTest {
     public enum Mode { FAST, SLOW, camelCase }
 
-    private static Stream<Arguments> asEnumData() {
+    private static Stream<Arguments> parseEnumData() {
         return Stream.of(
                 arguments("FAST", Mode.SLOW, Mode.FAST),
                 arguments("fAsT", Mode.SLOW, Mode.FAST),
@@ -24,8 +24,8 @@ public class EnumUtilsTest {
     }
 
     @ParameterizedTest
-    @MethodSource("asEnumData")
-    public void asEnumTest(String name, Mode fallback, Mode expected) {
-        assertEquals(expected, EnumUtils.asEnum(name, Mode.class, fallback));
+    @MethodSource("parseEnumData")
+    public void parseEnumTest(String name, Mode fallback, Mode expected) {
+        assertEquals(expected, EnumUtils.parseEnum(name, Mode.class, fallback));
     }
 }

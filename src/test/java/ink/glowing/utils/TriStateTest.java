@@ -24,8 +24,8 @@ public class TriStateTest {
             "false, FALSE", "off, FALSE", "No, FALSE", "DISABLED, FALSE",
             "maybe, UNSET", "'', UNSET", "NULL, UNSET"
     })
-    public void testOfString(String str, TriState expected) {
-        assertEquals(expected, TriState.of(str));
+    public void testParse(String str, TriState expected) {
+        assertEquals(expected, TriState.parse(str));
     }
 
     @Test

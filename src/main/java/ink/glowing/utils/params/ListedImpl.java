@@ -107,15 +107,15 @@ final class ListedImpl extends CompoundImpl {
         inserts.sort(Comparator.comparingInt(IntObjectPair::leftInt)); // stable
 
         int size = internalValue.size();
-        int baseSize = Math.max(size, inserts.getLast().leftInt() + 1);
+        int baseSize = Math.max(size, inserts.getLast().leftInt());
         Parameter[] copy = new Parameter[baseSize + inserts.size()];
         int out = 0;
         int next = 0;
-        for (int i = 0; i < baseSize; i++) {
-            copy[out++] = i < size ? internalValue.get(i) : MissingImpl.INSTANCE;
+        for (int i = 0; i <= baseSize; i++) {
             while (next < inserts.size() && inserts.get(next).leftInt() == i) {
                 copy[out++] = inserts.get(next++).right();
             }
+            if (i < baseSize) copy[out++] = i < size ? internalValue.get(i) : MissingImpl.INSTANCE;
         }
         return new ListedImpl(Arrays.asList(copy));
     }

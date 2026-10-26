@@ -19,13 +19,13 @@ final class EnumImpl extends TypedImpl {
     }
 
     @Override
-    public <$Enum extends Enum<$Enum>> @Nullable $Enum asEnum(@NotNull Class<$Enum> type, @Nullable $Enum def) {
-        return type.isInstance(constant) ? type.cast(constant) : super.asEnum(type, def);
+    public <$Enum extends Enum<$Enum>> @Nullable $Enum asEnum(@NotNull Class<$Enum> type, @Nullable $Enum fallback) {
+        return type.isInstance(constant) ? type.cast(constant) : super.asEnum(type, fallback);
     }
 
     @Override
-    public <$Enum extends Enum<$Enum>> @NotNull $Enum asEnum(@NotNull $Enum def) {
-        Class<$Enum> type = def.getDeclaringClass();
-        return type.isInstance(constant) ? type.cast(constant) : super.asEnum(def);
+    public <$Enum extends Enum<$Enum>> @NotNull $Enum asEnum(@NotNull $Enum fallback) {
+        Class<$Enum> type = fallback.getDeclaringClass();
+        return type.isInstance(constant) ? type.cast(constant) : super.asEnum(fallback);
     }
 }

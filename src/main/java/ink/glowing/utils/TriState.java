@@ -57,7 +57,7 @@ public enum TriState {
      * @see Mapper
      */
     @Contract(pure = true)
-    public static @NotNull TriState of(@Nullable String str) {
+    public static @NotNull TriState parse(@Nullable String str) {
         return Mapper.DEFAULT.parse(str);
     }
 

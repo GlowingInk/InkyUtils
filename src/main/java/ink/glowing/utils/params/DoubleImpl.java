@@ -23,12 +23,12 @@ final class DoubleImpl extends TypedImpl {
     }
 
     @Override
-    public double asDouble(double def) {
+    public double asDouble(double fallback) {
         return number;
     }
 
     @Override
-    public double asDouble(@NotNull DoubleSupplier def) {
+    public double asDouble(@NotNull DoubleSupplier fallback) {
         return number;
     }
 }

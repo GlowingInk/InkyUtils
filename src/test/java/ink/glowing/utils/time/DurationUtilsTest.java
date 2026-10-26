@@ -10,10 +10,10 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class DurationUtilsTest {
@@ -38,7 +38,8 @@ public class DurationUtilsTest {
     @ParameterizedTest
     @MethodSource("parseData")
     public void testParse(String input, Duration expected) {
-        assertEquals(expected, DurationUtils.parseDuration(input));
+        assertEquals(expected, DurationUtils.parseDurationStrict(input));
+        assertEquals(Optional.of(expected), DurationUtils.parseDuration(input));
     }
 
     @Test
@@ -46,15 +47,17 @@ public class DurationUtilsTest {
         Map<String, TemporalUnit> units = Map.of("sec", ChronoUnit.SECONDS, "min", ChronoUnit.MINUTES, "", ChronoUnit.HOURS);
         assertEquals(
                 Duration.ofHours(1).plus(Duration.ofMinutes(1)).plus(Duration.ofSeconds(30)),
-                DurationUtils.parseDuration("1 1min 30sec", units)
+                DurationUtils.parseDurationStrict("1 1min 30sec", units)
         );
-        assertThrows(IllegalArgumentException.class, () -> DurationUtils.parseDuration("1m", units));
+        assertThrows(IllegalArgumentException.class, () -> DurationUtils.parseDurationStrict("1m", units));
+        assertTrue(DurationUtils.parseDuration("1m", units).isEmpty());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"s", "-", "--1s", "- 1s", "1.5s", "1x", "1 x", "1sm"})
     public void testParseInvalid(String input) {
-        assertThrows(IllegalArgumentException.class, () -> DurationUtils.parseDuration(input));
+        assertThrows(IllegalArgumentException.class, () -> DurationUtils.parseDurationStrict(input));
+        assertTrue(DurationUtils.parseDuration(input).isEmpty());
     }
 
     static Stream<Arguments> serializeData() {

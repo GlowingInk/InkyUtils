@@ -92,12 +92,12 @@ public interface WeightedPicker<$Type> {
      * weighted by {@link Weightable#weight()}.
      * @param <$WeightableType> the type of elements
      * @param collection the elements to pick from
-     * @param defWeight the fallback weight for {@code null} values
+     * @param fallbackWeight the fallback weight for {@code null} values
      * @return a picker of the collection's elements
      */
     @Contract(pure = true)
-    static <$WeightableType extends Weightable> @NotNull WeightedPicker<$WeightableType> ofCollection(@NotNull Collection<? extends $WeightableType> collection, double defWeight) {
-        return ofCollection(collection, (t, _) -> t == null ? defWeight : t.weight());
+    static <$WeightableType extends Weightable> @NotNull WeightedPicker<$WeightableType> ofCollection(@NotNull Collection<? extends $WeightableType> collection, double fallbackWeight) {
+        return ofCollection(collection, (t, _) -> t == null ? fallbackWeight : t.weight());
     }
 
     /**

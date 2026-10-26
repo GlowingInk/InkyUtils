@@ -54,7 +54,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @return the strategy, {@link #STANDARD_STRATEGY} unless a custom one was given
      */
     @Contract(pure = true)
-    public final @NotNull Hash.Strategy<$Type> getStrategy() {
+    public final @NotNull Hash.Strategy<$Type> strategy() {
         return strategy;
     }
 
@@ -196,7 +196,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      */
     @Contract(pure = true)
     public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Iterable<$Type> elements) {
-        return new Composer<$Type>().containsStrategy(strategy).addAll(elements).finish();
+        return new Composer<$Type>().strategy(strategy).addAll(elements).finish();
     }
 
     private static <$Type> @NotNull HashList<$Type> fromCollection(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
@@ -206,7 +206,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
         return switch (elements.size()) {
             case 0 -> of();
             case 1 -> new Singleton<>(elements instanceof SequencedCollection<$Type> sc ? sc.getFirst() : elements.iterator().next(), strategy);
-            default -> new Composer<>(elements).containsStrategy(strategy).finish();
+            default -> new Composer<>(elements).strategy(strategy).finish();
         };
     }
 
@@ -362,12 +362,12 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
 
         @Override
         public boolean contains(@Nullable Object o) {
-            return getStrategy().equals(($Type) o, value);
+            return strategy().equals(($Type) o, value);
         }
 
         @Override
         public int indexOf(@Nullable Object o) {
-            return getStrategy().equals(($Type) o, value) ? 0 : -1;
+            return strategy().equals(($Type) o, value) ? 0 : -1;
         }
 
         @Override
@@ -439,7 +439,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
          * @throws IllegalStateException if the composer has already been finalized
          */
         @Contract("_ -> this")
-        public @NotNull Composer<$Type> containsStrategy(@NotNull Hash.Strategy<$Type> strategy) {
+        public @NotNull Composer<$Type> strategy(@NotNull Hash.Strategy<$Type> strategy) {
             checkBuilt();
             this.strategy = strategy;
             return this;
