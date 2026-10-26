@@ -13,8 +13,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bound.OfDouble, Bound.Infinite, Bound.Invalid {
     /**
-     * Returns an inclusive bound of the given value: {@link #inclusive(long)} for an {@code Integer} or a {@code Long}
-     * and {@link #inclusive(double)} for anything else.
+     * Returns an inclusive bound of the given value. Only the standard boxed numbers are supported.
      * @param value the bound value
      * @return the bound
      */
@@ -24,8 +23,7 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
     }
 
     /**
-     * Returns an exclusive bound of the given value: {@link #exclusive(long)} for an {@code Integer} or a {@code Long}
-     * and {@link #exclusive(double)} for anything else.
+     * Returns an exclusive bound of the given value. Only the standard boxed numbers are supported.
      * @param value the bound value
      * @return the bound
      */
@@ -85,7 +83,7 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
 
     private static @NotNull Bound of(@NotNull Number value, boolean inclusive) {
         return switch (value) {
-            case Integer _, Long _ -> new OfLong(value.longValue(), inclusive);
+            case Byte _, Short _, Integer _, Long _ -> new OfLong(value.longValue(), inclusive);
             default -> of(value.doubleValue(), inclusive);
         };
     }
