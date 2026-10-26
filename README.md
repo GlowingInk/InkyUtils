@@ -251,7 +251,7 @@ Add to dependencies
 <dependency>
     <groupId>ink.glowing.utils</groupId>
     <artifactId>inkyutils</artifactId>
-    <version>0.3.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 ### Gradle
@@ -264,6 +264,6 @@ repositories {
 }
 
 dependencies {
-    implementation("ink.glowing.utils:inkyutils:0.3.0")
+    implementation("ink.glowing.utils:inkyutils:0.5.0")
 }
 ```
