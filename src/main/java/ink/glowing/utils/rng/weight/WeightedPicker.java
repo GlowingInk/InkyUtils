@@ -75,6 +75,18 @@ public interface WeightedPicker<$Type> {
     }
 
     /**
+     * Returns a {@code WeightedPicker} of the values of the specified pairs, weighted by their weights.
+     * {@code null} pairs are skipped.
+     * @param <$Type> the type of elements
+     * @param pairs the values paired with their weights
+     * @return a picker of the pairs' values
+     */
+    @Contract(pure = true)
+    static <$Type> @NotNull WeightedPicker<$Type> ofPairs(@NotNull Collection<? extends Weightable.Pair<? extends $Type>> pairs) {
+        return new Composer<$Type>(pairs.size()).addAll(pairs).finish();
+    }
+
+    /**
      * Returns a {@code WeightedPicker} of the elements of the specified collection,
      * weighted by {@link Weightable#weight()}. {@code null} elements' weight fallbacks to 0.
      * @param <$WeightableType> the type of elements
@@ -356,6 +368,22 @@ public interface WeightedPicker<$Type> {
         public @NotNull Composer<$Type> addAll(@NotNull Object2DoubleMap<? extends $Type> elements) {
             checkBuilt();
             elements.object2DoubleEntrySet().forEach(e -> _add(e.getKey(), e.getDoubleValue()));
+            return this;
+        }
+
+        /**
+         * Adds the values of the specified pairs to the picker being built, weighted by their weights.
+         * {@code null} pairs are skipped.
+         * @param pairs the values paired with their weights
+         * @return this composer, for method chaining
+         * @throws IllegalStateException if the composer has already been finalized
+         */
+        @Contract("_ -> this")
+        public @NotNull Composer<$Type> addAll(@NotNull Iterable<? extends Weightable.Pair<? extends $Type>> pairs) {
+            checkBuilt();
+            for (Weightable.Pair<? extends $Type> pair : pairs) {
+                if (pair != null) _add(pair.value(), pair.weight());
+            }
             return this;
         }
 

@@ -16,6 +16,7 @@ public interface Weightable {
      * @param <$Type> the type of the wrapped value
      * @param value the wrapped value
      * @param weight the weight of the value
+     * @see WeightedPicker#ofPairs(java.util.Collection)
      */
     record Pair<$Type>($Type value, double weight) implements Weightable { }
 }
