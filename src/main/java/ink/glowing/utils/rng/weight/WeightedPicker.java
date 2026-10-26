@@ -32,7 +32,6 @@ public interface WeightedPicker<$Type> {
      * Returns an empty {@code WeightedPicker}.
      * @param <$Type> the type of elements
      * @return an empty picker
-     * @see Empty#INSTANCE
      */
     @SuppressWarnings("unchecked")
     @Contract(pure = true)
@@ -188,10 +187,7 @@ public interface WeightedPicker<$Type> {
      * Picker without elements, see {@link WeightedPicker#of()}
      */
     final class Empty implements WeightedPicker<Object> {
-        /**
-         * The only {@code Empty} picker.
-         */
-        public static final Empty INSTANCE = new Empty();
+        private static final Empty INSTANCE = new Empty();
 
         private Empty() { }
 
