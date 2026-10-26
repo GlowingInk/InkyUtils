@@ -163,7 +163,7 @@ public final class DurationUtils {
      * nanoseconds, skipping zero parts, e.g. {@code "1h 30m"}. Negative durations get a {@code -} on every part,
      * e.g. {@code "-1h -30m"}. The result can be parsed back by {@link #parseDurationStrict(String)}.
      * @param duration the duration to format
-     * @return the formatted duration, {@code "0"} for {@link Duration#ZERO}, or {@code null} if the duration is {@code null}
+     * @return the formatted duration, {@code "0"} for {@link Duration#ZERO}
      * @throws ArithmeticException if the duration is {@code Long.MIN_VALUE} seconds, which cannot be negated
      */
     @Contract(pure = true)

@@ -376,6 +376,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @param key the key to look up
      * @return the text value, an empty string if the parameter is absent
      */
+    @Contract(pure = true)
     default @NotNull String getText(@NotNull String key) {
         return get(key).textValue();
     }
@@ -385,6 +386,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @param index the index to look up
      * @return the text value, an empty string if the parameter is absent
      */
+    @Contract(pure = true)
     default @NotNull String getText(int index) {
         return get(index).textValue();
     }
@@ -394,6 +396,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @param path the path to follow
      * @return the text value, an empty string if the parameter is absent
      */
+    @Contract(pure = true)
     default @NotNull String getText(@NotNull Path path) {
         return get(path).textValue();
     }
@@ -413,6 +416,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the parsed value, or empty if the value is absent or malformed
      * @see NumberUtils#parseInt(String)
      */
+    @Contract(pure = true)
     default @NotNull OptionalInt asInt() {
         return NumberUtils.parseInt(textValue());
     }
@@ -423,6 +427,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseInt(String, int)
      */
+    @Contract(pure = true)
     default int asInt(int fallback) {
         return NumberUtils.parseInt(textValue(), fallback);
     }
@@ -451,6 +456,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the parsed value, or empty if the value is absent or malformed
      * @see NumberUtils#parseLong(String)
      */
+    @Contract(pure = true)
     default @NotNull OptionalLong asLong() {
         return NumberUtils.parseLong(textValue());
     }
@@ -461,6 +467,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseLong(String, long)
      */
+    @Contract(pure = true)
     default long asLong(long fallback) {
         return NumberUtils.parseLong(textValue(), fallback);
     }
@@ -489,6 +496,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the parsed value, or empty if the value is absent or malformed
      * @see NumberUtils#parseDouble(String)
      */
+    @Contract(pure = true)
     default @NotNull OptionalDouble asDouble() {
         return NumberUtils.parseDouble(textValue());
     }
@@ -499,6 +507,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the parsed value, or the fallback
      * @see NumberUtils#parseDouble(String, double)
      */
+    @Contract(pure = true)
     default double asDouble(double fallback) {
         return NumberUtils.parseDouble(textValue(), fallback);
     }
@@ -528,6 +537,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the parsed state, {@link TriState#UNSET} if the value is absent or not recognized
      * @see TriState#parse(String)
      */
+    @Contract(pure = true)
     default @NotNull TriState asTriState() {
         return TriState.parse(textValue());
     }
@@ -538,6 +548,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the parsed value, or {@code false} if the value is absent or not recognized
      * @see #asTriState()
      */
+    @Contract(pure = true)
     default boolean asBoolean() {
         return asBoolean(false);
     }
@@ -549,6 +560,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the parsed value, or the fallback
      * @see #asTriState()
      */
+    @Contract(pure = true)
     default boolean asBoolean(boolean fallback) {
         Boolean parsed = parseBoolean(textValue());
         return parsed != null ? parsed : fallback;
@@ -581,6 +593,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the matching constant, or empty if the value is absent or matches no constant
      * @see EnumUtils#parseEnum(String, Class)
      */
+    @Contract(pure = true)
     default <$Enum extends Enum<$Enum>> @NotNull Optional<$Enum> asEnum(@NotNull Class<$Enum> type) {
         return EnumUtils.parseEnum(textValue(), type);
     }
@@ -605,6 +618,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * @return the matching constant, or the fallback
      * @see EnumUtils#parseEnum(String, Enum)
      */
+    @Contract(pure = true)
     default <$Enum extends Enum<$Enum>> @NotNull $Enum asEnum(@NotNull $Enum fallback) {
         return EnumUtils.parseEnum(textValue(), fallback);
     }

@@ -57,6 +57,7 @@ public enum Comparison {
      * @param against the value to compare with
      * @return how {@code tested} compares to {@code against}
      */
+    @Contract(pure = true)
     public static <$Type> @NotNull Comparison of(@NotNull Comparable<? super $Type> tested, @NotNull $Type against) {
         return ofSignum(tested.compareTo(against));
     }
@@ -69,6 +70,7 @@ public enum Comparison {
      * @param against the value to compare with
      * @return how {@code tested} compares to {@code against}
      */
+    @Contract(pure = true)
     public static <$Type> @NotNull Comparison of(@NotNull Comparator<? super $Type> comparator, @NotNull $Type tested, @NotNull $Type against) {
         return ofSignum(comparator.compare(tested, against));
     }
@@ -82,6 +84,7 @@ public enum Comparison {
      * @param against the value to compare with
      * @return {@code true} if {@code tested} compares to {@code against} as expected
      */
+    @Contract(pure = true)
     public static <$Type> boolean is(@NotNull Comparable<? super $Type> tested, @NotNull Comparison expected, @NotNull $Type against) {
         return of(tested, against) == expected;
     }
@@ -95,6 +98,7 @@ public enum Comparison {
      * @param against the value to compare with
      * @return {@code true} if {@code tested} compares to {@code against} as expected
      */
+    @Contract(pure = true)
     public static <$Type> boolean is(@NotNull Comparator<? super $Type> comparator, @NotNull $Type tested, @NotNull Comparison expected, @NotNull $Type against) {
         return of(comparator, tested, against) == expected;
     }

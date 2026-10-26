@@ -130,7 +130,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @return an unmodifiable {@code HashList} containing the collection's elements
      */
     @Contract(pure = true)
-    public static <$Type> @NotNull HashList<$Type> of(@NotNull Collection<$Type> elements) {
+    public static <$Type> @NotNull HashList<$Type> of(@NotNull Collection<? extends $Type> elements) {
         return fromCollection((Hash.Strategy<$Type>) STANDARD_STRATEGY, elements);
     }
 
@@ -142,7 +142,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @return an unmodifiable {@code HashList} containing the iterable's elements
      */
     @Contract(pure = true)
-    public static <$Type> @NotNull HashList<$Type> of(@NotNull Iterable<$Type> elements) {
+    public static <$Type> @NotNull HashList<$Type> of(@NotNull Iterable<? extends $Type> elements) {
         return new Composer<$Type>().addAll(elements).finish();
     }
 
@@ -182,7 +182,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @return an unmodifiable {@code HashList} using the specified strategy
      */
     @Contract(pure = true)
-    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<? extends $Type> elements) {
         return fromCollection(strategy, elements);
     }
 
@@ -195,18 +195,18 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
      * @return an unmodifiable {@code HashList} using the specified strategy
      */
     @Contract(pure = true)
-    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Iterable<$Type> elements) {
+    public static <$Type> @NotNull HashList<$Type> ofCustom(@NotNull Hash.Strategy<$Type> strategy, @NotNull Iterable<? extends $Type> elements) {
         return new Composer<$Type>().strategy(strategy).addAll(elements).finish();
     }
 
-    private static <$Type> @NotNull HashList<$Type> fromCollection(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<$Type> elements) {
+    private static <$Type> @NotNull HashList<$Type> fromCollection(@NotNull Hash.Strategy<$Type> strategy, @NotNull Collection<? extends $Type> elements) {
         if (elements instanceof HashList<?> hl && hl.strategy == strategy) {
             return (HashList<$Type>) elements;
         }
         return switch (elements.size()) {
             case 0 -> of();
-            case 1 -> new Singleton<>(elements instanceof SequencedCollection<$Type> sc ? sc.getFirst() : elements.iterator().next(), strategy);
-            default -> new Composer<>(elements).strategy(strategy).finish();
+            case 1 -> new Singleton<>(elements instanceof SequencedCollection<? extends $Type> sc ? sc.getFirst() : elements.iterator().next(), strategy);
+            default -> new Composer<$Type>(elements).strategy(strategy).finish();
         };
     }
 
@@ -411,7 +411,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
          * collection, in iteration order.
          * @param original the collection whose elements to initially populate the builder with
          */
-        public Composer(@NotNull Collection<$Type> original) {
+        public Composer(@NotNull Collection<? extends $Type> original) {
             this.elements = new ArrayList<>(original);
         }
 
@@ -478,7 +478,7 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
          * @throws IllegalStateException if the composer has already been finalized
          */
         @Contract("_ -> this")
-        public @NotNull Composer<$Type> addAll(@NotNull Collection<$Type> elements) {
+        public @NotNull Composer<$Type> addAll(@NotNull Collection<? extends $Type> elements) {
             checkBuilt();
             this.elements.addAll(elements);
             return this;

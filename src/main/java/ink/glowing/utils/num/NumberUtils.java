@@ -213,7 +213,8 @@ public final class NumberUtils {
      * like in {@link Double#compare(double, double)}.
      * @param tested the {@code long} to compare
      * @param against the {@code double} to compare
-     * @return a negative number if {@code a < b}, zero if they are equal, and a positive number if {@code a > b}
+     * @return a negative number if {@code tested} is less than {@code against}, zero if they are equal,
+     * and a positive number if {@code tested} is greater
      */
     @Contract(pure = true)
     public static int compare(long tested, double against) {

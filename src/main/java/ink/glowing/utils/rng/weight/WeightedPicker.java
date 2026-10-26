@@ -45,7 +45,6 @@ public interface WeightedPicker<$Type> {
      * @param <$Type> the type of elements
      * @param element the only element
      * @return a picker of the single element
-     * @see Uniform
      */
     @Contract(value = "_ -> new", pure = true)
     static <$Type> @NotNull WeightedPicker<$Type> of($Type element) {
