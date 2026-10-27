@@ -23,7 +23,7 @@ public final class Range implements Matchable<Range> {
     public static final Range EMPTY = new Range(Bound.Invalid.INSTANCE, Bound.Invalid.INSTANCE);
 
     /**
-     * The unbounded range, which contains every number but {@code NaN}.
+     * The unbounded range, which contains every number but {@link Double#NaN}.
      */
     public static final Range ALL = new Range(Bound.Infinite.INSTANCE, Bound.Infinite.INSTANCE);
 
@@ -107,6 +107,26 @@ public final class Range implements Matchable<Range> {
     }
 
     /**
+     * Returns whether the value is in this range.
+     * @param value the value to check
+     * @return {@code true} if the value is within the bounds
+     */
+    @Contract(pure = true)
+    public boolean contains(long value) {
+        return minLong <= value && value <= maxLong;
+    }
+
+    /**
+     * Returns whether the value is in this range. {@code NaN} is in no range.
+     * @param value the value to check
+     * @return {@code true} if the value is within the bounds
+     */
+    @Contract(pure = true)
+    public boolean contains(double value) {
+        return minDouble <= value && value <= maxDouble;
+    }
+
+    /**
      * Returns whether this range contains no numbers.
      * @return {@code true} if this is {@link #EMPTY}
      */
@@ -126,26 +146,6 @@ public final class Range implements Matchable<Range> {
     @Contract(pure = true)
     public boolean matches(@NotNull Range other) {
         return min().matches(other.min()) && max().matches(other.max());
-    }
-
-    /**
-     * Returns whether the value is in this range.
-     * @param value the value to check
-     * @return {@code true} if the value is within the bounds
-     */
-    @Contract(pure = true)
-    public boolean contains(long value) {
-        return minLong <= value && value <= maxLong;
-    }
-
-    /**
-     * Returns whether the value is in this range. {@code NaN} is in no range.
-     * @param value the value to check
-     * @return {@code true} if the value is within the bounds
-     */
-    @Contract(pure = true)
-    public boolean contains(double value) {
-        return minDouble <= value && value <= maxDouble;
     }
 
     @Override
