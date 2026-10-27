@@ -72,20 +72,23 @@ public final class Range implements Matchable<Range> {
     public static @NotNull Range parse(@NotNull String str) {
         String range = str.strip();
         int comma = range.indexOf(',');
-        if (comma < 0 || comma != range.lastIndexOf(',')) return EMPTY;
+        if (comma < 0) return EMPTY;
         char open = range.charAt(0);
+        if (open != '[' && open != '(') return EMPTY;
         char close = range.charAt(range.length() - 1);
-        if (open != '[' && open != '(' || close != ']' && close != ')') return EMPTY;
-
-        String minText = range.substring(1, comma).strip();
-        String maxText = range.substring(comma + 1, range.length() - 1).strip();
-        Number min = NumberUtils.parseNumber(minText).orElse(null);
-        Number max = NumberUtils.parseNumber(maxText).orElse(null);
-        if (min == null && !minText.isEmpty() || max == null && !maxText.isEmpty()) return EMPTY;
+        if (close != ']' && close != ')') return EMPTY;
         return of(
-                min == null ? Bound.infinite() : open == '[' ? Bound.inclusive(min) : Bound.exclusive(min),
-                max == null ? Bound.infinite() : close == ']' ? Bound.inclusive(max) : Bound.exclusive(max)
+                parseBound(range.substring(1, comma), open == '['),
+                parseBound(range.substring(comma + 1, range.length() - 1), close == ']')
         );
+    }
+
+    private static @NotNull Bound parseBound(@NotNull String str, boolean inclusive) {
+        String bound = str.strip();
+        if (bound.isEmpty()) return Bound.infinite();
+        Number value = NumberUtils.parseNumber(bound, null);
+        if (value == null) return Bound.Invalid.INSTANCE;
+        return inclusive ? Bound.inclusive(value) : Bound.exclusive(value);
     }
 
     /**

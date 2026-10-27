@@ -11,6 +11,7 @@ import java.util.OptionalLong;
 import java.util.function.DoubleSupplier;
 import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 
 /**
  * Helpers for working with numbers.
@@ -174,36 +175,63 @@ public final class NumberUtils {
      */
     @Contract(pure = true)
     public static @NotNull Optional<Number> parseNumber(@Nullable String str) {
-        if (str == null) return Optional.empty();
+        return Optional.ofNullable(parseNumber(str, null));
+    }
+
+    /**
+     * Parses a number into the narrowest of {@code Integer}, {@code Long} and {@code Double} that holds it.
+     * Only plain decimal numbers are accepted, like {@code -12}, {@code 6.5} or {@code 1e3}: no whitespace,
+     * {@code NaN}, {@code Infinity}, hexadecimal or type suffixes.
+     * @param str the string to parse
+     * @param fallback the fallback
+     * @return the parsed number, or the fallback if the string is not a number
+     */
+    @Contract(value = "null, _ -> param2", pure = true)
+    public static @Nullable Number parseNumber(@Nullable String str, @Nullable Number fallback) {
+        if (str == null || str.isEmpty()) return fallback;
         int length = str.length();
-        int digitsFrom = length > 1 && (str.charAt(0) == '+' || str.charAt(0) == '-') ? 1 : 0;
-        boolean integer = true;
-        boolean hasDigit = false;
-        for (int i = 0; i < length; i++) {
+        boolean negative = str.charAt(0) == '-';
+        int digitsFrom = negative || str.charAt(0) == '+' ? 1 : 0;
+        long negated = 0;
+        int i = digitsFrom;
+        for (; i < length; i++) {
+            int digit = Character.digit(str.charAt(i), 10);
+            if (digit < 0 || negated < Long.MIN_VALUE / 10 || negated * 10 < Long.MIN_VALUE + digit) break;
+            negated = negated * 10 - digit;
+        }
+        if (i == length && i > digitsFrom && (negative || negated != Long.MIN_VALUE)) {
+            long value = negative ? negated : -negated;
+            if (value == (int) value) return (int) value;
+            return value;
+        }
+
+        boolean hasDigit = i > digitsFrom;
+        for (; i < length; i++) {
             char ch = str.charAt(i);
             if (Character.isDigit(ch)) {
                 hasDigit = true;
-            } else if (ch == '.' || ch == 'e' || ch == 'E' || ch == '+' || ch == '-') {
-                if (i >= digitsFrom) integer = false;
-            } else {
-                return Optional.empty();
+            } else if (ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-') {
+                return fallback;
             }
         }
-        if (!hasDigit) return Optional.empty();
-
-        if (integer) {
-            try {
-                return Optional.of(Integer.parseInt(str));
-            } catch (NumberFormatException _) { /* too large, try the next type */ }
-            try {
-                return Optional.of(Long.parseLong(str));
-            } catch (NumberFormatException _) { /* too large, try the next type */ }
-        }
+        if (!hasDigit) return fallback;
         try {
-            return Optional.of(Double.parseDouble(str));
+            return Double.parseDouble(str);
         } catch (NumberFormatException _) {
-            return Optional.empty();
+            return fallback;
         }
+    }
+
+    /**
+     * Parses a number into the narrowest of {@code Integer}, {@code Long} and {@code Double} that holds it,
+     * with a lazily computed fallback.
+     * @param str the string to parse
+     * @param fallback the supplier of the fallback, called only if the string is not a number
+     * @return the parsed number, or the fallback if the string is not a number
+     */
+    public static @Nullable Number parseNumberOrGet(@Nullable String str, @NotNull Supplier<? extends Number> fallback) {
+        Number value = parseNumber(str, null);
+        return value != null ? value : fallback.get();
     }
 
     /**

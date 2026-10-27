@@ -276,7 +276,7 @@ final class ParserImpl {
     }
 
     private @NotNull Parameter parseBare(@NotNull String text) {
-        return switch (NumberUtils.parseNumber(text).orElse(null)) {
+        return switch (NumberUtils.parseNumber(text, null)) {
             case Integer value -> new IntImpl(value, text);
             case Long value -> new LongImpl(value, text);
             case Double value -> new DoubleImpl(value, text);
