@@ -155,7 +155,9 @@ public class RangeTest {
             "'[1e999, ]', 5, false",
             "'[, -1e999]', 5, false",
             "'[, 9007199254740993)', 9007199254740992, true",
-            "'(9007199254740992.0, ]', 9007199254740993, true"
+            "'(9007199254740992.0, ]', 9007199254740993, true",
+            "'[0, 1e30)', 9223372036854775807, true",
+            "'(-1e30, 0]', -9223372036854775808, true"
     })
     public void testContains(String range, long value, boolean expected) {
         assertEquals(expected, Range.parse(range).contains(value));

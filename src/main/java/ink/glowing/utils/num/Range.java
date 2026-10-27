@@ -29,10 +29,19 @@ public final class Range implements Matchable<Range> {
 
     private final @NotNull Bound min;
     private final @NotNull Bound max;
+    private final long minLong;
+    private final long maxLong;
+    private final double minDouble;
+    private final double maxDouble;
 
     private Range(@NotNull Bound min, @NotNull Bound max) {
         this.min = min;
         this.max = max;
+        boolean hasLong = min.hasLong(false) && max.hasLong(true);
+        this.minLong = hasLong ? min.effectiveLong(false) : Long.MAX_VALUE;
+        this.maxLong = hasLong ? max.effectiveLong(true) : Long.MIN_VALUE;
+        this.minDouble = min.effectiveDouble(false);
+        this.maxDouble = max.effectiveDouble(true);
     }
 
     /**
@@ -44,11 +53,8 @@ public final class Range implements Matchable<Range> {
      */
     @Contract(pure = true)
     public static @NotNull Range of(@NotNull Bound min, @NotNull Bound max) {
-        min = normalize(min, false);
-        max = normalize(max, true);
-        return min.effectiveDouble(false) <= max.effectiveDouble(true) || min.hasLong(false) && max.hasLong(true) && min.effectiveLong(false) <= max.effectiveLong(true)
-                ? new Range(min, max)
-                : EMPTY;
+        Range range = new Range(normalize(min, false), normalize(max, true));
+        return range.minDouble <= range.maxDouble || range.minLong <= range.maxLong ? range : EMPTY;
     }
 
     private static @NotNull Bound normalize(@NotNull Bound bound, boolean upper) {
@@ -129,7 +135,7 @@ public final class Range implements Matchable<Range> {
      */
     @Contract(pure = true)
     public boolean contains(long value) {
-        return min().admits(value, false) && max().admits(value, true);
+        return minLong <= value && value <= maxLong;
     }
 
     /**
@@ -139,7 +145,7 @@ public final class Range implements Matchable<Range> {
      */
     @Contract(pure = true)
     public boolean contains(double value) {
-        return min().admits(value, false) && max().admits(value, true);
+        return minDouble <= value && value <= maxDouble;
     }
 
     @Override

@@ -110,24 +110,6 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
     boolean inclusive();
 
     /**
-     * Returns whether the value is on the inner side of this bound.
-     * @param value the value to check
-     * @param upper whether this is the upper bound
-     * @return {@code true} if this bound lets the value in
-     */
-    @Contract(pure = true)
-    boolean admits(long value, boolean upper);
-
-    /**
-     * Returns whether the value is on the inner side of this bound. {@code NaN} is never admitted.
-     * @param value the value to check
-     * @param upper whether this is the upper bound
-     * @return {@code true} if this bound lets the value in
-     */
-    @Contract(pure = true)
-    boolean admits(double value, boolean upper);
-
-    /**
      * Returns the bound as an {@code int}, truncated and clamped to its limits. An infinite bound gives the limit
      * on its side, an invalid one the limit on the opposite side.
      * @param upper whether this is the upper bound
@@ -212,18 +194,6 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
      */
     record OfLong(long value, boolean inclusive) implements Bound {
         @Override
-        public boolean admits(long value, boolean upper) {
-            return upper ? (inclusive ? value <= this.value : value < this.value) : (inclusive ? value >= this.value : value > this.value);
-        }
-
-        @Override
-        public boolean admits(double value, boolean upper) {
-            if (Double.isNaN(value)) return false;
-            int comparison = -NumberUtils.compare(this.value, value);
-            return upper ? (inclusive ? comparison <= 0 : comparison < 0) : (inclusive ? comparison >= 0 : comparison > 0);
-        }
-
-        @Override
         public long toLong(boolean upper) {
             return value;
         }
@@ -283,17 +253,6 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
         }
 
         @Override
-        public boolean admits(long value, boolean upper) {
-            int comparison = NumberUtils.compare(value, this.value);
-            return upper ? (inclusive ? comparison <= 0 : comparison < 0) : (inclusive ? comparison >= 0 : comparison > 0);
-        }
-
-        @Override
-        public boolean admits(double value, boolean upper) {
-            return upper ? (inclusive ? value <= this.value : value < this.value) : (inclusive ? value >= this.value : value > this.value);
-        }
-
-        @Override
         public long toLong(boolean upper) {
             return (long) value;
         }
@@ -310,9 +269,9 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
 
         @Override
         public long effectiveLong(boolean upper) {
-            return upper
-                    ? (inclusive ? (long) Math.floor(value) : (long) Math.ceil(value) - 1)
-                    : (inclusive ? (long) Math.ceil(value) : (long) Math.floor(value) + 1);
+            long rounded = (long) (upper ? Math.floor(value) : Math.ceil(value));
+            if (inclusive || NumberUtils.compare(rounded, value) != 0) return rounded;
+            return upper ? rounded - 1 : rounded + 1;
         }
 
         @Override
@@ -347,16 +306,6 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
         @Override
         public boolean inclusive() {
             return false;
-        }
-
-        @Override
-        public boolean admits(long value, boolean upper) {
-            return true;
-        }
-
-        @Override
-        public boolean admits(double value, boolean upper) {
-            return !Double.isNaN(value);
         }
 
         @Override
@@ -407,16 +356,6 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
 
         @Override
         public boolean inclusive() {
-            return false;
-        }
-
-        @Override
-        public boolean admits(long value, boolean upper) {
-            return false;
-        }
-
-        @Override
-        public boolean admits(double value, boolean upper) {
             return false;
         }
 
