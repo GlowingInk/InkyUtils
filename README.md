@@ -81,12 +81,15 @@ There are `parseInt`, `parseLong` and `parseDouble`. Without a fallback they ret
 ### `num.Range`
 A range of numbers.
 ```java
-Range dice = Range.of(Bound.inclusive(1), Bound.exclusive(7)); // [1, 7), Bound.infinite() leaves a side unbounded
+Range.Interval dice = Range.of(Bound.inclusive(1), Bound.exclusive(7)); // [1, 7), Bound.infinite() leaves a side unbounded
 dice.contains(7); // false
 dice.max().inclusive(); // false, the upper bound is Bound.OfLong 7; effectiveInt(true) gives 6, the largest int below it
 RngUtils.inRange(dice, 0); // 1..6, the fallback is for a range without such values
-Range ratio = Range.parse("(0, 2.5]"); // an empty bound like in [1, ) is unbounded
+Range.Interval ratio = Range.Interval.parse("(0, 2.5]"); // an empty bound like in [1, ) is unbounded
 Range.parse("[1, x]"); // Range.EMPTY, like any range without numbers between its bounds, such as [7, 1]; see isEmpty()
+Range gaps = dice.or(Range.parse("[10, 12]")); // [1, 7) U [10, 12], a Range.Compound with its intervals(), parsed back by Range.parse
+gaps.and(Range.parse("[5, 11)")); // [5, 7) U [10, 11)
+RngUtils.inRange(gaps, 0); // each of 1..6 and 10..12 is equally likely
 ```
 
 ### `hash`

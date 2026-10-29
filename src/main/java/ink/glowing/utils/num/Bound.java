@@ -5,10 +5,10 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * One side of a {@link Range}: a bound value that is either inclusive or exclusive, an {@link Infinite} side,
+ * One side of a {@link Range.Interval}: a bound value that is either inclusive or exclusive, an {@link Infinite} side,
  * or an {@link Invalid} one that admits nothing.
  * <p>
- * Methods that depend on the side take {@code upper}, which is {@code true} for the upper bound of a range
+ * Methods that depend on the side take {@code upper}, which is {@code true} for the upper bound of an interval
  * and {@code false} for the lower one.
  */
 public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bound.OfDouble, Bound.Infinite, Bound.Invalid {
@@ -345,7 +345,8 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
     }
 
     /**
-     * A side that admits nothing, from a {@code NaN} value or an infinity on the opposite side of a {@link Range}.
+     * A side that admits nothing, from a {@code NaN} value or an infinity on the opposite side
+     * of a {@link Range.Interval}.
      * Both sides of {@link Range#EMPTY} are invalid.
      */
     enum Invalid implements Bound {

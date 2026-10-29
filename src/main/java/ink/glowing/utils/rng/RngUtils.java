@@ -288,11 +288,30 @@ public final class RngUtils {
      * @return a random value in the range, or {@code fallback}
      */
     public static int inRange(@NotNull RandomGenerator rng, @NotNull Range range, int fallback) {
-        if (!range.min().hasInt(false) || !range.max().hasInt(true)) return fallback;
-        int min = range.min().effectiveInt(false);
-        int max = range.max().effectiveInt(true);
-        if (min > max) return fallback;
-        return (int) rng.nextLong(min, max + 1L);
+        List<Range.Interval> intervals = intervals(range);
+        if (intervals.size() == 1) {
+            Range.Interval interval = intervals.getFirst();
+            if (!interval.min().hasInt(false) || !interval.max().hasInt(true)) return fallback;
+            int min = interval.min().effectiveInt(false);
+            int max = interval.max().effectiveInt(true);
+            if (min > max) return fallback;
+            return (int) rng.nextLong(min, max + 1L);
+        }
+        long total = 0;
+        for (Range.Interval interval : intervals) total += intCount(interval);
+        if (total == 0) return fallback;
+        long pick = rng.nextLong(total);
+        for (Range.Interval interval : intervals) {
+            long count = intCount(interval);
+            if (pick < count) return (int) (interval.min().effectiveInt(false) + pick);
+            pick -= count;
+        }
+        return fallback;
+    }
+
+    private static long intCount(@NotNull Range.Interval interval) {
+        if (!interval.min().hasInt(false) || !interval.max().hasInt(true)) return 0;
+        return Math.max(0, (long) interval.max().effectiveInt(true) - interval.min().effectiveInt(false) + 1);
     }
 
     /**
@@ -315,18 +334,46 @@ public final class RngUtils {
      * @return a random value in the range, or {@code fallback}
      */
     public static long inRange(@NotNull RandomGenerator rng, @NotNull Range range, long fallback) {
-        if (!range.min().hasLong(false) || !range.max().hasLong(true)) return fallback;
-        long min = range.min().effectiveLong(false);
-        long max = range.max().effectiveLong(true);
-        if (min > max) return fallback;
-        if (max < Long.MAX_VALUE) return rng.nextLong(min, max + 1);
-        if (min > Long.MIN_VALUE) return rng.nextLong(min - 1, max) + 1;
-        return rng.nextLong();
+        List<Range.Interval> intervals = intervals(range);
+        if (intervals.size() == 1) {
+            Range.Interval interval = intervals.getFirst();
+            if (!interval.min().hasLong(false) || !interval.max().hasLong(true)) return fallback;
+            long min = interval.min().effectiveLong(false);
+            long max = interval.max().effectiveLong(true);
+            if (min > max) return fallback;
+            if (max < Long.MAX_VALUE) return rng.nextLong(min, max + 1);
+            if (min > Long.MIN_VALUE) return rng.nextLong(min - 1, max) + 1;
+            return rng.nextLong();
+        }
+        long total = 0;
+        for (Range.Interval interval : intervals) total += longCount(interval);
+        // Disjoint intervals hold at most 2^64 longs, so the total only overflows when the range has at least half
+        // of all longs, where most draws land in it, and only wraps to 0 when it has every long
+        if (total <= 0) {
+            if (total == 0 && !range.contains(0L)) return fallback;
+            long value;
+            do value = rng.nextLong(); while (!range.contains(value));
+            return value;
+        }
+        long pick = rng.nextLong(total);
+        for (Range.Interval interval : intervals) {
+            long count = longCount(interval);
+            if (pick < count) return interval.min().effectiveLong(false) + pick;
+            pick -= count;
+        }
+        return fallback;
+    }
+
+    private static long longCount(@NotNull Range.Interval interval) {
+        if (!interval.min().hasLong(false) || !interval.max().hasLong(true)) return 0;
+        long min = interval.min().effectiveLong(false);
+        long max = interval.max().effectiveLong(true);
+        return min > max ? 0 : max - min + 1;
     }
 
     /**
-     * Returns a uniformly random {@code double} in the range. The largest value is
-     * practically never returned, unless it's the only value in the range.
+     * Returns a uniformly random {@code double} in the range. The largest value of each interval is
+     * practically never returned, and a single value like {@code [1, 1]} only if the range has nothing wider.
      * @param range the range to pick from
      * @param fallback the value to return if the range has no values or is infinitely wide
      * @return a random value in the range, or {@code fallback}
@@ -338,19 +385,59 @@ public final class RngUtils {
     }
 
     /**
-     * Returns a uniformly random {@code double} in the range. The largest value is
-     * practically never returned, unless it's the only value in the range.
+     * Returns a uniformly random {@code double} in the range. The largest value of each interval is
+     * practically never returned, and a single value like {@code [1, 1]} only if the range has nothing wider.
      * @param rng the source of randomness
      * @param range the range to pick from
      * @param fallback the value to return if the range has no values or is infinitely wide
      * @return a random value in the range, or {@code fallback}
      */
     public static double inRange(@NotNull RandomGenerator rng, @NotNull Range range, double fallback) {
-        double min = range.min().effectiveDouble(false);
-        double max = range.max().effectiveDouble(true);
-        if (min == max) return min;
-        if (!(min < max) || !Double.isFinite(max - min)) return fallback;
-        return rng.nextDouble(min, max);
+        List<Range.Interval> intervals = intervals(range);
+        if (intervals.size() == 1) {
+            Range.Interval interval = intervals.getFirst();
+            double min = interval.min().effectiveDouble(false);
+            double max = interval.max().effectiveDouble(true);
+            if (min == max) return min;
+            if (!(min < max) || !Double.isFinite(max - min)) return fallback;
+            return rng.nextDouble(min, max);
+        }
+        double total = 0;
+        int points = 0;
+        for (Range.Interval interval : intervals) {
+            double width = width(interval);
+            if (width > 0) total += width;
+            else if (width == 0) points++;
+        }
+        if (!Double.isFinite(total)) return fallback;
+        if (total == 0) {
+            if (points == 0) return fallback;
+            int skip = rng.nextInt(points);
+            for (Range.Interval interval : intervals) {
+                if (width(interval) == 0 && skip-- == 0) return interval.min().effectiveDouble(false);
+            }
+        }
+        double pick = rng.nextDouble(total);
+        double reached = 0;
+        // Summed in the same order as total, so the last wide interval always reaches pick
+        for (Range.Interval interval : intervals) {
+            double width = width(interval);
+            if (width <= 0) continue;
+            reached += width;
+            if (pick < reached) return rng.nextDouble(interval.min().effectiveDouble(false), interval.max().effectiveDouble(true));
+        }
+        return fallback;
+    }
+
+    private static @NotNull List<Range.Interval> intervals(@NotNull Range range) {
+        return switch (range) {
+            case Range.Interval interval -> List.of(interval);
+            case Range.Compound compound -> compound.intervals();
+        };
+    }
+
+    private static double width(@NotNull Range.Interval interval) {
+        return interval.max().effectiveDouble(true) - interval.min().effectiveDouble(false);
     }
 
     /**
