@@ -443,15 +443,6 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
     }
 
     /**
-     * Maps this parameter's {@link #textValue()} to an {@code int}.
-     * @param mapper the mapper, receiving an empty string for {@link #missing()}
-     * @return the mapped result
-     */
-    default int asInt(@NotNull ToIntFunction<@NotNull String> mapper) {
-        return mapper.applyAsInt(textValue());
-    }
-
-    /**
      * Parses this parameter's {@link #textValue()} as a {@code long}.
      * @return the parsed value, or empty if the value is absent or malformed
      * @see NumberUtils#parseLong(String)
@@ -480,15 +471,6 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     default long asLong(@NotNull LongSupplier fallback) {
         return NumberUtils.parseLong(textValue(), fallback);
-    }
-
-    /**
-     * Maps this parameter's {@link #textValue()} to a {@code long}.
-     * @param mapper the mapper, receiving an empty string for {@link #missing()}
-     * @return the mapped result
-     */
-    default long asLong(@NotNull ToLongFunction<@NotNull String> mapper) {
-        return mapper.applyAsLong(textValue());
     }
 
     /**
@@ -523,17 +505,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
     }
 
     /**
-     * Maps this parameter's {@link #textValue()} to a {@code double}.
-     * @param mapper the mapper, receiving an empty string for {@link #missing()}
-     * @return the mapped result
-     */
-    default double asDouble(@NotNull ToDoubleFunction<@NotNull String> mapper) {
-        return mapper.applyAsDouble(textValue());
-    }
-
-    /**
-     * Parses this parameter's {@link #textValue()} as a {@link TriState}: case-insensitive,
-     * with synonyms like {@code yes}/{@code no} or {@code enabled}/{@code disabled}.
+     * Parses this parameter's {@link #textValue()} as a {@link TriState}.
      * @return the parsed state, {@link TriState#UNSET} if the value is absent or not recognized
      * @see TriState#parse(String)
      */
@@ -575,15 +547,6 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
     default boolean asBoolean(@NotNull BooleanSupplier fallback) {
         Boolean parsed = parseBoolean(textValue());
         return parsed != null ? parsed : fallback.getAsBoolean();
-    }
-
-    /**
-     * Maps this parameter's {@link #textValue()} to a {@code boolean}.
-     * @param mapper the mapper, receiving an empty string for {@link #missing()}
-     * @return the mapped result
-     */
-    default boolean asBoolean(@NotNull Predicate<@NotNull String> mapper) {
-        return mapper.test(textValue());
     }
 
     /**

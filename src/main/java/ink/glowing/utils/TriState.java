@@ -54,7 +54,7 @@ public enum TriState {
      * Unrecognized strings and {@code null} give {@link #UNSET}.
      * @param str the string to parse
      * @return the parsed state
-     * @see Mapper
+     * @see Mapper#DEFAULT
      */
     @Contract(pure = true)
     public static @NotNull TriState parse(@Nullable String str) {
