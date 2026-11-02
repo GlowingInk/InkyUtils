@@ -229,8 +229,20 @@ public enum TriState {
      */
     public static final class Mapper {
         /**
-         * Accepts {@code true}, {@code on}, {@code yes}, {@code allow(ed)}, {@code enable(d)}
-         * and their negative counterparts; anything else is {@link TriState#UNSET}.
+         * Accepts the following literals (case-insensitive); anything else is
+         * {@link TriState#UNSET}.
+         *
+         * <ul>
+         *   <li>{@link TriState#TRUE TRUE}:
+         *   {@code TRUE}, {@code ON}, {@code YES},
+         *   {@code ALLOW}, {@code ALLOWED},
+         *   {@code ENABLE}, {@code ENABLED}.</li>
+         *   <li>{@link TriState#FALSE FALSE}:
+         *   {@code FALSE}, {@code OFF}, {@code NO},
+         *   {@code DENY}, {@code DENIED},
+         *   {@code DISALLOW}, {@code DISALLOWED},
+         *   {@code DISABLE}, {@code DISABLED}.</li>
+         * </ul>
          */
         public static final Mapper DEFAULT = builder()
                 .addVariants(true, "ON", "YES", "ALLOW", "ALLOWED", "ENABLE", "ENABLED")
