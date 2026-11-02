@@ -10,11 +10,12 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalUnit;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.function.Function;
+
+import static it.unimi.dsi.fastutil.objects.Object2ObjectMaps.unmodifiable;
 
 /**
  * Utilities for {@link Duration}.
@@ -31,7 +32,7 @@ public final class DurationUtils {
     /**
      * {@link #DEFAULT_UNITS} as a map.
      */
-    public static final @Unmodifiable Map<String, TemporalUnit> DEFAULT_UNITS_MAP = Collections.unmodifiableSortedMap(CaseInsensitive.newLinkedMap(Map.of(
+    public static final @Unmodifiable Map<String, TemporalUnit> DEFAULT_UNITS_MAP = unmodifiable(CaseInsensitive.newLinkedMap(Map.of(
             "ns", ChronoUnit.NANOS,
             "ms", ChronoUnit.MILLIS,
             "s", ChronoUnit.SECONDS,
@@ -141,7 +142,24 @@ public final class DurationUtils {
         StringTokenizer parts = new StringTokenizer(input);
         Duration result = Duration.ZERO;
         while (parts.hasMoreTokens()) {
-            result = addPart(result, parts.nextToken(), units);
+            String part = parts.nextToken();
+            int digitsStart = part.startsWith("-") ? 1 : 0;
+            int digitsEnd = digitsStart;
+            while (digitsEnd < part.length() && Character.isDigit(part.charAt(digitsEnd))) {
+                digitsEnd++;
+            }
+            if (digitsEnd == digitsStart) {
+                throw new IllegalArgumentException("Invalid duration: " + part);
+            }
+            long value = Long.parseLong(part.substring(0, digitsEnd));
+            String suffix = part.substring(digitsEnd);
+            TemporalUnit unit = units.apply(suffix);
+            if (unit == null) {
+                throw new IllegalArgumentException("Invalid duration: " + part);
+            }
+            result = unit.isDurationEstimated()
+                    ? result.plus(unit.getDuration().multipliedBy(value))
+                    : result.plus(value, unit);
         }
         return result;
     }
@@ -151,7 +169,7 @@ public final class DurationUtils {
      * nanoseconds, skipping zero parts, e.g. {@code "1h 30m"}. Negative durations get a {@code -} on every part,
      * e.g. {@code "-1h -30m"}. The result can be parsed back by {@link #parseDurationStrict(String)}.
      * @param duration the duration to format
-     * @return the formatted duration, {@code "0"} for {@link Duration#ZERO}
+     * @return the formatted duration
      * @throws ArithmeticException if the duration is {@code Long.MIN_VALUE} seconds, which cannot be negated
      */
     @Contract(pure = true)
@@ -173,29 +191,5 @@ public final class DurationUtils {
 
     private static void appendTime(long value, @NotNull String unit, @NotNull StringBuilder durationStr) {
         if (value != 0) durationStr.append(value).append(unit).append(' ');
-    }
-
-    private static @NotNull Duration addPart(
-            @NotNull Duration result,
-            @NotNull String part,
-            @NotNull Function<String, ? extends @Nullable TemporalUnit> units
-    ) {
-        int digitsStart = part.startsWith("-") ? 1 : 0;
-        int digitsEnd = digitsStart;
-        while (digitsEnd < part.length() && Character.isDigit(part.charAt(digitsEnd))) {
-            digitsEnd++;
-        }
-        if (digitsEnd == digitsStart) {
-            throw new IllegalArgumentException("Invalid duration: " + part);
-        }
-        long value = Long.parseLong(part.substring(0, digitsEnd));
-        String suffix = part.substring(digitsEnd);
-        TemporalUnit unit = units.apply(suffix);
-        if (unit == null) {
-            throw new IllegalArgumentException("Invalid duration: " + part);
-        }
-        return unit.isDurationEstimated()
-                ? result.plus(unit.getDuration().multipliedBy(value))
-                : result.plus(value, unit);
     }
 }
