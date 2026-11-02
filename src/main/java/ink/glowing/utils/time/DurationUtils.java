@@ -75,18 +75,6 @@ public final class DurationUtils {
     }
 
     /**
-     * Parses a duration using the given unit suffixes.
-     * @param input the string to parse
-     * @param units the unit suffixes; lookup follows the map's own key comparison
-     * @return the sum of all parts, or empty if the input is invalid or the total duration overflows
-     * @see #parseDurationStrict(String, Map)
-     */
-    @Contract(pure = true)
-    public static @NotNull Optional<Duration> parseDuration(@NotNull String input, @NotNull Map<String, ? extends TemporalUnit> units) {
-        return parseDuration(input, units::get);
-    }
-
-    /**
      * Parses a duration like {@link #parseDurationStrict(String, Function)}, but returns empty instead of throwing.
      * @param input the string to parse
      * @param units resolves a suffix to its unit, or {@code null} if the suffix is unknown

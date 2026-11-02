@@ -50,7 +50,6 @@ public class DurationUtilsTest {
                 DurationUtils.parseDurationStrict("1 1min 30sec", units)
         );
         assertThrows(IllegalArgumentException.class, () -> DurationUtils.parseDurationStrict("1m", units));
-        assertTrue(DurationUtils.parseDuration("1m", units).isEmpty());
     }
 
     @ParameterizedTest
