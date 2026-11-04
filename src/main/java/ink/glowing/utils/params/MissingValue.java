@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Set;
 
-enum MissingImpl implements Parameter {
+enum MissingValue implements Parameter {
     INSTANCE;
 
     @Override
@@ -47,19 +47,19 @@ enum MissingImpl implements Parameter {
 
     @Override
     @Contract(value = "_ -> this", pure = true)
-    public @NotNull @Unmodifiable MissingImpl get(@Nullable String key) {
+    public @NotNull @Unmodifiable MissingValue get(@Nullable String key) {
         return this;
     }
 
     @Override
     @Contract(value = "_ -> this", pure = true)
-    public @NotNull @Unmodifiable MissingImpl get(int index) {
+    public @NotNull @Unmodifiable MissingValue get(int index) {
         return this;
     }
 
     @Override
     @Contract(value = "-> this", pure = true)
-    public @NotNull @Unmodifiable MissingImpl asParameter() {
+    public @NotNull @Unmodifiable MissingValue asParameter() {
         return this;
     }
 

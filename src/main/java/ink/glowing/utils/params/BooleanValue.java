@@ -6,23 +6,23 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Locale;
 import java.util.function.BooleanSupplier;
 
-final class BooleanImpl extends TypedImpl {
-    private static final BooleanImpl TRUE = new BooleanImpl(TriState.TRUE);
-    private static final BooleanImpl FALSE = new BooleanImpl(TriState.FALSE);
-    private static final BooleanImpl UNSET = new BooleanImpl(TriState.UNSET);
+final class BooleanValue extends ValueBase.WithText {
+    private static final BooleanValue TRUE = new BooleanValue(TriState.TRUE);
+    private static final BooleanValue FALSE = new BooleanValue(TriState.FALSE);
+    private static final BooleanValue UNSET = new BooleanValue(TriState.UNSET);
 
     private final TriState state;
 
-    private BooleanImpl(@NotNull TriState state) {
+    private BooleanValue(@NotNull TriState state) {
         this(state, state.name().toLowerCase(Locale.ROOT));
     }
 
-    BooleanImpl(@NotNull TriState state, @NotNull String text) {
+    BooleanValue(@NotNull TriState state, @NotNull String text) {
         super(text);
         this.state = state;
     }
 
-    static @NotNull BooleanImpl of(@NotNull TriState state) {
+    static @NotNull BooleanValue of(@NotNull TriState state) {
         return switch (state) {
             case TRUE -> TRUE;
             case FALSE -> FALSE;

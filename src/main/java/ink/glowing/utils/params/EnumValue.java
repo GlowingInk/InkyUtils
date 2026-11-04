@@ -5,10 +5,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
-final class EnumImpl extends TypedImpl {
+final class EnumValue extends ValueBase.WithText {
     private final Enum<?> constant;
 
-    EnumImpl(@NotNull Enum<?> constant) {
+    EnumValue(@NotNull Enum<?> constant) {
         super(constant.name());
         this.constant = constant;
     }

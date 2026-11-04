@@ -58,7 +58,7 @@ final class ParserImpl {
     }
 
     private @NotNull Function<Parameter, String> slice(int start, int end) {
-        return new LazyValue(input, start, end);
+        return new LazyRaw(input, start, end);
     }
 
     private boolean skipNonWhitespaces() {
@@ -143,8 +143,8 @@ final class ParserImpl {
     private @NotNull Parameter parseSingleton(@NotNull String key, int tokenStart, int parentEnd) {
         Object2ObjectLinkedOpenCustomHashMap<String, Parameter> map = CaseInsensitive.newLinkedMap(1);
         Parameter value = parseSingleValue(parentEnd);
-        if (value != MissingImpl.INSTANCE) map.put(key, value);
-        return new MappedImpl(slice(tokenStart, valueEnd), map);
+        if (value != MissingValue.INSTANCE) map.put(key, value);
+        return new CompoundValues.OfMap(slice(tokenStart, valueEnd), map);
     }
 
     @NotNull Object2ObjectLinkedOpenCustomHashMap<String, Parameter> parseMap(final int start) {
@@ -170,10 +170,10 @@ final class ParserImpl {
             }
             if (advanceOn(':')) {
                 Parameter value = parseSingleValue(endCh);
-                if (value != MissingImpl.INSTANCE) map.put(key, value);
+                if (value != MissingValue.INSTANCE) map.put(key, value);
             } else {
                 fail("Couldn't find colon for the map value at pos %d", pos);
-                map.put(key, StringImpl.EMPTY);
+                map.put(key, StringValue.EMPTY);
             }
         }
         if (!global) fail("Couldn't find the end of a map started at %d", start);
@@ -222,7 +222,7 @@ final class ParserImpl {
                     }
                 }
                 valueEnd = pos;
-                return StringImpl.EMPTY;
+                return StringValue.EMPTY;
             }
             return parseSingleValueUnchecked(parentEnd);
         } finally {
@@ -234,18 +234,18 @@ final class ParserImpl {
         int entry = pos;
         if (skipWhitespacesAndComments() || current() == parentEnd) {
             valueEnd = entry;
-            return StringImpl.EMPTY;
+            return StringValue.EMPTY;
         }
 
         int tokenStart = pos;
         if (advanceOn('[')) {
             var value = parseList(pos);
             valueEnd = pos;
-            return new ListedImpl(slice(tokenStart, valueEnd), value);
+            return new CompoundValues.OfList(slice(tokenStart, valueEnd), value);
         } else if (advanceOn('{')) {
             var value = parseMap(pos);
             valueEnd = pos;
-            return new MappedImpl(slice(tokenStart, valueEnd), value);
+            return new CompoundValues.OfMap(slice(tokenStart, valueEnd), value);
         } else if (advanceOn('\'')) {
             String string = parseQuotedString();
             int quotedEnd = pos;
@@ -253,10 +253,10 @@ final class ParserImpl {
                 return parseSingleton(string, tokenStart, parentEnd);
             }
             valueEnd = quotedEnd;
-            return new StringImpl(string, slice(tokenStart, quotedEnd));
+            return new StringValue(string, slice(tokenStart, quotedEnd));
         } else if (isAngleBlock(tokenStart, '?')) {
             pos = valueEnd = scanAngleBlock(tokenStart);
-            return MissingImpl.INSTANCE;
+            return MissingValue.INSTANCE;
         }
 
         int end = scanBare(tokenStart, parentEnd);
@@ -270,19 +270,19 @@ final class ParserImpl {
         valueEnd = end;
         pos = end < length && isWhitespace(input[end]) ? end + 1 : end; // the parent handles its closing
         return escaped
-                ? new StringImpl(string, slice(tokenStart, end))
+                ? new StringValue(string, slice(tokenStart, end))
                 : parseBare(string);
     }
 
     private @NotNull Parameter parseBare(@NotNull String text) {
         return switch (NumberUtils.parseNumber(text, null)) {
-            case Integer value -> new IntImpl(value, text);
-            case Long value -> new LongImpl(value, text);
-            case Double value -> new DoubleImpl(value, text);
+            case Integer value -> new NumberValues.OfInt(value, text);
+            case Long value -> new NumberValues.OfLong(value, text);
+            case Double value -> new NumberValues.OfDouble(value, text);
             case null, default -> {
-                if (text.equalsIgnoreCase("true")) yield new BooleanImpl(TriState.TRUE, text);
-                if (text.equalsIgnoreCase("false")) yield new BooleanImpl(TriState.FALSE, text);
-                yield new StringImpl(text, ParameterHelper.VALUE_RAW);
+                if (text.equalsIgnoreCase("true")) yield new BooleanValue(TriState.TRUE, text);
+                if (text.equalsIgnoreCase("false")) yield new BooleanValue(TriState.FALSE, text);
+                yield new StringValue(text, ParameterHelper.VALUE_RAW);
             }
         };
     }

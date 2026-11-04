@@ -16,10 +16,10 @@ final class ParameterEditorImpl {
     private ParameterEditorImpl() { }
 
     static final class OfListImpl extends ComposerBase<Parameter> implements ParameterEditor.OfList {
-        private final ListedImpl source;
+        private final CompoundValues.OfList source;
         private ArrayList<Parameter> list;
 
-        OfListImpl(@NotNull ListedImpl source) {
+        OfListImpl(@NotNull CompoundValues.OfList source) {
             this.source = source;
         }
 
@@ -34,7 +34,7 @@ final class ParameterEditorImpl {
 
         private void fillTo(ArrayList<Parameter> target, int size) {
             while (target.size() < size) {
-                target.add(MissingImpl.INSTANCE);
+                target.add(MissingValue.INSTANCE);
             }
         }
 
@@ -96,15 +96,15 @@ final class ParameterEditorImpl {
             if (list == null) return source;
 
             list.trimToSize();
-            return new ListedImpl(list);
+            return new CompoundValues.OfList(list);
         }
     }
 
     static final class OfMapImpl extends ComposerBase<Parameter> implements ParameterEditor.OfMap {
-        private final MappedImpl source;
+        private final CompoundValues.OfMap source;
         private Object2ObjectLinkedOpenCustomHashMap<String, Parameter> map;
 
-        OfMapImpl(@NotNull MappedImpl source) {
+        OfMapImpl(@NotNull CompoundValues.OfMap source) {
             this.source = source;
         }
 
@@ -140,7 +140,7 @@ final class ParameterEditorImpl {
 
         @Override
         protected @NotNull Parameter doFinish() {
-            return map == null ? source : new MappedImpl(map);
+            return map == null ? source : new CompoundValues.OfMap(map);
         }
     }
 

@@ -7,18 +7,18 @@ import java.util.function.Function;
 import static ink.glowing.utils.params.ParameterHelper.EMPTY_RAW;
 import static ink.glowing.utils.params.ParameterHelper.SERIALIZED_RAW;
 
-final class StringImpl extends ValueImpl {
-    static final Parameter EMPTY = new StringImpl("", EMPTY_RAW);
+final class StringValue extends ValueBase {
+    static final Parameter EMPTY = new StringValue("", EMPTY_RAW);
 
     private final String value;
     private final Function<Parameter, String> rawCompute;
-    private String serialized; // racy lazy cache, see CompoundImpl
+    private String serialized;
 
-    StringImpl(@NotNull String value) {
+    StringValue(@NotNull String value) {
         this(value, SERIALIZED_RAW);
     }
 
-    StringImpl(@NotNull String value, @NotNull Function<Parameter, String> rawCompute) {
+    StringValue(@NotNull String value, @NotNull Function<Parameter, String> rawCompute) {
         this.value = value;
         this.rawCompute = rawCompute;
     }

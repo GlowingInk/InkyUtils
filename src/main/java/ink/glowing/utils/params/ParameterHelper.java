@@ -16,24 +16,24 @@ final class ParameterHelper {
 
     static @NotNull Parameter getByIndexKey(@NotNull Parameter self, @NotNull String key) {
         int length = key.length();
-        if (length == 0) return MissingImpl.INSTANCE;
+        if (length == 0) return MissingValue.INSTANCE;
         for (int i = 0; i < length; i++) {
             char ch = key.charAt(i);
             boolean sign = i == 0 && length > 1 && (ch == '-' || ch == '+');
-            if (!sign && Character.digit(ch, 10) < 0) return MissingImpl.INSTANCE;
+            if (!sign && Character.digit(ch, 10) < 0) return MissingValue.INSTANCE;
         }
         try {
             return self.get(Integer.parseInt(key));
         } catch (NumberFormatException _) { // out of the int range
-            return MissingImpl.INSTANCE;
+            return MissingValue.INSTANCE;
         }
     }
 
     static boolean isAbsent(@Nullable Parameter parameter) {
-        return parameter == null || parameter == MissingImpl.INSTANCE;
+        return parameter == null || parameter == MissingValue.INSTANCE;
     }
 
     static @NotNull Parameter orMissing(@Nullable Parameter parameter) {
-        return parameter == null ? MissingImpl.INSTANCE : parameter;
+        return parameter == null ? MissingValue.INSTANCE : parameter;
     }
 }

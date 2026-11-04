@@ -39,7 +39,7 @@ import static ink.glowing.utils.params.ParameterHelper.isAbsent;
  * }</pre>
  * Nesting is limited to {@link #MAX_DEPTH} levels.
  */
-public sealed interface Parameter extends Parameterizable, Matchable<Parameter> permits MissingImpl, ValueImpl, CompoundImpl {
+public sealed interface Parameter extends Parameterizable, Matchable<Parameter> permits MissingValue, ValueBase, CompoundValues {
     /**
      * The name of the system property that overrides {@link #MAX_DEPTH}.
      */
@@ -166,7 +166,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter missing() {
-        return MissingImpl.INSTANCE;
+        return MissingValue.INSTANCE;
     }
 
     /**
@@ -592,7 +592,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue() {
-        return StringImpl.EMPTY;
+        return StringValue.EMPTY;
     }
 
     /**
@@ -603,8 +603,8 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue(@Nullable String value) {
         return value == null || value.isEmpty()
-                ? StringImpl.EMPTY
-                : new StringImpl(value);
+                ? StringValue.EMPTY
+                : new StringValue(value);
     }
 
     /**
@@ -614,7 +614,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue(int value) {
-        return new IntImpl(value);
+        return new NumberValues.OfInt(value);
     }
 
     /**
@@ -624,7 +624,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue(long value) {
-        return new LongImpl(value);
+        return new NumberValues.OfLong(value);
     }
 
     /**
@@ -634,7 +634,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue(double value) {
-        return new DoubleImpl(value);
+        return new NumberValues.OfDouble(value);
     }
 
     /**
@@ -645,7 +645,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue(boolean value) {
-        return BooleanImpl.of(TriState.of(value));
+        return BooleanValue.of(TriState.of(value));
     }
 
     /**
@@ -656,7 +656,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue(@Nullable TriState value) {
-        return value == null ? StringImpl.EMPTY : BooleanImpl.of(value);
+        return value == null ? StringValue.EMPTY : BooleanValue.of(value);
     }
 
     /**
@@ -667,7 +667,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofValue(@Nullable Enum<?> value) {
-        return value == null ? StringImpl.EMPTY : new EnumImpl(value);
+        return value == null ? StringValue.EMPTY : new EnumValue(value);
     }
 
     /**
@@ -677,7 +677,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofList() {
-        return ListedImpl.EMPTY;
+        return CompoundValues.OfList.EMPTY;
     }
 
     /**
@@ -688,14 +688,14 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofList(@Nullable List<Parameter> value) {
-        if (value == null || value.isEmpty()) return ListedImpl.EMPTY;
+        if (value == null || value.isEmpty()) return CompoundValues.OfList.EMPTY;
 
         ArrayList<Parameter> copy = new ArrayList<>(value.size());
         for (Parameter parameter : value) {
             if (!isAbsent(parameter)) copy.add(parameter);
         }
         copy.trimToSize();
-        return new ListedImpl(copy);
+        return new CompoundValues.OfList(copy);
     }
 
     /**
@@ -705,7 +705,7 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofMap() {
-        return MappedImpl.EMPTY;
+        return CompoundValues.OfMap.EMPTY;
     }
 
     /**
@@ -716,14 +716,14 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      */
     @Contract(pure = true)
     static @NotNull @Unmodifiable Parameter ofMap(@Nullable Map<String, Parameter> value) {
-        if (value == null || value.isEmpty()) return MappedImpl.EMPTY;
+        if (value == null || value.isEmpty()) return CompoundValues.OfMap.EMPTY;
 
         var copy = CaseInsensitive.<Parameter>newLinkedMap(value.size());
         for (Map.Entry<String, Parameter> entry : value.entrySet()) {
             String key = entry.getKey();
             if (key != null && !isAbsent(entry.getValue())) copy.put(key, entry.getValue());
         }
-        return new MappedImpl(copy);
+        return new CompoundValues.OfMap(copy);
     }
 
     /**
@@ -751,10 +751,10 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
     }
 
     private static @NotNull Parameter _parseList(@NotNull String inputStr, boolean strict) {
-        if (inputStr.isEmpty()) return ListedImpl.EMPTY;
+        if (inputStr.isEmpty()) return CompoundValues.OfList.EMPTY;
         char[] input = inputStr.toCharArray();
-        return new ListedImpl(
-                new LazyValue(input, 0, input.length),
+        return new CompoundValues.OfList(
+                new LazyRaw(input, 0, input.length),
                 new ParserImpl(input, strict).parseList(0)
         );
     }
@@ -784,10 +784,10 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
     }
 
     private static @NotNull Parameter _parseMap(@NotNull String inputStr, boolean strict) {
-        if (inputStr.isEmpty()) return MappedImpl.EMPTY;
+        if (inputStr.isEmpty()) return CompoundValues.OfMap.EMPTY;
         char[] input = inputStr.toCharArray();
-        return new MappedImpl(
-                new LazyValue(input, 0, input.length),
+        return new CompoundValues.OfMap(
+                new LazyRaw(input, 0, input.length),
                 new ParserImpl(input, strict).parseMap(0)
         );
     }
