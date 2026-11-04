@@ -18,8 +18,11 @@ import java.util.Map;
  */
 public final class CaseInsensitive {
     private CaseInsensitive() { }
-    
-    private static final Hash.Strategy<String> CI_STRATEGY = new Hash.Strategy<>() {
+
+    /**
+     * The shared strategy that compares strings ignoring case.
+     */
+    public static final Hash.Strategy<String> STRATEGY = new Hash.Strategy<>() {
         @Override
         public int hashCode(String str) {
             if (str == null) return -1;
@@ -40,23 +43,13 @@ public final class CaseInsensitive {
     };
 
     /**
-     * Returns the shared strategy that compares strings ignoring case.
-     * Useful for building custom fastutil collections not covered by the factories here.
-     * @return the case-insensitive strategy
-     */
-    @Contract(pure = true)
-    public static @NotNull Hash.Strategy<String> strategy() {
-        return CI_STRATEGY;
-    }
-
-    /**
      * Creates an empty case-insensitive map that iterates in insertion order.
      * @param <$Value> the type of the map values
      * @return a new map
      */
     @Contract(value = "-> new", pure = true)
     public static <$Value> @NotNull Object2ObjectLinkedOpenCustomHashMap<String, $Value> newLinkedMap() {
-        return new Object2ObjectLinkedOpenCustomHashMap<>(CI_STRATEGY);
+        return new Object2ObjectLinkedOpenCustomHashMap<>(STRATEGY);
     }
 
     /**
@@ -67,19 +60,18 @@ public final class CaseInsensitive {
      */
     @Contract(value = "_ -> new", pure = true)
     public static <$Value> @NotNull Object2ObjectLinkedOpenCustomHashMap<String, $Value> newLinkedMap(int expectedSize) {
-        return new Object2ObjectLinkedOpenCustomHashMap<>(expectedSize, CI_STRATEGY);
+        return new Object2ObjectLinkedOpenCustomHashMap<>(expectedSize, STRATEGY);
     }
 
     /**
      * Creates a case-insensitive map that iterates in insertion order, filled with the given entries.
-     * If keys differ only in case, the later one overwrites the earlier one.
      * @param <$Value> the type of the map values
      * @param map the entries to copy
      * @return a new map
      */
     @Contract(value = "_ -> new", pure = true)
     public static <$Value> @NotNull Object2ObjectLinkedOpenCustomHashMap<String, $Value> newLinkedMap(@NotNull Map<String, ? extends $Value> map) {
-        return new Object2ObjectLinkedOpenCustomHashMap<>(map, CI_STRATEGY);
+        return new Object2ObjectLinkedOpenCustomHashMap<>(map, STRATEGY);
     }
 
     /**
@@ -89,7 +81,7 @@ public final class CaseInsensitive {
      */
     @Contract(value = "-> new", pure = true)
     public static <$Value> @NotNull Object2ObjectOpenCustomHashMap<String, $Value> newMap() {
-        return new Object2ObjectOpenCustomHashMap<>(CI_STRATEGY);
+        return new Object2ObjectOpenCustomHashMap<>(STRATEGY);
     }
 
     /**
@@ -100,19 +92,18 @@ public final class CaseInsensitive {
      */
     @Contract(value = "_ -> new", pure = true)
     public static <$Value> @NotNull Object2ObjectOpenCustomHashMap<String, $Value> newMap(int expectedSize) {
-        return new Object2ObjectOpenCustomHashMap<>(expectedSize, CI_STRATEGY);
+        return new Object2ObjectOpenCustomHashMap<>(expectedSize, STRATEGY);
     }
 
     /**
      * Creates a case-insensitive map filled with the given entries.
-     * If keys differ only in case, the later one overwrites the earlier one.
      * @param <$Value> the type of the map values
      * @param map the entries to copy
      * @return a new map
      */
     @Contract(value = "_ -> new", pure = true)
     public static <$Value> @NotNull Object2ObjectOpenCustomHashMap<String, $Value> newMap(@NotNull Map<String, ? extends $Value> map) {
-        return new Object2ObjectOpenCustomHashMap<>(map, CI_STRATEGY);
+        return new Object2ObjectOpenCustomHashMap<>(map, STRATEGY);
     }
 
     /**
@@ -121,7 +112,7 @@ public final class CaseInsensitive {
      */
     @Contract(value = "-> new", pure = true)
     public static @NotNull ObjectLinkedOpenCustomHashSet<String> newLinkedSet() {
-        return new ObjectLinkedOpenCustomHashSet<>(CI_STRATEGY);
+        return new ObjectLinkedOpenCustomHashSet<>(STRATEGY);
     }
 
     /**
@@ -131,18 +122,17 @@ public final class CaseInsensitive {
      */
     @Contract(value = "_ -> new", pure = true)
     public static @NotNull ObjectLinkedOpenCustomHashSet<String> newLinkedSet(int expectedSize) {
-        return new ObjectLinkedOpenCustomHashSet<>(expectedSize, CI_STRATEGY);
+        return new ObjectLinkedOpenCustomHashSet<>(expectedSize, STRATEGY);
     }
 
     /**
      * Creates a case-insensitive set that iterates in insertion order, filled with the given strings.
-     * If strings differ only in case, only the first one is kept.
      * @param collection the strings to copy
      * @return a new set
      */
     @Contract(value = "_ -> new", pure = true)
     public static @NotNull ObjectLinkedOpenCustomHashSet<String> newLinkedSet(@NotNull Collection<String> collection) {
-        return new ObjectLinkedOpenCustomHashSet<>(collection, CI_STRATEGY);
+        return new ObjectLinkedOpenCustomHashSet<>(collection, STRATEGY);
     }
 
     /**
@@ -151,7 +141,7 @@ public final class CaseInsensitive {
      */
     @Contract(value = "-> new", pure = true)
     public static @NotNull ObjectOpenCustomHashSet<String> newSet() {
-        return new ObjectOpenCustomHashSet<>(CI_STRATEGY);
+        return new ObjectOpenCustomHashSet<>(STRATEGY);
     }
 
     /**
@@ -161,17 +151,16 @@ public final class CaseInsensitive {
      */
     @Contract(value = "_ -> new", pure = true)
     public static @NotNull ObjectOpenCustomHashSet<String> newSet(int expectedSize) {
-        return new ObjectOpenCustomHashSet<>(expectedSize, CI_STRATEGY);
+        return new ObjectOpenCustomHashSet<>(expectedSize, STRATEGY);
     }
 
     /**
      * Creates a case-insensitive set filled with the given strings.
-     * If strings differ only in case, only the first one is kept.
      * @param collection the strings to copy
      * @return a new set
      */
     @Contract(value = "_ -> new", pure = true)
     public static @NotNull ObjectOpenCustomHashSet<String> newSet(@NotNull Collection<String> collection) {
-        return new ObjectOpenCustomHashSet<>(collection, CI_STRATEGY);
+        return new ObjectOpenCustomHashSet<>(collection, STRATEGY);
     }
 }

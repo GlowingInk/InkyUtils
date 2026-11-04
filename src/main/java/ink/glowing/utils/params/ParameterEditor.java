@@ -1,5 +1,6 @@
 package ink.glowing.utils.params;
 
+import ink.glowing.utils.builder.Composer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -16,12 +17,13 @@ import java.util.Map;
  * <p>
  * An absent value ({@code null} or {@link Parameter#missing()}) is never added as an entry.
  */
-public sealed interface ParameterEditor permits ParameterEditor.OfList, ParameterEditor.OfMap {
+public sealed interface ParameterEditor extends Composer<Parameter> permits ParameterEditor.OfList, ParameterEditor.OfMap {
     /**
      * Returns the edited parameter.
      * @return the resulting parameter, or the original if nothing changed
      * @throws IllegalStateException if already finished
      */
+    @Override
     @NotNull @Unmodifiable Parameter finish();
 
     /**

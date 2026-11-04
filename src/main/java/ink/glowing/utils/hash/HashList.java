@@ -1,6 +1,6 @@
 package ink.glowing.utils.hash;
 
-import ink.glowing.utils.ComposerBase;
+import ink.glowing.utils.builder.ComposerBase;
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.*;
 import org.jetbrains.annotations.Contract;

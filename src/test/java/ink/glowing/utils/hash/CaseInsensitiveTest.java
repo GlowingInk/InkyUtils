@@ -33,7 +33,7 @@ public class CaseInsensitiveTest {
             "a, NULL, false"
     })
     public void testStrategy(String left, String right, boolean expected) {
-        Hash.Strategy<String> strategy = CaseInsensitive.strategy();
+        Hash.Strategy<String> strategy = CaseInsensitive.STRATEGY;
 
         assertEquals(expected, strategy.equals(left, right));
         if (expected) {

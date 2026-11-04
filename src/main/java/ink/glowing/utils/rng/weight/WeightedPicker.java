@@ -1,6 +1,6 @@
 package ink.glowing.utils.rng.weight;
 
-import ink.glowing.utils.ComposerBase;
+import ink.glowing.utils.builder.ComposerBase;
 import ink.glowing.utils.rng.RngUtils;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;

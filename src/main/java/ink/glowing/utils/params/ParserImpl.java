@@ -15,7 +15,6 @@ import java.util.function.Function;
 import static java.lang.Character.isWhitespace;
 
 final class ParserImpl {
-
     private static final int NONE = -1;
 
     private final char[] input;
