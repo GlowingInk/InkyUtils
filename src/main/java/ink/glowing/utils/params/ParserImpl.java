@@ -73,11 +73,12 @@ final class ParserImpl {
     }
 
     private int skipEscape(int index) {
-        if (index + 1 >= length) {
+        if (index + 1 < length) {
+            return index + 2;
+        } else {
             fail("Found escaping '\\' at the end of a string");
             return length;
         }
-        return index + 2;
     }
 
     private @NotNull String unescape(int start, int end, boolean escaped) {
@@ -198,33 +199,35 @@ final class ParserImpl {
 
     private @NotNull Parameter parseSingleValue(int parentEnd) {
         try {
-            if (++depth > Parameter.MAX_DEPTH) {
+            if (++depth <= Parameter.MAX_DEPTH) {
+                return parseSingleValueUnchecked(parentEnd);
+            } else {
                 fail("Nesting is deeper than %d levels at pos %d", Parameter.MAX_DEPTH, pos);
-                int level = 0;
-                skipNonWhitespaces();
-                while (hasMore()) {
-                    char ch = pop();
-                    if (level == 0 && ch == parentEnd) {
-                        pos--;
-                        break;
-                    } else if (ch == '\\') {
-                        pos = skipEscape(pos - 1);
-                    } else if (ch == '\'') {
-                        parseQuotedString();
-                    } else if (isAngleBlock(pos - 1, '?') || isAngleBlock(pos - 1, '!')) {
-                        pos = scanAngleBlock(pos - 1);
-                    } else if (ch == '[' || ch == '{') {
-                        level++;
-                    } else if ((ch == ']' || ch == '}') && level > 0) {
-                        if (--level == 0) break;
-                    } else if (level == 0 && isWhitespace(ch)) {
-                        break;
-                    }
-                }
-                valueEnd = pos;
-                return StringValue.EMPTY;
             }
-            return parseSingleValueUnchecked(parentEnd);
+            // Fallback
+            int level = 0;
+            skipNonWhitespaces();
+            while (hasMore()) {
+                char ch = pop();
+                if (level == 0 && ch == parentEnd) {
+                    pos--;
+                    break;
+                } else if (ch == '\\') {
+                    pos = skipEscape(pos - 1);
+                } else if (ch == '\'') {
+                    parseQuotedString();
+                } else if (isAngleBlock(pos - 1, '?') || isAngleBlock(pos - 1, '!')) {
+                    pos = scanAngleBlock(pos - 1);
+                } else if (ch == '[' || ch == '{') {
+                    level++;
+                } else if ((ch == ']' || ch == '}') && level > 0) {
+                    if (--level == 0) break;
+                } else if (level == 0 && isWhitespace(ch)) {
+                    break;
+                }
+            }
+            valueEnd = pos;
+            return StringValue.EMPTY;
         } finally {
             --depth;
         }
