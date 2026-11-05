@@ -85,6 +85,18 @@ public interface WeightedPicker<$Type> {
     }
 
     /**
+     * Returns a {@code WeightedPicker} of the values of the specified pairs, weighted by their weights.
+     * {@code null} pairs are skipped.
+     * @param <$Type> the type of elements
+     * @param pairs the values paired with their weights
+     * @return a picker of the pairs' values
+     */
+    @Contract(pure = true)
+    static <$Type> @NotNull WeightedPicker<$Type> ofPairs(@NotNull Iterable<? extends Weightable.Pair<? extends $Type>> pairs) {
+        return new Composer<$Type>().addAll(pairs).finish();
+    }
+
+    /**
      * Returns a {@code WeightedPicker} of the elements of the specified collection,
      * weighted by {@link Weightable#weight()}. {@code null} elements' weight fallbacks to 0.
      * @param <$WeightableType> the type of elements
