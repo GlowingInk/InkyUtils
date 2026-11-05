@@ -243,6 +243,10 @@ An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Map
 Versions in dependency sections may be outdated. Check the badge above for the latest one.
 
 [fastutil](https://github.com/vigna/fastutil) is a `provided` dependency and must be available at runtime.
+
+The library is split into two artifacts:
+- `inkyutils-common` - everything except `params`.
+- `inkyutils-params` - `params`, pulls in `inkyutils-common`.
 ### Maven
 Add to repositories
 ```xml
@@ -256,8 +260,8 @@ Add to dependencies
 ```xml
 <dependency>
     <groupId>ink.glowing.utils</groupId>
-    <artifactId>inkyutils</artifactId>
-    <version>0.6.0</version>
+    <artifactId>inkyutils-common</artifactId>
+    <version>0.7.0</version>
 </dependency>
 ```
 ### Gradle
@@ -270,6 +274,6 @@ repositories {
 }
 
 dependencies {
-    implementation("ink.glowing.utils:inkyutils:0.6.0")
+    implementation("ink.glowing.utils:inkyutils-common:0.7.0")
 }
 ```
