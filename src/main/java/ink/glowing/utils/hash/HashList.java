@@ -13,8 +13,7 @@ import java.util.*;
 
 /**
  * An unmodifiable, hash-backed {@link List} implementation that provides O(1) performance
- * for {@link #contains(Object)}, {@link #indexOf(Object)}, and {@link #lastIndexOf(Object)}
- * operations, while maintaining indexed access via {@link RandomAccess}.
+ * for {@link #contains(Object)}, {@link #indexOf(Object)}, and {@link #lastIndexOf(Object)} operations.
  * <p>
  * When a list is built with a custom {@link Hash.Strategy}, that same
  * strategy governs {@code contains}/{@code indexOf}/{@code lastIndexOf} <em>and</em>
@@ -205,7 +204,9 @@ public sealed abstract class HashList<$Type> extends AbstractList<$Type> impleme
         }
         return switch (elements.size()) {
             case 0 -> of();
-            case 1 -> new Singleton<>(elements instanceof SequencedCollection<? extends $Type> sc ? sc.getFirst() : elements.iterator().next(), strategy);
+            case 1 -> new Singleton<>(elements instanceof SequencedCollection<? extends $Type> sc
+                    ? sc.getFirst()
+                    : elements.iterator().next(), strategy);
             default -> new Composer<$Type>(elements).strategy(strategy).finish();
         };
     }
