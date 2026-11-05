@@ -2,7 +2,8 @@ package ink.glowing.utils.params;
 
 import ink.glowing.utils.EnumUtils;
 import ink.glowing.utils.Matchable;
-import ink.glowing.utils.TriState;
+import ink.glowing.utils.bool.BooleanUtils;
+import ink.glowing.utils.bool.TriState;
 import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.num.NumberUtils;
 import ink.glowing.utils.params.ParameterEditorImpl.NoopEditor;
@@ -505,20 +506,20 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
     }
 
     /**
-     * Parses this parameter's {@link #textValue()} as a {@link TriState}.
+     * Parses this parameter's {@link #textValue()} as a {@link TriState} using the {@link TriState.Mapper#NATURAL}.
      * @return the parsed state, {@link TriState#UNSET} if the value is absent or not recognized
-     * @see TriState#parse(String)
+     * @see TriState#parseNatural(String)
      */
     @Contract(pure = true)
     default @NotNull TriState asTriState() {
-        return TriState.parse(textValue());
+        return TriState.parseNatural(textValue());
     }
 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code boolean}: {@code true} or {@code false},
      * ignoring case. Same as {@code asBoolean(false)}.
      * @return the parsed value, or {@code false} if the value is absent or not recognized
-     * @see #asTriState()
+     * @see asBoolean(boolean)
      */
     @Contract(pure = true)
     default boolean asBoolean() {
@@ -530,23 +531,21 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
      * ignoring case.
      * @param fallback the fallback, used if the value is absent or not recognized
      * @return the parsed value, or the fallback
-     * @see #asTriState()
+     * @see BooleanUtils#parseBoolean(String, boolean)
      */
     @Contract(pure = true)
     default boolean asBoolean(boolean fallback) {
-        Boolean parsed = parseBoolean(textValue());
-        return parsed != null ? parsed : fallback;
+        return BooleanUtils.parseBoolean(textValue(), fallback);
     }
 
     /**
      * Parses this parameter's {@link #textValue()} as a {@code boolean}, with a lazily computed fallback.
      * @param fallback the supplier of the fallback, called only if the value is absent or not recognized
      * @return the parsed value, or the fallback
-     * @see #asBoolean(boolean)
+     * @see BooleanUtils#parseBoolean(String, BooleanSupplier)
      */
     default boolean asBoolean(@NotNull BooleanSupplier fallback) {
-        Boolean parsed = parseBoolean(textValue());
-        return parsed != null ? parsed : fallback.getAsBoolean();
+        return BooleanUtils.parseBoolean(textValue(), fallback);
     }
 
     /**
@@ -790,12 +789,6 @@ public sealed interface Parameter extends Parameterizable, Matchable<Parameter> 
                 new LazyRaw(input, 0, input.length),
                 new ParserImpl(input, strict).parseMap(0)
         );
-    }
-
-    private static @Nullable Boolean parseBoolean(@NotNull String text) {
-        if (text.equalsIgnoreCase("true")) return Boolean.TRUE;
-        if (text.equalsIgnoreCase("false")) return Boolean.FALSE;
-        return null;
     }
 
     /**

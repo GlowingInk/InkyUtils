@@ -1,6 +1,6 @@
 package ink.glowing.utils.params;
 
-import ink.glowing.utils.TriState;
+import ink.glowing.utils.bool.TriState;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

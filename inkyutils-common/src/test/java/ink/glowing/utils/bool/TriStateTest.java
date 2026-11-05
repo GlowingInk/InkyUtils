@@ -1,12 +1,16 @@
-package ink.glowing.utils;
+package ink.glowing.utils.bool;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.NoSuchElementException;
 
-import static ink.glowing.utils.TriState.*;
+import static ink.glowing.utils.bool.TriState.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TriStateTest {
@@ -15,7 +19,7 @@ public class TriStateTest {
         assertEquals(TRUE, TriState.of(true));
         assertEquals(FALSE, TriState.of(false));
         assertEquals(TRUE, TriState.of(Boolean.TRUE));
-        assertEquals(UNSET, TriState.of((Boolean) null));
+        assertEquals(UNSET, TriState.of(null));
     }
 
     @ParameterizedTest
@@ -25,7 +29,7 @@ public class TriStateTest {
             "maybe, UNSET", "'', UNSET", "NULL, UNSET"
     })
     public void testParse(String str, TriState expected) {
-        assertEquals(expected, TriState.parse(str));
+        assertEquals(expected, TriState.parseNatural(str));
     }
 
     @Test
@@ -65,12 +69,17 @@ public class TriStateTest {
 
     @Test
     public void testIfPresentOrElse() {
-        StringBuilder log = new StringBuilder();
-        for (TriState state : TriState.values()) {
-            state.ifPresent(log::append);
-            state.ifPresentOrElse(log::append, () -> log.append("-"));
-        }
-        assertEquals("truetruefalsefalse-", log.toString());
+        List<Boolean> present = new ArrayList<>();
+        TRUE.ifPresent(present::add);
+        FALSE.ifPresent(present::add);
+        UNSET.ifPresent(present::add);
+        assertEquals(List.of(true, false), present);
+
+        List<Boolean> presentOrElse = new ArrayList<>();
+        TRUE.ifPresentOrElse(presentOrElse::add, Assertions::fail);
+        FALSE.ifPresentOrElse(presentOrElse::add, Assertions::fail);
+        UNSET.ifPresentOrElse(_ -> fail(), () -> presentOrElse.add(null));
+        assertEquals(Arrays.asList(true, false, null), presentOrElse);
     }
 
     @ParameterizedTest

@@ -1,4 +1,4 @@
-package ink.glowing.utils;
+package ink.glowing.utils.bool;
 
 import ink.glowing.utils.hash.CaseInsensitive;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
@@ -49,16 +49,30 @@ public enum TriState {
     }
 
     /**
-     * Parses a string using {@link Mapper#DEFAULT}: case-insensitive, with common synonyms like
+     * Parses a string using {@link Mapper#NATURAL}: case-insensitive, with common synonyms like
      * {@code yes}/{@code no} or {@code enabled}/{@code disabled}.
      * Unrecognized strings and {@code null} give {@link #UNSET}.
      * @param str the string to parse
      * @return the parsed state
-     * @see Mapper#DEFAULT
+     * @see Mapper#NATURAL
+     */
+    @Contract(pure = true)
+    public static @NotNull TriState parseNatural(@Nullable String str) {
+        return Mapper.NATURAL.parse(str);
+    }
+
+    /**
+     * Parses {@code true} or {@code false}, ignoring case, like {@link Mapper#DEFAULT}.
+     * Unrecognized strings and {@code null} give {@link #UNSET}.
+     * @param str the string to parse
+     * @return the parsed state
+     * @see #parseNatural(String)
      */
     @Contract(pure = true)
     public static @NotNull TriState parse(@Nullable String str) {
-        return Mapper.DEFAULT.parse(str);
+        if ("true".equalsIgnoreCase(str)) return TRUE;
+        if ("false".equalsIgnoreCase(str)) return FALSE;
+        return UNSET;
     }
 
     /**
@@ -229,8 +243,8 @@ public enum TriState {
      */
     public static final class Mapper {
         /**
-         * Accepts the following literals (case-insensitive); anything else is
-         * {@link TriState#UNSET}.
+         * Accepts the following literals;
+         * anything else is {@link TriState#UNSET}.
          *
          * <ul>
          *   <li>{@link TriState#TRUE TRUE}:
@@ -240,14 +254,19 @@ public enum TriState {
          *   <li>{@link TriState#FALSE FALSE}:
          *   {@code FALSE}, {@code OFF}, {@code NO},
          *   {@code DENY}, {@code DENIED},
-         *   {@code DISALLOW}, {@code DISALLOWED},
          *   {@code DISABLE}, {@code DISABLED}.</li>
          * </ul>
          */
-        public static final Mapper DEFAULT = builder()
+        public static final Mapper NATURAL = builder()
                 .addVariants(true, "ON", "YES", "ALLOW", "ALLOWED", "ENABLE", "ENABLED")
                 .addVariants(false, "OFF", "NO", "DENY", "DENIED", "DISABLE", "DISABLED")
                 .build();
+
+        /**
+         * Accepts only the names {@code TRUE}, {@code FALSE} and {@code UNSET};
+         * anything else is {@link TriState#UNSET}.
+         */
+        public static final Mapper DEFAULT = builder().build();
 
         private final Map<String, TriState> lookup;
         private final Map<TriState, String> names;
@@ -277,8 +296,8 @@ public enum TriState {
         }
 
         /**
-         * Creates a builder with {@code TRUE}, {@code FALSE} and {@code UNSET} as names, no variants
-         * and {@link TriState#UNSET} as the fallback.
+         * Creates a builder with {@code TRUE} and {@code FALSE}
+         * with {@link TriState#UNSET} as the fallback.
          * @return a new builder
          */
         @Contract(value = "-> new", pure = true)

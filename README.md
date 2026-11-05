@@ -153,6 +153,48 @@ It also checks whether enough time has passed between two points in time.
 boolean ready = DurationUtils.hasElapsed(lastUse, Instant.now(), Duration.ofSeconds(5)); // true once 5 seconds have passed
 ```
 
+### `bool.BooleanUtils`
+Shared constant predicates and lenient `boolean` parsing.
+```java
+Predicate<Player> filter = BooleanUtils.alwaysTrue(); // or always(boolean) to pick one
+BooleanUtils.parseBoolean("TRUE"); // Boolean.TRUE, null unless true/false
+```
+
+### `bool.TriState`
+A boolean with a third `UNSET` state, for things like "not configured" or "doesn't matter".
+Mirrors the `Optional` API: presence checks, fallbacks, `ifPresent`, `orElseThrow`.
+```java
+TriState flag = TriState.parseNatural("yes"); // TRUE
+TriState.parse("yes"); // UNSET, only true/false are recognized
+flag.asBoolean(false); // true
+TriState.UNSET.asBoolean(false); // false, the fallback
+
+// UNSET works as a wildcard filter
+TriState requireOp = TriState.UNSET;
+requireOp.isValidFor(player.isOp()); // true for any player
+```
+`TriState.parseNatural(String)` uses `TriState.Mapper.NATURAL`, which understands `true/on/yes/allow/enable` and their negatives. Anything else is `UNSET`.
+
+`TriState.Mapper` converts between states and strings with custom words.
+Each state has a main name, used when converting back to a string. `TRUE` and `FALSE` can also have extra variants that are accepted when parsing.
+Matching ignores case, and unknown strings or `null` give the fallback state (`UNSET` unless changed with `fallback(...)`).
+```java
+TriState.Mapper mapper = TriState.Mapper.builder()
+        .name(TriState.TRUE, "allow")
+        .name(TriState.FALSE, "deny")
+        .name(TriState.UNSET, "default")
+        .addVariants(true, "yes", "+")
+        .addVariants(false, "no", "-")
+        .build();
+
+mapper.parse("YES"); // TRUE
+mapper.parse("maybe"); // UNSET, the fallback
+mapper.name(TriState.FALSE); // "deny"
+mapper.strings(TriState.TRUE); // [allow, yes, +]
+```
+An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Mapper.NATURAL`.
+`build()` throws if the same word is assigned to different states.
+
 ### `Comparison`
 The result of a comparison as a constant: `BELOW`, `EQUAL` or `ABOVE`, instead of the sign of an `int`.
 ```java
@@ -204,40 +246,6 @@ TextUtils.substring(chars, 0, colonAt); // "key"
 TextUtils.subarray(chars, colonAt + 1); // ['v', 'a', 'l', 'u', 'e']
 ```
 An empty search string matches nothing.
-
-### `TriState`
-A boolean with a third `UNSET` state, for things like "not configured" or "doesn't matter".
-Mirrors the `Optional` API: presence checks, fallbacks, `ifPresent`, `orElseThrow`.
-```java
-TriState flag = TriState.parse("yes"); // TRUE
-flag.asBoolean(false); // true
-TriState.UNSET.asBoolean(false); // false, the fallback
-
-// UNSET works as a wildcard filter
-TriState requireOp = TriState.UNSET;
-requireOp.isValidFor(player.isOp()); // true for any player
-```
-`TriState.parse(String)` uses `TriState.Mapper.DEFAULT`, which understands `true/on/yes/allow/enable` and their negatives. Anything else is `UNSET`.
-
-`TriState.Mapper` converts between states and strings with custom words.
-Each state has a main name, used when converting back to a string. `TRUE` and `FALSE` can also have extra variants that are accepted when parsing.
-Matching ignores case, and unknown strings or `null` give the fallback state (`UNSET` unless changed with `fallback(...)`).
-```java
-TriState.Mapper mapper = TriState.Mapper.builder()
-        .name(TriState.TRUE, "allow")
-        .name(TriState.FALSE, "deny")
-        .name(TriState.UNSET, "default")
-        .addVariants(true, "yes", "+")
-        .addVariants(false, "no", "-")
-        .build();
-
-mapper.parse("YES"); // TRUE
-mapper.parse("maybe"); // UNSET, the fallback
-mapper.name(TriState.FALSE); // "deny"
-mapper.strings(TriState.TRUE); // [allow, yes, +]
-```
-An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Mapper.DEFAULT`.
-`build()` throws if the same word is assigned to different states.
 
 ## Get it ![Version](https://img.shields.io/github/v/tag/GlowingInk/InkyUtils?sort=semver&style=flat&label=release)
 Versions in dependency sections may be outdated. Check the badge above for the latest one.

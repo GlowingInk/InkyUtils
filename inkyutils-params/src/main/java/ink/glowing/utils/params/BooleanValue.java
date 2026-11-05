@@ -1,6 +1,6 @@
 package ink.glowing.utils.params;
 
-import ink.glowing.utils.TriState;
+import ink.glowing.utils.bool.TriState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;

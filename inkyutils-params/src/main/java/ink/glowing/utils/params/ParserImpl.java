@@ -1,7 +1,7 @@
 package ink.glowing.utils.params;
 
 import ink.glowing.utils.TextUtils;
-import ink.glowing.utils.TriState;
+import ink.glowing.utils.bool.TriState;
 import ink.glowing.utils.hash.CaseInsensitive;
 import ink.glowing.utils.num.NumberUtils;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
