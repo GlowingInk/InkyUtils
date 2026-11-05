@@ -125,6 +125,112 @@ public enum TriState {
     }
 
     /**
+     * Returns the logical AND of this and the state. {@link #UNSET} is ignored: the other side decides,
+     * and the result is {@link #UNSET} only if both are.
+     * @param other the other state
+     * @return the result
+     */
+    @Contract(pure = true)
+    public @NotNull TriState and(@NotNull TriState other) {
+        if (this == FALSE) return FALSE;
+        return other == UNSET ? this : other;
+    }
+
+    /**
+     * Returns the logical AND of this and the value, as {@link #and(TriState)}.
+     * @param other the other value
+     * @return the result
+     */
+    @Contract(pure = true)
+    public @NotNull TriState and(boolean other) {
+        return this == FALSE ? FALSE : of(other);
+    }
+
+    /**
+     * Returns the logical AND of this and the value, as {@link #and(TriState)}.
+     * {@code null} counts as {@link #UNSET}.
+     * @param other the other value
+     * @return the result
+     */
+    @Contract(pure = true)
+    public @NotNull TriState and(@Nullable Boolean other) {
+        return and(of(other));
+    }
+
+    /**
+     * Returns the logical AND of this and the supplied value, as {@link #and(TriState)}.
+     * The supplier is called only if this is not {@link #FALSE}.
+     * @param other the supplier of the other value
+     * @return the result
+     */
+    public @NotNull TriState and(@NotNull BooleanSupplier other) {
+        return this == FALSE ? FALSE : of(other.getAsBoolean());
+    }
+
+    /**
+     * Returns the logical AND of this and the supplied state, as {@link #and(TriState)}.
+     * The supplier is called only if this is not {@link #FALSE}.
+     * @param other the supplier of the other state
+     * @return the result
+     */
+    public @NotNull TriState and(@NotNull Supplier<@NotNull TriState> other) {
+        return this == FALSE ? FALSE : and(other.get());
+    }
+
+    /**
+     * Returns the logical OR of this and the state. {@link #UNSET} is ignored: the other side decides,
+     * and the result is {@link #UNSET} only if both are.
+     * @param other the other state
+     * @return the result
+     */
+    @Contract(pure = true)
+    public @NotNull TriState or(@NotNull TriState other) {
+        if (this == TRUE) return TRUE;
+        return other == UNSET ? this : other;
+    }
+
+    /**
+     * Returns the logical OR of this and the value, as {@link #or(TriState)}.
+     * @param other the other value
+     * @return the result
+     */
+    @Contract(pure = true)
+    public @NotNull TriState or(boolean other) {
+        return this == TRUE ? TRUE : of(other);
+    }
+
+    /**
+     * Returns the logical OR of this and the value, as {@link #or(TriState)}.
+     * {@code null} counts as {@link #UNSET}.
+     * @param other the other value
+     * @return the result
+     */
+    @Contract(pure = true)
+    public @NotNull TriState or(@Nullable Boolean other) {
+        return or(of(other));
+    }
+
+    /**
+     * Returns the logical OR of this and the supplied value, as {@link #or(TriState)}.
+     * The supplier is called only if this is not {@link #TRUE}.
+     * @param other the supplier of the other value
+     * @return the result
+     */
+    public @NotNull TriState or(@NotNull BooleanSupplier other) {
+        return this == TRUE ? TRUE : of(other.getAsBoolean());
+    }
+
+    /**
+     * Returns the logical OR of this and the supplied state, as {@link #or(TriState)}.
+     * The supplier is called only if this is not {@link #TRUE}.
+     * @param other the supplier of the other state
+     * @return the result
+     */
+    public @NotNull TriState or(@NotNull Supplier<@NotNull TriState> other) {
+        return this == TRUE ? TRUE : or(other.get());
+    }
+
+    /**
      * Runs the action with the value if this is not {@link #UNSET}.
      * @param action the action to run
      */

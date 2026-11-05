@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import static ink.glowing.utils.bool.TriState.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -45,6 +47,43 @@ public class TriStateTest {
         assertEquals(FALSE, TRUE.not());
         assertEquals(TRUE, FALSE.not());
         assertEquals(UNSET, UNSET.not());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "TRUE, TRUE, TRUE, TRUE",
+            "TRUE, FALSE, FALSE, TRUE",
+            "TRUE, UNSET, TRUE, TRUE",
+            "FALSE, TRUE, FALSE, TRUE",
+            "FALSE, FALSE, FALSE, FALSE",
+            "FALSE, UNSET, FALSE, FALSE",
+            "UNSET, TRUE, TRUE, TRUE",
+            "UNSET, FALSE, FALSE, FALSE",
+            "UNSET, UNSET, UNSET, UNSET"
+    })
+    public void testAndOr(TriState left, TriState right, TriState and, TriState or) {
+        assertEquals(and, left.and(right));
+        assertEquals(or, left.or(right));
+        assertEquals(and, left.and(right.asBoolean()));
+        assertEquals(or, left.or(right.asBoolean()));
+        assertEquals(and, left.and(() -> right));
+        assertEquals(or, left.or(() -> right));
+        if (right.isPresent()) {
+            assertEquals(and, left.and(right.isTrue()));
+            assertEquals(or, left.or(right.isTrue()));
+            assertEquals(and, left.and(right::isTrue));
+            assertEquals(or, left.or(right::isTrue));
+        }
+    }
+
+    @Test
+    public void testAndOrLazy() {
+        BooleanSupplier failingValue = () -> fail("Supplier must be lazy");
+        Supplier<TriState> failingState = () -> fail("Supplier must be lazy");
+        assertEquals(FALSE, FALSE.and(failingValue));
+        assertEquals(FALSE, FALSE.and(failingState));
+        assertEquals(TRUE, TRUE.or(failingValue));
+        assertEquals(TRUE, TRUE.or(failingState));
     }
 
     @Test
