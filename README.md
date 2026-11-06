@@ -6,7 +6,185 @@ Small Java 25 utility library built on top of [fastutil](https://github.com/vign
 
 ## Overview
 
-### `params`
+### `inkyutils-common`
+
+#### `num.NumberUtils`
+Helpers for working with numbers. Parsing returns a fallback instead of throwing on a malformed string.
+```java
+NumberUtils.parseInt("42", 0); // 42
+NumberUtils.parseInt("many", 0); // 0, the fallback
+NumberUtils.parseDouble(null, 1.5); // 1.5
+```
+There are `parseInt`, `parseLong` and `parseDouble`. Without a fallback they return an `OptionalInt`, `OptionalLong` or `OptionalDouble`.
+`parseNumber` returns the narrowest of `Integer`, `Long` and `Double` that holds a plain decimal number, like `12`, `9999999999` or `6.5`.
+
+#### `num.Range`
+A range of numbers.
+```java
+Range.Interval dice = Range.of(Bound.inclusive(1), Bound.exclusive(7)); // [1, 7), Bound.infinite() leaves a side unbounded
+dice.contains(7); // false
+dice.max().inclusive(); // false, the upper bound is Bound.OfLong 7; effectiveInt(true) gives 6, the largest int below it
+RngUtils.inRange(dice, 0); // 1..6, the fallback is for a range without such values
+Range.Interval ratio = Range.Interval.parse("(0, 2.5]"); // an empty bound like in [1, ) is unbounded
+Range.parse("[1, x]"); // Range.EMPTY, like any range without numbers between its bounds, such as [7, 1]; see isEmpty()
+Range gaps = dice.or(Range.parse("[10, 12]")); // [1, 7) U [10, 12], a Range.Compound with its intervals(), parsed back by Range.parse
+gaps.and(Range.parse("[5, 11)")); // [5, 7) U [10, 11)
+RngUtils.inRange(gaps, 0); // each of 1..6 and 10..12 is equally likely
+```
+
+#### `hash`
+`HashList` is an unmodifiable `List` with O(1) `contains`, `indexOf` and `lastIndexOf`, for when a list needs both order and fast lookups.
+A custom fastutil `Hash.Strategy` can be used to change how elements are compared.
+```java
+HashList<String> ci = HashList.ofCustom(CaseInsensitive.strategy(), "Alpha", "Beta");
+ci.contains("ALPHA"); // true
+```
+`CaseInsensitive` provides fastutil maps and sets with case-insensitive `String` keys that keep the original casing.
+
+#### `rng`
+`RngUtils` has shortcuts for picking random elements of arrays and collections, and random values in ranges.
+All methods use `ThreadLocalRandom` by default or accept any `RandomGenerator`.
+```java
+String color = RngUtils.randomElement(List.of("red", "green", "blue"));
+int roll = RngUtils.inRange(1, 7); // 1..6
+Duration delay = RngUtils.inRange(Duration.ofSeconds(1), Duration.ofSeconds(5));
+List<String> winners = RngUtils.randomElements(players, 3, new ArrayList<>()); // up to 3 distinct, in their original order
+RngUtils.forRandomElements(players, 3, System.out::println);
+```
+`WeightedPicker` picks elements with probability proportional to their weight. It is immutable, so one picker can be reused.
+```java
+WeightedPicker<String> loot = new WeightedPicker.Composer<String>()
+        .add("common", 9)
+        .add("rare", 1)
+        .finish();
+String drop = loot.next(RngUtils.threadRandom()); // "common" 90% of the time
+```
+Pickers can also be created from a map of weights, or from a collection with a function that computes each element's weight.
+Elements with zero or negative weight are never picked. If any element has an infinite weight, only such elements are picked.
+
+`Chance` is a reusable probability that can be tested against any `RandomGenerator`, or `ThreadLocalRandom` by default.
+```java
+Chance crit = Chance.of(0.2);
+boolean critical = crit.test(); // true 20% of the time
+Chance.of(1); // Chance.Constant.ALWAYS; 0 or less gives NEVER, 0.5 gives COIN_FLIP
+```
+
+#### `time.DurationUtils`
+Parses human-written durations like `1h 30m` into `java.time.Duration`, and formats them back.
+```java
+DurationUtils.parseDuration("1h 30m"); // Optional of 90 minutes, empty if malformed
+DurationUtils.parseDuration("90"); // no unit means seconds by default
+DurationUtils.parseDuration("1h -15m"); // each part can be negative, 45 minutes
+DurationUtils.parseDuration("2min", Map.of("min", ChronoUnit.MINUTES)); // custom units
+DurationUtils.parseDurationStrict("1h 30m"); // the Duration itself, throws IllegalArgumentException if malformed
+```
+Default units: `ns`, `ms`, `s`, `m`, `h`, `d`, case-insensitive.
+
+```java
+DurationUtils.serializeDuration(Duration.ofMinutes(90)); // "1h 30m"
+DurationUtils.serializeDuration(Duration.ofMillis(-1500)); // "-1s -500ms"
+```
+
+It also checks whether enough time has passed between two points in time.
+```java
+boolean ready = DurationUtils.hasElapsed(lastUse, Instant.now(), Duration.ofSeconds(5)); // true once 5 seconds have passed
+```
+
+#### `bool.BooleanUtils`
+Shared constant predicates and lenient `boolean` parsing.
+```java
+Predicate<Player> filter = BooleanUtils.alwaysTrue(); // or always(boolean) to pick one
+BooleanUtils.parseBoolean("TRUE"); // Boolean.TRUE, null unless true/false
+```
+
+#### `bool.TriState`
+A boolean with a third `UNSET` state, for things like "not configured" or "doesn't matter".
+Mirrors the `Optional` API: presence checks, fallbacks, `ifPresent`, `orElseThrow`.
+```java
+TriState flag = TriState.parseNatural("yes"); // TRUE
+TriState.parse("yes"); // UNSET, only true/false are recognized
+flag.asBoolean(false); // true
+TriState.UNSET.asBoolean(false); // false, the fallback
+
+// UNSET works as a wildcard filter
+TriState requireOp = TriState.UNSET;
+requireOp.isValidFor(player.isOp()); // true for any player
+```
+`TriState.parseNatural(String)` uses `TriState.Mapper.NATURAL`, which understands `true/on/yes/allow/enable` and their negatives. Anything else is `UNSET`.
+
+`TriState.Mapper` converts between states and strings with custom words.
+Each state has a main name, used when converting back to a string. `TRUE` and `FALSE` can also have extra variants that are accepted when parsing.
+Matching ignores case, and unknown strings or `null` give the fallback state (`UNSET` unless changed with `fallback(...)`).
+```java
+TriState.Mapper mapper = TriState.Mapper.builder()
+        .name(TriState.TRUE, "allow")
+        .name(TriState.FALSE, "deny")
+        .name(TriState.UNSET, "default")
+        .addVariants(true, "yes", "+")
+        .addVariants(false, "no", "-")
+        .build();
+
+mapper.parse("YES"); // TRUE
+mapper.parse("maybe"); // UNSET, the fallback
+mapper.name(TriState.FALSE); // "deny"
+mapper.strings(TriState.TRUE); // [allow, yes, +]
+```
+An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Mapper.NATURAL`.
+`build()` throws if the same word is assigned to different states.
+
+#### `Comparison`
+The result of a comparison as a constant: `BELOW`, `EQUAL` or `ABOVE`, instead of the sign of an `int`.
+```java
+Comparison.of(5, 10); // BELOW, by natural order
+Comparison.of("b", "a"); // ABOVE
+Comparison.of(String.CASE_INSENSITIVE_ORDER, "A", "a"); // EQUAL, with a comparator
+Comparison.is(7, Comparison.EQUAL, 7); // true, reads as "7 is EQUAL 7"
+Comparison.ofSignum(-42); // BELOW, for the result of compareTo or compare
+```
+
+#### `EnumUtils`
+Helpers for working with enums. Looking up a constant by name ignores case and returns a fallback when there is no match.
+```java
+EnumUtils.parseEnum("fast", Mode.SLOW); // Mode.FAST
+EnumUtils.parseEnum("warp", Mode.SLOW); // Mode.SLOW, the fallback
+EnumUtils.parseEnum("warp", Mode.class); // Optional.empty(), there is no fallback
+```
+
+#### `FluentUtils`
+Helpers to act on a value inline, without temporary variables.
+```java
+Map<String, Integer> ids = FluentUtils.peek(new HashMap<>(), map -> map.put("admin", 0));
+int length = FluentUtils.map(parameter.get("name").textValue(), String::length);
+
+String name = FluentUtils.orElse(System.getenv("USER_NAME"), "guest");
+Config config = FluentUtils.orElseGet(cachedConfig, Config::load); // load() is only called if cachedConfig is null
+
+Optional<UUID> id = FluentUtils.attempt(() -> UUID.fromString(input)); // empty if parsing throws
+UUID owner = FluentUtils.attemptOrElse(() -> UUID.fromString(input), new UUID(0, 0)); // the fallback if parsing throws
+```
+
+#### `Matchable`
+Compares objects by the values they hold. This is looser than `equals`: values written or typed differently can still match.
+```java
+Parameter.parseMap("a:1 b:'x'").matches(Parameter.parseMap("b:x  a:1")); // true, quoting, spacing and entry order are ignored
+Range.parse("[1, 2]").matches(Range.parse("[1.0, 2.0]")); // true, but equals(...) is false
+Range.parse("[1, 2]").matches(Range.parse("[1, 2)")); // false, the upper bounds differ
+```
+
+#### `TextUtils`
+Index-aware search and replace, plus `char` array counterparts of common `String` methods.
+```java
+TextUtils.replaceEach("a-b-c", "-", index -> "[" + index + "]"); // "a[1]b[3]c"
+TextUtils.findEach("1a 2a 3a", "a", index -> System.out.println(index)); // 1, 4, 7
+
+char[] chars = "key:value".toCharArray();
+int colonAt = TextUtils.indexOf(chars, ':'); // 3
+TextUtils.substring(chars, 0, colonAt); // "key"
+TextUtils.subarray(chars, colonAt + 1); // ['v', 'a', 'l', 'u', 'e']
+```
+An empty search string matches nothing.
+
+### `inkyutils-params`
 Parses compact, human-written parameter strings (commands, config values, tags) into a tree of values, lists and maps.
 
 - Values are separated by whitespace. `key:value` makes a map entry, `[...]` a list, `{...}` a nested map.
@@ -71,181 +249,6 @@ list.editList().insert(1, Parameter.ofValue("x")).remove(0).finish(); // [x b c]
 `parseMapStrict` and `parseListStrict` throw `IllegalArgumentException` on malformed input: an unterminated list, map or quote, a key without a colon, a stray closing bracket or a value nested too deep.
 Nesting depth is limited to 512, configurable via the `ink.glowing.utils.params.maxDepth` system property.
 
-### `num.NumberUtils`
-Helpers for working with numbers. Parsing returns a fallback instead of throwing on a malformed string.
-```java
-NumberUtils.parseInt("42", 0); // 42
-NumberUtils.parseInt("many", 0); // 0, the fallback
-NumberUtils.parseDouble(null, 1.5); // 1.5
-```
-There are `parseInt`, `parseLong` and `parseDouble`. Without a fallback they return an `OptionalInt`, `OptionalLong` or `OptionalDouble`.
-`parseNumber` returns the narrowest of `Integer`, `Long` and `Double` that holds a plain decimal number, like `12`, `9999999999` or `6.5`.
-
-### `num.Range`
-A range of numbers.
-```java
-Range.Interval dice = Range.of(Bound.inclusive(1), Bound.exclusive(7)); // [1, 7), Bound.infinite() leaves a side unbounded
-dice.contains(7); // false
-dice.max().inclusive(); // false, the upper bound is Bound.OfLong 7; effectiveInt(true) gives 6, the largest int below it
-RngUtils.inRange(dice, 0); // 1..6, the fallback is for a range without such values
-Range.Interval ratio = Range.Interval.parse("(0, 2.5]"); // an empty bound like in [1, ) is unbounded
-Range.parse("[1, x]"); // Range.EMPTY, like any range without numbers between its bounds, such as [7, 1]; see isEmpty()
-Range gaps = dice.or(Range.parse("[10, 12]")); // [1, 7) U [10, 12], a Range.Compound with its intervals(), parsed back by Range.parse
-gaps.and(Range.parse("[5, 11)")); // [5, 7) U [10, 11)
-RngUtils.inRange(gaps, 0); // each of 1..6 and 10..12 is equally likely
-```
-
-### `hash`
-`HashList` is an unmodifiable `List` with O(1) `contains`, `indexOf` and `lastIndexOf`, for when a list needs both order and fast lookups.
-A custom fastutil `Hash.Strategy` can be used to change how elements are compared.
-```java
-HashList<String> ci = HashList.ofCustom(CaseInsensitive.strategy(), "Alpha", "Beta");
-ci.contains("ALPHA"); // true
-```
-`CaseInsensitive` provides fastutil maps and sets with case-insensitive `String` keys that keep the original casing.
-
-### `rng`
-`RngUtils` has shortcuts for picking random elements of arrays and collections, and random values in ranges.
-All methods use `ThreadLocalRandom` by default or accept any `RandomGenerator`.
-```java
-String color = RngUtils.randomElement(List.of("red", "green", "blue"));
-int roll = RngUtils.inRange(1, 7); // 1..6
-Duration delay = RngUtils.inRange(Duration.ofSeconds(1), Duration.ofSeconds(5));
-List<String> winners = RngUtils.randomElements(players, 3, new ArrayList<>()); // up to 3 distinct, in their original order
-RngUtils.forRandomElements(players, 3, System.out::println);
-```
-`WeightedPicker` picks elements with probability proportional to their weight. It is immutable, so one picker can be reused.
-```java
-WeightedPicker<String> loot = new WeightedPicker.Composer<String>()
-        .add("common", 9)
-        .add("rare", 1)
-        .finish();
-String drop = loot.next(RngUtils.threadRandom()); // "common" 90% of the time
-```
-Pickers can also be created from a map of weights, or from a collection with a function that computes each element's weight.
-Elements with zero or negative weight are never picked. If any element has an infinite weight, only such elements are picked.
-
-`Chance` is a reusable probability that can be tested against any `RandomGenerator`, or `ThreadLocalRandom` by default.
-```java
-Chance crit = Chance.of(0.2);
-boolean critical = crit.test(); // true 20% of the time
-Chance.of(1); // Chance.Constant.ALWAYS; 0 or less gives NEVER, 0.5 gives COIN_FLIP
-```
-
-### `time.DurationUtils`
-Parses human-written durations like `1h 30m` into `java.time.Duration`, and formats them back.
-```java
-DurationUtils.parseDuration("1h 30m"); // Optional of 90 minutes, empty if malformed
-DurationUtils.parseDuration("90"); // no unit means seconds by default
-DurationUtils.parseDuration("1h -15m"); // each part can be negative, 45 minutes
-DurationUtils.parseDuration("2min", Map.of("min", ChronoUnit.MINUTES)); // custom units
-DurationUtils.parseDurationStrict("1h 30m"); // the Duration itself, throws IllegalArgumentException if malformed
-```
-Default units: `ns`, `ms`, `s`, `m`, `h`, `d`, case-insensitive.
-
-```java
-DurationUtils.serializeDuration(Duration.ofMinutes(90)); // "1h 30m"
-DurationUtils.serializeDuration(Duration.ofMillis(-1500)); // "-1s -500ms"
-```
-
-It also checks whether enough time has passed between two points in time.
-```java
-boolean ready = DurationUtils.hasElapsed(lastUse, Instant.now(), Duration.ofSeconds(5)); // true once 5 seconds have passed
-```
-
-### `bool.BooleanUtils`
-Shared constant predicates and lenient `boolean` parsing.
-```java
-Predicate<Player> filter = BooleanUtils.alwaysTrue(); // or always(boolean) to pick one
-BooleanUtils.parseBoolean("TRUE"); // Boolean.TRUE, null unless true/false
-```
-
-### `bool.TriState`
-A boolean with a third `UNSET` state, for things like "not configured" or "doesn't matter".
-Mirrors the `Optional` API: presence checks, fallbacks, `ifPresent`, `orElseThrow`.
-```java
-TriState flag = TriState.parseNatural("yes"); // TRUE
-TriState.parse("yes"); // UNSET, only true/false are recognized
-flag.asBoolean(false); // true
-TriState.UNSET.asBoolean(false); // false, the fallback
-
-// UNSET works as a wildcard filter
-TriState requireOp = TriState.UNSET;
-requireOp.isValidFor(player.isOp()); // true for any player
-```
-`TriState.parseNatural(String)` uses `TriState.Mapper.NATURAL`, which understands `true/on/yes/allow/enable` and their negatives. Anything else is `UNSET`.
-
-`TriState.Mapper` converts between states and strings with custom words.
-Each state has a main name, used when converting back to a string. `TRUE` and `FALSE` can also have extra variants that are accepted when parsing.
-Matching ignores case, and unknown strings or `null` give the fallback state (`UNSET` unless changed with `fallback(...)`).
-```java
-TriState.Mapper mapper = TriState.Mapper.builder()
-        .name(TriState.TRUE, "allow")
-        .name(TriState.FALSE, "deny")
-        .name(TriState.UNSET, "default")
-        .addVariants(true, "yes", "+")
-        .addVariants(false, "no", "-")
-        .build();
-
-mapper.parse("YES"); // TRUE
-mapper.parse("maybe"); // UNSET, the fallback
-mapper.name(TriState.FALSE); // "deny"
-mapper.strings(TriState.TRUE); // [allow, yes, +]
-```
-An existing mapper can be extended with `toBuilder()`, e.g. to add words to `Mapper.NATURAL`.
-`build()` throws if the same word is assigned to different states.
-
-### `Comparison`
-The result of a comparison as a constant: `BELOW`, `EQUAL` or `ABOVE`, instead of the sign of an `int`.
-```java
-Comparison.of(5, 10); // BELOW, by natural order
-Comparison.of("b", "a"); // ABOVE
-Comparison.of(String.CASE_INSENSITIVE_ORDER, "A", "a"); // EQUAL, with a comparator
-Comparison.is(7, Comparison.EQUAL, 7); // true, reads as "7 is EQUAL 7"
-Comparison.ofSignum(-42); // BELOW, for the result of compareTo or compare
-```
-
-### `EnumUtils`
-Helpers for working with enums. Looking up a constant by name ignores case and returns a fallback when there is no match.
-```java
-EnumUtils.parseEnum("fast", Mode.SLOW); // Mode.FAST
-EnumUtils.parseEnum("warp", Mode.SLOW); // Mode.SLOW, the fallback
-EnumUtils.parseEnum("warp", Mode.class); // Optional.empty(), there is no fallback
-```
-
-### `FluentUtils`
-Helpers to act on a value inline, without temporary variables.
-```java
-Map<String, Integer> ids = FluentUtils.peek(new HashMap<>(), map -> map.put("admin", 0));
-int length = FluentUtils.map(parameter.get("name").textValue(), String::length);
-
-String name = FluentUtils.orElse(System.getenv("USER_NAME"), "guest");
-Config config = FluentUtils.orElseGet(cachedConfig, Config::load); // load() is only called if cachedConfig is null
-
-Optional<UUID> id = FluentUtils.attempt(() -> UUID.fromString(input)); // empty if parsing throws
-UUID owner = FluentUtils.attemptOrElse(() -> UUID.fromString(input), new UUID(0, 0)); // the fallback if parsing throws
-```
-
-### `Matchable`
-Compares objects by the values they hold. This is looser than `equals`: values written or typed differently can still match.
-```java
-Parameter.parseMap("a:1 b:'x'").matches(Parameter.parseMap("b:x  a:1")); // true, quoting, spacing and entry order are ignored
-Range.parse("[1, 2]").matches(Range.parse("[1.0, 2.0]")); // true, but equals(...) is false
-Range.parse("[1, 2]").matches(Range.parse("[1, 2)")); // false, the upper bounds differ
-```
-
-### `TextUtils`
-Index-aware search and replace, plus `char` array counterparts of common `String` methods.
-```java
-TextUtils.replaceEach("a-b-c", "-", index -> "[" + index + "]"); // "a[1]b[3]c"
-TextUtils.findEach("1a 2a 3a", "a", index -> System.out.println(index)); // 1, 4, 7
-
-char[] chars = "key:value".toCharArray();
-int colonAt = TextUtils.indexOf(chars, ':'); // 3
-TextUtils.substring(chars, 0, colonAt); // "key"
-TextUtils.subarray(chars, colonAt + 1); // ['v', 'a', 'l', 'u', 'e']
-```
-An empty search string matches nothing.
 
 ## Get it ![Version](https://img.shields.io/github/v/tag/GlowingInk/InkyUtils?sort=semver&style=flat&label=release)
 Versions in dependency sections may be outdated. Check the badge above for the latest one.
@@ -255,6 +258,7 @@ Versions in dependency sections may be outdated. Check the badge above for the l
 The library is split into two artifacts:
 - `inkyutils-common` - everything except `params`.
 - `inkyutils-params` - `params`, pulls in `inkyutils-common`.
+
 ### Maven
 Add to repositories
 ```xml
