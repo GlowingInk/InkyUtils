@@ -210,7 +210,8 @@ public sealed interface Bound extends Matchable<Bound> permits Bound.OfLong, Bou
 
         @Override
         public long effectiveLong(boolean upper) {
-            return inclusive ? value : upper ? value - 1 : value + 1;
+            if (inclusive) return value;
+            return upper ? value - 1 : value + 1;
         }
 
         @Override
