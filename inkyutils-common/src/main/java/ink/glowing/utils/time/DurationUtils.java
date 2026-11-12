@@ -105,21 +105,6 @@ public final class DurationUtils {
     }
 
     /**
-     * Parses a duration using the given unit suffixes, rejecting invalid input.
-     * @param input the string to parse
-     * @param units the unit suffixes; lookup follows the map's own key comparison
-     * @return the sum of all parts
-     * @throws IllegalArgumentException if the input is invalid
-     * @throws NumberFormatException if a part's number does not fit in a {@code long}
-     * @throws ArithmeticException if the total duration overflows
-     * @see #parseDurationStrict(String, Function)
-     */
-    @Contract(pure = true)
-    public static @NotNull Duration parseDurationStrict(@NotNull String input, @NotNull Map<String, ? extends TemporalUnit> units) {
-        return parseDurationStrict(input, units::get);
-    }
-
-    /**
      * Parses a duration from whitespace-separated parts, each an integer followed by
      * an optional unit suffix, and sums them. Blank input gives {@link Duration#ZERO}.
      * A part with a leading {@code -} is negative.

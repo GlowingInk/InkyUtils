@@ -47,9 +47,9 @@ public class DurationUtilsTest {
         Map<String, TemporalUnit> units = Map.of("sec", ChronoUnit.SECONDS, "min", ChronoUnit.MINUTES, "", ChronoUnit.HOURS);
         assertEquals(
                 Duration.ofHours(1).plus(Duration.ofMinutes(1)).plus(Duration.ofSeconds(30)),
-                DurationUtils.parseDurationStrict("1 1min 30sec", units)
+                DurationUtils.parseDurationStrict("1 1min 30sec", units::get)
         );
-        assertThrows(IllegalArgumentException.class, () -> DurationUtils.parseDurationStrict("1m", units));
+        assertThrows(IllegalArgumentException.class, () -> DurationUtils.parseDurationStrict("1m", units::get));
     }
 
     @ParameterizedTest
